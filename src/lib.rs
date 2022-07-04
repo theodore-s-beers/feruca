@@ -1,4 +1,10 @@
+//! This crate provides a basic implementation of the Unicode Collation Algorithm. There is really
+//! just one function, `collate`, and a few options that can be passed to it. But the implementation
+//! conforms to the standard and allows for the use of the CLDR root collation order; so it may
+//! indeed be useful, even in this preliminary state.
+
 #![warn(clippy::pedantic, clippy::cargo)]
+#![deny(missing_docs)]
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -15,8 +21,14 @@ use unicode_normalization::UnicodeNormalization;
 // Structs etc.
 //
 
+/// This struct specifies the options to be passed to the `collate` function. You can choose between
+/// two tables (DUCET and CLDR), and between two approaches to the handling of variable-weight
+/// characters ("non-ignorable" and "shifted").
 pub struct CollationOptions {
+    /// The table of weights to be used (currently either DUCET or CLDR)
     pub keys_source: KeysSource,
+    /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
+    /// purposes, `shifting` is either true (recommended) or false.
     pub shifting: bool,
 }
 
@@ -29,9 +41,12 @@ impl Default for CollationOptions {
     }
 }
 
+/// This enum provides for a choice of which table of character weights to use.
 #[derive(PartialEq, Eq)]
 pub enum KeysSource {
+    /// The table associated with the CLDR root collation order (recommended)
     Cldr,
+    /// The default table for the Unicode Collation Algorithm
     Ducet,
 }
 
@@ -63,7 +78,9 @@ static ALLKEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
 // Functions
 //
 
-// This is the only public function
+/// This is, so far, the only public function in the library. It accepts as arguments two string
+/// references and a `CollationOptions` struct. It returns an `Ordering` value. This is designed to
+/// be used in conjunction with the `sort_by` function in the standard library.
 #[must_use]
 pub fn collate(str_1: &str, str_2: &str, options: &CollationOptions) -> Ordering {
     let sort_key_1 = str_to_sort_key(str_1, options);
