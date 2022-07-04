@@ -12,16 +12,46 @@ For many people and use cases, UCA sorting will not work properly without being 
 use feruca::{collate, CollationOptions};
 
 fn main() {
-    let mut uca = ["چنگیز", "Éloi", "Melissa", "صدام", "Mélissa", "Elrond"];
-    let mut naive = uca.clone();
+    let mut uca = [
+        "چنگیز",
+        "Éloi",
+        "Ötzi",
+        "Melissa",
+        "صدام",
+        "Mélissa",
+        "Overton",
+        "Elrond",
+    ];
+
+    let mut naive = uca;
 
     uca.sort_by(|a, b| collate(a, b, &CollationOptions::default()));
     naive.sort();
 
-    println!("{:?}", uca);
-    // ["Éloi", "Elrond", "Melissa", "Mélissa", "چنگیز", "صدام"]
+    for item in uca {
+        println!("{}", item);
+    }
+    // Éloi
+    // Elrond
+    // Melissa
+    // Mélissa
+    // Ötzi
+    // Overton
+    // چنگیز
+    // صدام
 
-    println!("{:?}", naive);
-    // ["Elrond", "Melissa", "Mélissa", "Éloi", "صدام", "چنگیز"]
+    println!();
+
+    for item in naive {
+        println!("{}", item);
+    }
+    // Elrond
+    // Melissa
+    // Mélissa
+    // Overton
+    // Éloi
+    // Ötzi
+    // صدام
+    // چنگیز
 }
 ```
