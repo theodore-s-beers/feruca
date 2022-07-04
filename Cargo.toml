@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 authors = ["Theo Beers <theo.beers@fu-berlin.de>"]
+repository = "https://github.com/theodore-s-beers/feruca"
+description = "An implementation of the Unicode Collation Algorithm"
+keywords = ["Unicode", "collation", "sorting"]
+categories = ["algorithms", "internationalization", "text-processing"]
 
 [dependencies]
 bincode = "1.3.3"
