@@ -2,8 +2,7 @@
 
 feruca is a basic implementation of the
 [Unicode Collation Algorithm](https://unicode.org/reports/tr10/) in 100% safe
-Rust. (One unsafe standard library function, `char::from_u32_unchecked`, is used
-for testing—but only for testing!) The name of the library is a portmanteau of
+Rust (outside of the tests module). The name of the library is a portmanteau of
 Ferris 🦀 and UCA.
 
 I mean a few things by "basic implementation." First, I don't expect that this
