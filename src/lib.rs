@@ -89,7 +89,7 @@ pub fn collate(str_1: &str, str_2: &str, options: &CollationOptions) -> Ordering
     let comparison = compare_sort_keys(&sort_key_1, &sort_key_2);
 
     if comparison == Ordering::Equal {
-        // Fallback
+        // Tiebreaker
         return str_1.cmp(str_2);
     }
 
@@ -119,10 +119,7 @@ fn str_to_sort_key(input: &str, options: &CollationOptions) -> Vec<u16> {
 }
 
 fn get_char_values(input: &str) -> Vec<u32> {
-    UnicodeNormalization::nfd(input)
-        .into_iter()
-        .map(|c| c as u32)
-        .collect()
+    UnicodeNormalization::nfd(input).map(|c| c as u32).collect()
 }
 
 fn get_sort_key(collation_element_array: &[Vec<u16>], shifting: bool) -> Vec<u16> {
@@ -164,8 +161,8 @@ fn get_collation_element_array(
     let mut last_variable = false;
 
     'outer: while left < char_values.len() {
-        // If left <= 3_200 (0C80), only need to look one ahead
-        let lookahead: usize = if char_values[left] <= 3_200 { 2 } else { 3 };
+        // If left < 3_200 (0C80), only need to look one ahead
+        let lookahead: usize = if char_values[left] < 3_200 { 2 } else { 3 };
 
         // But don't look past the end of the vec
         let mut right = if left + lookahead > char_values.len() {
@@ -212,6 +209,7 @@ fn get_collation_element_array(
                     for elem in interest_cohort {
                         let ccc = get_ccc(char::from_u32(*elem).unwrap());
                         if ccc == CanonicalCombiningClass::NotReordered || ccc <= max_ccc {
+                            // Decrement and continue
                             // Can also forget about try_two in this case
                             try_two = false;
                             max_right -= 1;
@@ -348,12 +346,6 @@ fn get_collation_element_array(
         // Time for implicit weights...
 
         let problem_val = char_values[left];
-        // In testing, but only in testing, we need the unsafe method here
-        let problem_char = if cfg!(test) {
-            unsafe { char::from_u32_unchecked(problem_val) }
-        } else {
-            char::from_u32(problem_val).unwrap()
-        };
 
         #[allow(clippy::manual_range_contains)]
         let mut aaaa = match problem_val {
@@ -386,7 +378,18 @@ fn get_collation_element_array(
         };
 
         // The above ranges apparently include the occasional unassigned code point. I'm not sure
-        // how to fix that, other than by adding an extra check
+        // how to fix that, other than by adding an extra check. But it would be very desirable to
+        // avoid the following routine.
+
+        // First we get the actual char. In testing, but only in testing, we need the unsafe
+        // function for this.
+        let problem_char = if cfg!(test) {
+            unsafe { char::from_u32_unchecked(problem_val) }
+        } else {
+            char::from_u32(problem_val).unwrap()
+        };
+
+        // Then check for assignment...
         if !is_public_assigned(problem_char) {
             aaaa = 64_448 + (problem_val >> 15);
             bbbb = problem_val & 32_767;
@@ -439,8 +442,8 @@ mod tests {
 
             for s in hex_values {
                 let val = u32::from_str_radix(s, 16).unwrap();
-                // We have to use an unsafe method for the conformance tests because they
-                // deliberately introduce invalid character values
+                // We have to use an unsafe function for the conformance tests because they
+                // deliberately introduce invalid character values.
                 let c = unsafe { std::char::from_u32_unchecked(val) };
                 test_string.push(c);
             }
