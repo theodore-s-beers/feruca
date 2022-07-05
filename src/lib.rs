@@ -63,13 +63,13 @@ struct Weights {
 //
 
 static ALLKEYS: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
-    let data = include_bytes!("allkeys_bincode");
+    let data = include_bytes!("bincode/allkeys_14");
     let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(&data[..]).unwrap();
     decoded
 });
 
 static ALLKEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
-    let data = include_bytes!("allkeys_cldr_bincode");
+    let data = include_bytes!("bincode/allkeys_cldr_14");
     let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(&data[..]).unwrap();
     decoded
 });
