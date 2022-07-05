@@ -11,9 +11,7 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 use serde::Deserialize;
-use unicode_canonical_combining_class::{
-    get_canonical_combining_class as get_ccc, CanonicalCombiningClass,
-};
+use unicode_canonical_combining_class::get_canonical_combining_class as get_ccc;
 use unicode_normalization::char::is_public_assigned;
 use unicode_normalization::UnicodeNormalization;
 
@@ -204,11 +202,11 @@ fn get_collation_element_array(
                     // The CCCs also have to be increasing, apparently...
 
                     let interest_cohort = &char_values[right..=max_right];
-                    let mut max_ccc = CanonicalCombiningClass::NotReordered;
+                    let mut max_ccc = 0;
 
                     for elem in interest_cohort {
-                        let ccc = get_ccc(char::from_u32(*elem).unwrap());
-                        if ccc == CanonicalCombiningClass::NotReordered || ccc <= max_ccc {
+                        let ccc = get_ccc(char::from_u32(*elem).unwrap()) as u8;
+                        if ccc == 0 || ccc <= max_ccc {
                             // Decrement and continue
                             // Can also forget about try_two in this case
                             try_two = false;
