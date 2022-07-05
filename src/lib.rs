@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use unicode_canonical_combining_class::get_canonical_combining_class as get_ccc;
-use unicode_normalization::char::is_public_assigned;
 use unicode_normalization::UnicodeNormalization;
 
 //
@@ -375,20 +374,14 @@ fn get_collation_element_array(
             _ => problem_val & 32_767,                               //      unass.
         };
 
-        // The above ranges apparently include the occasional unassigned code point. I'm not sure
-        // how to fix that, other than by adding an extra check. But it would be very desirable to
-        // avoid the following routine.
+        // One of the above ranges seems to include some unassigned code points. In order to pass
+        // the conformance tests, I'm adding an extra check here. This doesn't feel like a good way
+        // of dealing with the problem, but I haven't yet found a better approach that doesn't come
+        // with its own downsides.
 
-        // First we get the actual char. In testing, but only in testing, we need the unsafe
-        // function for this.
-        let problem_char = if cfg!(test) {
-            unsafe { char::from_u32_unchecked(problem_val) }
-        } else {
-            char::from_u32(problem_val).unwrap()
-        };
+        let included_unassigned = [177_977, 178_206, 183_970, 191_457];
 
-        // Then check for assignment...
-        if !is_public_assigned(problem_char) {
+        if included_unassigned.contains(&problem_val) {
             aaaa = 64_448 + (problem_val >> 15);
             bbbb = problem_val & 32_767;
         }
