@@ -72,6 +72,12 @@ static ALLKEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
     decoded
 });
 
+const NEED_THREE: [u32; 12] = [
+    3_266, 3_270, 3_285, 3_530, 3_535, 3_545, 3_953, 3_953, 3_968, 3_968, 4_018, 4_019,
+];
+
+const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
+
 //
 // Functions
 //
@@ -175,8 +181,17 @@ fn get_collation_element_array(
     let mut last_variable = false;
 
     'outer: while left < char_values.len() {
-        // If left < 3_200 (0C80), only need to look one ahead
-        let lookahead: usize = if char_values[left] < 3_200 { 2 } else { 3 };
+        let left_val = char_values[left];
+
+        // Set lookahead depending on left_val. Default is 2; there is a handful of cases where we
+        // need 3; and there are a few large ranges where we need only 1.
+        let lookahead: usize = match left_val {
+            x if NEED_THREE.contains(&x) => 3,
+            x if x > 4_142 && x < 6_528 => 1,
+            x if x > 6_978 && x < 43_648 => 1,
+            x if x > 43_708 && x < 69_927 => 1,
+            _ => 2,
+        };
 
         // But don't look past the end of the vec
         let mut right = if left + lookahead > char_values.len() {
@@ -359,36 +374,34 @@ fn get_collation_element_array(
         // By now, we're looking for just one value, and it isn't in the table
         // Time for implicit weights...
 
-        let problem_val = char_values[left];
-
         #[allow(clippy::manual_range_contains)]
-        let mut aaaa = match problem_val {
-            x if x >= 13_312 && x <= 19_903 => 64_384 + (problem_val >> 15), //     CJK2
-            x if x >= 19_968 && x <= 40_959 => 64_320 + (problem_val >> 15), //     CJK1
-            x if x >= 63_744 && x <= 64_255 => 64_320 + (problem_val >> 15), //     CJK1
-            x if x >= 94_208 && x <= 101_119 => 64_256,                      //     Tangut
-            x if x >= 101_120 && x <= 101_631 => 64_258,                     //     Khitan
-            x if x >= 101_632 && x <= 101_775 => 64_256,                     //     Tangut
-            x if x >= 110_960 && x <= 111_359 => 64_257,                     //     Nushu
-            x if x >= 131_072 && x <= 173_791 => 64_384 + (problem_val >> 15), //   CJK2
-            x if x >= 173_824 && x <= 191_471 => 64_384 + (problem_val >> 15), //   CJK2
-            x if x >= 196_608 && x <= 201_551 => 64_384 + (problem_val >> 15), //   CJK2
-            _ => 64_448 + (problem_val >> 15),                               //     unass.
+        let mut aaaa = match left_val {
+            x if x >= 13_312 && x <= 19_903 => 64_384 + (left_val >> 15), //     CJK2
+            x if x >= 19_968 && x <= 40_959 => 64_320 + (left_val >> 15), //     CJK1
+            x if x >= 63_744 && x <= 64_255 => 64_320 + (left_val >> 15), //     CJK1
+            x if x >= 94_208 && x <= 101_119 => 64_256,                   //     Tangut
+            x if x >= 101_120 && x <= 101_631 => 64_258,                  //     Khitan
+            x if x >= 101_632 && x <= 101_775 => 64_256,                  //     Tangut
+            x if x >= 110_960 && x <= 111_359 => 64_257,                  //     Nushu
+            x if x >= 131_072 && x <= 173_791 => 64_384 + (left_val >> 15), //   CJK2
+            x if x >= 173_824 && x <= 191_471 => 64_384 + (left_val >> 15), //   CJK2
+            x if x >= 196_608 && x <= 201_551 => 64_384 + (left_val >> 15), //   CJK2
+            _ => 64_448 + (left_val >> 15),                               //     unass.
         };
 
         #[allow(clippy::manual_range_contains)]
-        let mut bbbb = match problem_val {
-            x if x >= 13_312 && x <= 19_903 => problem_val & 32_767, //      CJK2
-            x if x >= 19_968 && x <= 40_959 => problem_val & 32_767, //      CJK1
-            x if x >= 63_744 && x <= 64_255 => problem_val & 32_767, //      CJK1
-            x if x >= 94_208 && x <= 101_119 => problem_val - 94_208, //     Tangut
-            x if x >= 101_120 && x <= 101_631 => problem_val - 101_120, //   Khitan
-            x if x >= 101_632 && x <= 101_775 => problem_val - 94_208, //    Tangut
-            x if x >= 110_960 && x <= 111_359 => problem_val - 110_960, //   Nushu
-            x if x >= 131_072 && x <= 173_791 => problem_val & 32_767, //    CJK2
-            x if x >= 173_824 && x <= 191_471 => problem_val & 32_767, //    CJK2
-            x if x >= 196_608 && x <= 201_551 => problem_val & 32_767, //    CJK2
-            _ => problem_val & 32_767,                               //      unass.
+        let mut bbbb = match left_val {
+            x if x >= 13_312 && x <= 19_903 => left_val & 32_767, //      CJK2
+            x if x >= 19_968 && x <= 40_959 => left_val & 32_767, //      CJK1
+            x if x >= 63_744 && x <= 64_255 => left_val & 32_767, //      CJK1
+            x if x >= 94_208 && x <= 101_119 => left_val - 94_208, //     Tangut
+            x if x >= 101_120 && x <= 101_631 => left_val - 101_120, //   Khitan
+            x if x >= 101_632 && x <= 101_775 => left_val - 94_208, //    Tangut
+            x if x >= 110_960 && x <= 111_359 => left_val - 110_960, //   Nushu
+            x if x >= 131_072 && x <= 173_791 => left_val & 32_767, //    CJK2
+            x if x >= 173_824 && x <= 191_471 => left_val & 32_767, //    CJK2
+            x if x >= 196_608 && x <= 201_551 => left_val & 32_767, //    CJK2
+            _ => left_val & 32_767,                               //      unass.
         };
 
         // One of the above ranges seems to include some unassigned code points. In order to pass
@@ -396,11 +409,9 @@ fn get_collation_element_array(
         // of dealing with the problem, but I haven't yet found a better approach that doesn't come
         // with its own downsides.
 
-        let included_unassigned = [177_977, 178_206, 183_970, 191_457];
-
-        if included_unassigned.contains(&problem_val) {
-            aaaa = 64_448 + (problem_val >> 15);
-            bbbb = problem_val & 32_767;
+        if INCLUDED_UNASSIGNED.contains(&left_val) {
+            aaaa = 64_448 + (left_val >> 15);
+            bbbb = left_val & 32_767;
         }
 
         // BBBB always gets bitwise ORed with this value
