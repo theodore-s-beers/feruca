@@ -79,15 +79,15 @@ static ALLKEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
 /// references and a `CollationOptions` struct. It returns an `Ordering` value. This is designed to
 /// be used in conjunction with the `sort_by` function in the standard library.
 #[must_use]
-pub fn collate(str_1: &str, str_2: &str, options: &CollationOptions) -> Ordering {
-    let sort_key_1 = str_to_sort_key(str_1, options);
-    let sort_key_2 = str_to_sort_key(str_2, options);
+pub fn collate(str_a: &str, str_b: &str, options: &CollationOptions) -> Ordering {
+    let sort_key_1 = str_to_sort_key(str_a, options);
+    let sort_key_2 = str_to_sort_key(str_b, options);
 
     let comparison = compare_sort_keys(&sort_key_1, &sort_key_2);
 
     if comparison == Ordering::Equal {
         // Tiebreaker
-        return str_1.cmp(str_2);
+        return str_a.cmp(str_b);
     }
 
     comparison
@@ -193,7 +193,7 @@ fn get_collation_element_array(
                     right
                 };
 
-                let mut try_two = max_right == right + 2 && cldr;
+                let mut try_two = max_right - right == 2 && cldr;
 
                 'inner: while max_right > right {
                     // We verify that all chars in the range right..=max_right are non-starters
