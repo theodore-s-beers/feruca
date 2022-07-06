@@ -1,7 +1,7 @@
 //! This crate provides a basic implementation of the Unicode Collation Algorithm. There is really
 //! just one function, `collate`, and a few options that can be passed to it. But the implementation
 //! conforms to the standard and allows for the use of the CLDR root collation order; so it may
-//! indeed be useful, even in this preliminary state.
+//! indeed be useful, even in this early stage of development.
 
 #![warn(clippy::pedantic, clippy::cargo)]
 #![deny(missing_docs)]
@@ -19,8 +19,9 @@ use unicode_normalization::UnicodeNormalization;
 //
 
 /// This struct specifies the options to be passed to the `collate` function. You can choose between
-/// two tables (DUCET and CLDR), and between two approaches to the handling of variable-weight
-/// characters ("non-ignorable" and "shifted").
+/// two tables (DUCET and CLDR root), and between two approaches to the handling of variable-weight
+/// characters ("non-ignorable" and "shifted"). The default, and a good starting point for Unicode
+/// collation, is to use the CLDR table with the "shifted" approach.
 pub struct CollationOptions {
     /// The table of weights to be used (currently either DUCET or CLDR)
     pub keys_source: KeysSource,
@@ -77,7 +78,23 @@ static ALLKEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
 
 /// This is, so far, the only public function in the library. It accepts as arguments two string
 /// references and a `CollationOptions` struct. It returns an `Ordering` value. This is designed to
-/// be used in conjunction with the `sort_by` function in the standard library.
+/// be used in conjunction with the `sort_by` function in the standard library. Simple usage might
+/// look like the following...
+///
+/// ```
+/// use feruca::{collate, CollationOptions};
+///
+/// let mut names = ["Peng", "Peña", "Ernie", "Émile"];
+/// names.sort_by(|a, b| collate(a, b, &CollationOptions::default()));
+///
+/// let expected = ["Émile", "Ernie", "Peña", "Peng"];
+/// assert_eq!(names, expected);
+/// ```
+///
+/// Significantly, in the event that two strings are ordered equally per the Unicode Collation
+/// Algorithm, this function will use byte-value comparison (i.e., the traditional, naïve way of
+/// sorting strings) as a tiebreaker. A `collate_no_tiebreak` function may be added in the future,
+/// if there is demand for it.
 #[must_use]
 pub fn collate(str_a: &str, str_b: &str, options: &CollationOptions) -> Ordering {
     let sort_key_1 = str_to_sort_key(str_a, options);
