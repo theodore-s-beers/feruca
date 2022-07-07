@@ -72,8 +72,14 @@ static ALLKEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
     decoded
 });
 
-const NEED_THREE: [u32; 12] = [
-    3_266, 3_270, 3_285, 3_530, 3_535, 3_545, 3_953, 3_953, 3_968, 3_968, 4_018, 4_019,
+const NEED_THREE: [u32; 4] = [3_270, 3_545, 4_018, 4_019];
+
+const NEED_TWO: [u32; 63] = [
+    76, 108, 1_048, 1_080, 1_575, 1_608, 1_610, 2_503, 2_887, 2_962, 3_014, 3_015, 3_142, 3_263,
+    3_270, 3_274, 3_398, 3_399, 3_545, 3_548, 3_648, 3_649, 3_650, 3_651, 3_652, 3_661, 3_776,
+    3_777, 3_778, 3_779, 3_780, 3_789, 3_953, 4_018, 4_019, 4_133, 6_581, 6_582, 6_583, 6_586,
+    6_917, 6_919, 6_921, 6_923, 6_925, 6_929, 6_970, 6_972, 6_974, 6_975, 6_978, 43_701, 43_702,
+    43_705, 43_707, 43_708, 69_937, 69_938, 70_471, 70_841, 71_096, 71_097, 71_989,
 ];
 
 const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
@@ -183,14 +189,12 @@ fn get_collation_element_array(
     'outer: while left < char_values.len() {
         let left_val = char_values[left];
 
-        // Set lookahead depending on left_val. Default is 2; there is a handful of cases where we
-        // need 3; and there are a few large ranges where we need only 1.
+        // Set lookahead depending on left_val. We need 3 in a few cases; 2 in several dozen cases;
+        // and 1 otherwise.
         let lookahead: usize = match left_val {
             x if NEED_THREE.contains(&x) => 3,
-            x if x > 4_142 && x < 6_528 => 1,
-            x if x > 6_978 && x < 43_648 => 1,
-            x if x > 43_708 && x < 69_927 => 1,
-            _ => 2,
+            x if NEED_TWO.contains(&x) => 2,
+            _ => 1,
         };
 
         // But don't look past the end of the vec
