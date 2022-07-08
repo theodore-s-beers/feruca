@@ -57,18 +57,31 @@ struct Weights {
 }
 
 //
-// Consts
+// Static/const
 //
 
-static ALLKEYS: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
-    let data = include_bytes!("bincode/allkeys_14");
-    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(&data[..]).unwrap();
+static SINGLES: &[u8; 662_610] = include_bytes!("bincode/singles");
+static MULTIS: &[u8; 35_328] = include_bytes!("bincode/multis");
+static SINGLES_CLDR: &[u8; 662_466] = include_bytes!("bincode/singles_cldr");
+static MULTIS_CLDR: &[u8; 35_724] = include_bytes!("bincode/multis_cldr");
+
+static S_KEYS: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
+    let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(SINGLES).unwrap();
     decoded
 });
 
-static ALLKEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
-    let data = include_bytes!("bincode/allkeys_cldr_14");
-    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(&data[..]).unwrap();
+static M_KEYS: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
+    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(MULTIS).unwrap();
+    decoded
+});
+
+static S_KEYS_CLDR: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
+    let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(SINGLES_CLDR).unwrap();
+    decoded
+});
+
+static M_KEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
+    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(MULTIS_CLDR).unwrap();
     decoded
 });
 
@@ -85,7 +98,7 @@ const NEED_TWO: [u32; 59] = [
 const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
 
 //
-// Functions
+// Functions, public
 //
 
 /// This is, so far, the only public function in the library. It accepts as arguments two string
@@ -109,10 +122,24 @@ const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
 /// if there is demand for it.
 #[must_use]
 pub fn collate(str_a: &str, str_b: &str, options: &CollationOptions) -> Ordering {
-    let sort_key_1 = str_to_sort_key(str_a, options);
-    let sort_key_2 = str_to_sort_key(str_b, options);
+    // Early out
+    if str_a == str_b {
+        return Ordering::Equal;
+    }
 
-    let comparison = compare_sort_keys(&sort_key_1, &sort_key_2);
+    let a_nfd = get_nfd(str_a);
+    let b_nfd = get_nfd(str_b);
+
+    // I think it's worth offering an out here, too, in case two strings decompose to the same
+    if a_nfd == b_nfd {
+        // Tiebreaker
+        return str_a.cmp(str_b);
+    }
+
+    let a_sort_key = nfd_to_sk(a_nfd, options);
+    let b_sort_key = nfd_to_sk(b_nfd, options);
+
+    let comparison = compare_sort_keys(&a_sort_key, &b_sort_key);
 
     if comparison == Ordering::Equal {
         // Tiebreaker
@@ -122,10 +149,14 @@ pub fn collate(str_a: &str, str_b: &str, options: &CollationOptions) -> Ordering
     comparison
 }
 
-fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
-    let min_sort_key_length = a.len().min(b.len());
+//
+// Functions, private
+//
 
-    for i in 0..min_sort_key_length {
+fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
+    let min_length = a.len().min(b.len());
+
+    for i in 0..min_length {
         if a[i] < b[i] {
             return Ordering::Less;
         }
@@ -138,14 +169,13 @@ fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
     Ordering::Equal
 }
 
-fn str_to_sort_key(input: &str, options: &CollationOptions) -> Vec<u16> {
-    let char_values = get_char_values(input);
-    let collation_element_array = get_collation_element_array(char_values, options);
-    get_sort_key(&collation_element_array, options.shifting)
+fn get_nfd(input: &str) -> Vec<u32> {
+    UnicodeNormalization::nfd(input).map(|c| c as u32).collect()
 }
 
-fn get_char_values(input: &str) -> Vec<u32> {
-    UnicodeNormalization::nfd(input).map(|c| c as u32).collect()
+fn nfd_to_sk(nfd: Vec<u32>, options: &CollationOptions) -> Vec<u16> {
+    let cea = get_collation_element_array(nfd, options);
+    get_sort_key(&cea, options.shifting)
 }
 
 fn get_sort_key(collation_element_array: &[Vec<u16>], shifting: bool) -> Vec<u16> {
@@ -167,27 +197,21 @@ fn get_sort_key(collation_element_array: &[Vec<u16>], shifting: bool) -> Vec<u16
     sort_key
 }
 
-// This is where the magic happens (or the sausage is made?)
 #[allow(clippy::too_many_lines)]
-fn get_collation_element_array(
-    mut char_values: Vec<u32>,
-    options: &CollationOptions,
-) -> Vec<Vec<u16>> {
-    let keys = match options.keys_source {
-        KeysSource::Cldr => &ALLKEYS_CLDR,
-        KeysSource::Ducet => &ALLKEYS,
-    };
+fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) -> Vec<Vec<u16>> {
+    let mut cea: Vec<Vec<u16>> = Vec::new();
 
-    let cldr = options.keys_source == KeysSource::Cldr;
-    let shifting = options.shifting;
+    let cldr = opt.keys_source == KeysSource::Cldr;
+    let shifting = opt.shifting;
 
-    let mut collation_element_array: Vec<Vec<u16>> = Vec::new();
+    let singles = if cldr { &S_KEYS_CLDR } else { &S_KEYS };
+    let multis = if cldr { &M_KEYS_CLDR } else { &M_KEYS };
 
     let mut left: usize = 0;
     let mut last_variable = false;
 
-    'outer: while left < char_values.len() {
-        let left_val = char_values[left];
+    'outer: while left < char_vals.len() {
+        let left_val = char_vals[left];
 
         // Set lookahead depending on left_val. We need 3 in a few cases; 2 in several dozen cases;
         // and 1 otherwise.
@@ -197,52 +221,184 @@ fn get_collation_element_array(
             _ => 1,
         };
 
-        // But don't look past the end of the vec
-        let mut right = if left + lookahead > char_values.len() {
-            char_values.len()
+        let check_multi = lookahead > 1 && char_vals.len() - left > 1;
+
+        // If lookahead is 1, or if this is the last item in the vec, take an easy path
+        if !check_multi {
+            if let Some(row) = singles.get(&left_val) {
+                // If we found our row, push weights to the collation element array
+                for weights in row {
+                    if shifting {
+                        let weight_values = get_weights_shifting(weights, last_variable);
+                        cea.push(weight_values);
+                        if weights.variable {
+                            last_variable = true;
+                        } else if weights.primary != 0 {
+                            last_variable = false;
+                        }
+                    } else {
+                        let weight_values =
+                            vec![weights.primary, weights.secondary, weights.tertiary];
+                        cea.push(weight_values);
+                    }
+                }
+
+                // Increment and continue outer loop
+                left += 1;
+                continue 'outer;
+            }
+        }
+
+        // Next consider multi-code-point matches, if applicable
+        // If we just tried to find a single, and didn't find it, we skip all the way down to the
+        // implicit weights section
+
+        // Don't look past the end of the vec
+        let mut right = if left + lookahead > char_vals.len() {
+            char_vals.len()
         } else {
             left + lookahead
         };
 
-        while right > left {
-            let subset = &char_values[left..right];
+        'middle: while check_multi && right > left {
+            // If right - left == 1 (which cannot be the case in the first iteration), attempts to
+            // find a slice have failed. So look for one code point, in the singles map
+            if right - left == 1 {
+                // If we found it, we do still need to check for discontiguous matches
+                if let Some(value) = singles.get(&left_val) {
+                    // Determine how much further right to look
+                    let mut max_right = if right + 2 < char_vals.len() {
+                        right + 2
+                    } else if right + 1 < char_vals.len() {
+                        right + 1
+                    } else {
+                        // This should skip the loop below. There will be no discontiguous match.
+                        right
+                    };
 
-            if let Some(value) = keys.get(subset) {
-                // This means we've found "the longest initial substring S at [this] point that has
-                // a match in the collation element table." Next we check for "non-starters" that
-                // follow this substring.
-                //
-                // The idea is that there could be multiple non-starters in a row, not blocking one
-                // another, such that we could skip over one (or more) to make a longer substring
-                // that has a match in the table.
-                //
-                // One example comes from the test string "0438 0306 0334." NFD normalization will
-                // reorder that to "0438 0334 0306." This causes a problem, since 0438 and 0306 can
-                // go together, but we'll miss it if we don't look past 0334.
+                    let mut try_two = max_right - right == 2 && cldr;
 
-                let mut max_right = if (right + 2) < char_values.len() {
+                    'inner: while max_right > right {
+                        // Make sure the sequence of CCC values is kosher
+                        let interest_cohort = &char_vals[right..=max_right];
+                        let mut max_ccc = 0;
+
+                        for elem in interest_cohort {
+                            let ccc = get_ccc(char::from_u32(*elem).unwrap()) as u8;
+                            if ccc == 0 || ccc <= max_ccc {
+                                // Can also forget about try_two in this case
+                                try_two = false;
+                                max_right -= 1;
+                                continue 'inner;
+                            }
+                            max_ccc = ccc;
+                        }
+
+                        // Having made it this far, we can test a new subset, adding later char(s)
+                        let new_subset = if try_two {
+                            [[left_val].as_slice(), &char_vals[max_right - 1..=max_right]].concat()
+                        } else {
+                            vec![left_val, char_vals[max_right]]
+                        };
+
+                        // If the new subset is found in the table...
+                        if let Some(new_value) = multis.get(&new_subset) {
+                            // Then add these weights instead
+                            for weights in new_value {
+                                if shifting {
+                                    let weight_values =
+                                        get_weights_shifting(weights, last_variable);
+                                    cea.push(weight_values);
+                                    if weights.variable {
+                                        last_variable = true;
+                                    } else if weights.primary != 0 {
+                                        last_variable = false;
+                                    }
+                                } else {
+                                    let weight_values =
+                                        vec![weights.primary, weights.secondary, weights.tertiary];
+                                    cea.push(weight_values);
+                                }
+                            }
+
+                            // Remove the pulled char(s) (in this order!)
+                            char_vals.remove(max_right);
+                            if try_two {
+                                char_vals.remove(max_right - 1);
+                            }
+
+                            // Increment and continue outer loop
+                            left += right - left;
+                            continue 'outer;
+                        }
+
+                        // If we tried for two, don't decrement max_right yet
+                        // Inner loop will re-run
+                        if try_two {
+                            try_two = false;
+                        } else {
+                            // Otherwise decrement max_right; inner loop may re-run, or finish
+                            max_right -= 1;
+                        }
+                    }
+
+                    // At this point, we're not looking for a discontiguous match. We just need to
+                    // push the weights we found above.
+
+                    for weights in value {
+                        if shifting {
+                            let weight_values = get_weights_shifting(weights, last_variable);
+                            cea.push(weight_values);
+                            if weights.variable {
+                                last_variable = true;
+                            } else if weights.primary != 0 {
+                                last_variable = false;
+                            }
+                        } else {
+                            let weight_values =
+                                vec![weights.primary, weights.secondary, weights.tertiary];
+                            cea.push(weight_values);
+                        }
+                    }
+
+                    // Increment and continue outer loop
+                    left += right - left;
+                    continue 'outer;
+                }
+
+                // We failed to find the last code point, after trying multiples and failing there,
+                // too. This is the most wasteful path. Now we skip down to calculate implicit
+                // weights for this code point. Decrementing `right` and continuing the middle loop
+                // should accomplish that.
+                right -= 1;
+                continue 'middle;
+            }
+
+            // If we got here, we're trying to find a slice
+            let subset = &char_vals[left..right];
+
+            if let Some(value) = multis.get(subset) {
+                // If we found it, we need to check for discontiguous matches
+                // Determine how much further right to look
+                let mut max_right = if (right + 2) < char_vals.len() {
                     right + 2
-                } else if (right + 1) < char_values.len() {
+                } else if (right + 1) < char_vals.len() {
                     right + 1
                 } else {
-                    // This should skip the loop below
+                    // This should skip the loop below. There will be no discontiguous match.
                     right
                 };
 
                 let mut try_two = max_right - right == 2 && cldr;
 
                 'inner: while max_right > right {
-                    // We verify that all chars in the range right..=max_right are non-starters
-                    // If there are any starters in our range of interest, decrement and continue
-                    // The CCCs also have to be increasing, apparently...
-
-                    let interest_cohort = &char_values[right..=max_right];
+                    // Need to make sure the sequence of CCCs is kosher
+                    let interest_cohort = &char_vals[right..=max_right];
                     let mut max_ccc = 0;
 
                     for elem in interest_cohort {
                         let ccc = get_ccc(char::from_u32(*elem).unwrap()) as u8;
                         if ccc == 0 || ccc <= max_ccc {
-                            // Decrement and continue
                             // Can also forget about try_two in this case
                             try_two = false;
                             max_right -= 1;
@@ -253,65 +409,34 @@ fn get_collation_element_array(
 
                     // Having made it this far, we can test a new subset, adding the later char(s)
                     let new_subset = if try_two {
-                        [subset, &char_values[max_right - 1..=max_right]].concat()
+                        [subset, &char_vals[max_right - 1..=max_right]].concat()
                     } else {
-                        [subset, [char_values[max_right]].as_slice()].concat()
+                        [subset, [char_vals[max_right]].as_slice()].concat()
                     };
 
                     // If the new subset is found in the table...
-                    if let Some(new_value) = keys.get(&new_subset) {
+                    if let Some(new_value) = multis.get(&new_subset) {
                         // Then add these weights instead
                         for weights in new_value {
                             if shifting {
-                                // Variable shifting means all weight vectors will have a fourth
-                                // value
-
-                                // If all weights were already 0, make the fourth 0
-                                if weights.primary == 0
-                                    && weights.secondary == 0
-                                    && weights.tertiary == 0
-                                {
-                                    let weight_values = vec![0, 0, 0, 0];
-                                    collation_element_array.push(weight_values);
-
-                                // If these weights are marked variable...
-                                } else if weights.variable {
-                                    let weight_values = vec![0, 0, 0, weights.primary];
-                                    collation_element_array.push(weight_values);
+                                let weight_values = get_weights_shifting(weights, last_variable);
+                                cea.push(weight_values);
+                                if weights.variable {
                                     last_variable = true;
-
-                                // If these are "ignorable" weights and follow something variable...
-                                } else if last_variable
-                                    && weights.primary == 0
-                                    && weights.tertiary != 0
-                                {
-                                    let weight_values = vec![0, 0, 0, 0];
-                                    collation_element_array.push(weight_values);
-
-                                // Otherwise it can be assumed that we're dealing with something
-                                // non-ignorable, or ignorable but not following something variable
-                                } else {
-                                    let weight_values = vec![
-                                        weights.primary,
-                                        weights.secondary,
-                                        weights.tertiary,
-                                        65_535,
-                                    ];
-                                    collation_element_array.push(weight_values);
+                                } else if weights.primary != 0 {
                                     last_variable = false;
                                 }
                             } else {
-                                // If not shifting, we can just push the weights and be done
                                 let weight_values =
                                     vec![weights.primary, weights.secondary, weights.tertiary];
-                                collation_element_array.push(weight_values);
+                                cea.push(weight_values);
                             }
                         }
 
                         // Remove the pulled char(s) (in this order!)
-                        char_values.remove(max_right);
+                        char_vals.remove(max_right);
                         if try_two {
-                            char_values.remove(max_right - 1);
+                            char_vals.remove(max_right - 1);
                         }
 
                         // Increment and continue outer loop
@@ -319,50 +444,31 @@ fn get_collation_element_array(
                         continue 'outer;
                     }
 
-                    // If we tried for two, don't decrement max_right yet
+                    // If we tried for two, don't decrement max_right yet; inner loop will re-run
                     if try_two {
                         try_two = false;
                     } else {
+                        // Otherwise decrement max_right; inner loop may re-run, or finish
                         max_right -= 1;
                     }
                 }
 
                 // At this point, we're not looking for a discontiguous match. We just need to push
-                // the weights from the original subset we found
+                // the weights from the original subset we found.
 
                 for weights in value {
                     if shifting {
-                        // Variable shifting means all weight vectors will have a fourth value
-
-                        // If all weights were already 0, make the fourth 0
-                        if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
-                            let weight_values = vec![0, 0, 0, 0];
-                            collation_element_array.push(weight_values);
-
-                        // If these weights are marked variable...
-                        } else if weights.variable {
-                            let weight_values = vec![0, 0, 0, weights.primary];
-                            collation_element_array.push(weight_values);
+                        let weight_values = get_weights_shifting(weights, last_variable);
+                        cea.push(weight_values);
+                        if weights.variable {
                             last_variable = true;
-
-                        // If these are "ignorable" weights and follow something variable...
-                        } else if last_variable && weights.primary == 0 && weights.tertiary != 0 {
-                            let weight_values = vec![0, 0, 0, 0];
-                            collation_element_array.push(weight_values);
-
-                        // Otherwise it can be assumed that we're dealing with something non-
-                        // ignorable, or ignorable but not following something variable
-                        } else {
-                            let weight_values =
-                                vec![weights.primary, weights.secondary, weights.tertiary, 65_535];
-                            collation_element_array.push(weight_values);
+                        } else if weights.primary != 0 {
                             last_variable = false;
                         }
                     } else {
-                        // If not shifting, we can just push weights and be done
                         let weight_values =
                             vec![weights.primary, weights.secondary, weights.tertiary];
-                        collation_element_array.push(weight_values);
+                        cea.push(weight_values);
                     }
                 }
 
@@ -375,75 +481,93 @@ fn get_collation_element_array(
             right -= 1;
         }
 
-        // By now, we're looking for just one value, and it isn't in the table
+        // By now, we're looking for just one value, and it isn't in the table.
         // Time for implicit weights...
 
-        #[allow(clippy::manual_range_contains)]
-        let mut aaaa = match left_val {
-            x if x >= 13_312 && x <= 19_903 => 64_384 + (left_val >> 15), //     CJK2
-            x if x >= 19_968 && x <= 40_959 => 64_320 + (left_val >> 15), //     CJK1
-            x if x >= 63_744 && x <= 64_255 => 64_320 + (left_val >> 15), //     CJK1
-            x if x >= 94_208 && x <= 101_119 => 64_256,                   //     Tangut
-            x if x >= 101_120 && x <= 101_631 => 64_258,                  //     Khitan
-            x if x >= 101_632 && x <= 101_775 => 64_256,                  //     Tangut
-            x if x >= 110_960 && x <= 111_359 => 64_257,                  //     Nushu
-            x if x >= 131_072 && x <= 173_791 => 64_384 + (left_val >> 15), //   CJK2
-            x if x >= 173_824 && x <= 191_471 => 64_384 + (left_val >> 15), //   CJK2
-            x if x >= 196_608 && x <= 201_551 => 64_384 + (left_val >> 15), //   CJK2
-            _ => 64_448 + (left_val >> 15),                               //     unass.
-        };
+        let first_weights = get_implicit_a(left_val, shifting);
+        cea.push(first_weights);
 
-        #[allow(clippy::manual_range_contains)]
-        let mut bbbb = match left_val {
-            x if x >= 13_312 && x <= 19_903 => left_val & 32_767, //      CJK2
-            x if x >= 19_968 && x <= 40_959 => left_val & 32_767, //      CJK1
-            x if x >= 63_744 && x <= 64_255 => left_val & 32_767, //      CJK1
-            x if x >= 94_208 && x <= 101_119 => left_val - 94_208, //     Tangut
-            x if x >= 101_120 && x <= 101_631 => left_val - 101_120, //   Khitan
-            x if x >= 101_632 && x <= 101_775 => left_val - 94_208, //    Tangut
-            x if x >= 110_960 && x <= 111_359 => left_val - 110_960, //   Nushu
-            x if x >= 131_072 && x <= 173_791 => left_val & 32_767, //    CJK2
-            x if x >= 173_824 && x <= 191_471 => left_val & 32_767, //    CJK2
-            x if x >= 196_608 && x <= 201_551 => left_val & 32_767, //    CJK2
-            _ => left_val & 32_767,                               //      unass.
-        };
-
-        // One of the above ranges seems to include some unassigned code points. In order to pass
-        // the conformance tests, I'm adding an extra check here. This doesn't feel like a good way
-        // of dealing with the problem, but I haven't yet found a better approach that doesn't come
-        // with its own downsides.
-
-        if INCLUDED_UNASSIGNED.contains(&left_val) {
-            aaaa = 64_448 + (left_val >> 15);
-            bbbb = left_val & 32_767;
-        }
-
-        // BBBB always gets bitwise ORed with this value
-        bbbb |= 32_768;
-
-        #[allow(clippy::cast_possible_truncation)]
-        let first_weights = if shifting {
-            // Add an arbitrary fourth weight if shifting
-            vec![aaaa as u16, 32, 2, 65_535]
-        } else {
-            vec![aaaa as u16, 32, 2]
-        };
-        collation_element_array.push(first_weights);
-
-        #[allow(clippy::cast_possible_truncation)]
-        let second_weights = if shifting {
-            // Add an arbitrary fourth weight if shifting
-            vec![bbbb as u16, 0, 0, 65_535]
-        } else {
-            vec![bbbb as u16, 0, 0]
-        };
-        collation_element_array.push(second_weights);
+        let second_weights = get_implicit_b(left_val, shifting);
+        cea.push(second_weights);
 
         // Finally, increment and let outer loop continue
         left += 1;
     }
 
-    collation_element_array
+    cea
+}
+
+fn get_weights_shifting(weights: &Weights, last_variable: bool) -> Vec<u16> {
+    if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
+        vec![0, 0, 0, 0]
+    } else if weights.variable {
+        vec![0, 0, 0, weights.primary]
+    } else if last_variable && weights.primary == 0 && weights.tertiary != 0 {
+        vec![0, 0, 0, 0]
+    } else {
+        vec![weights.primary, weights.secondary, weights.tertiary, 65_535]
+    }
+}
+
+fn get_implicit_a(left_val: u32, shifting: bool) -> Vec<u16> {
+    #[allow(clippy::manual_range_contains)]
+    let mut aaaa = match left_val {
+        x if x >= 13_312 && x <= 19_903 => 64_384 + (left_val >> 15), //     CJK2
+        x if x >= 19_968 && x <= 40_959 => 64_320 + (left_val >> 15), //     CJK1
+        x if x >= 63_744 && x <= 64_255 => 64_320 + (left_val >> 15), //     CJK1
+        x if x >= 94_208 && x <= 101_119 => 64_256,                   //     Tangut
+        x if x >= 101_120 && x <= 101_631 => 64_258,                  //     Khitan
+        x if x >= 101_632 && x <= 101_775 => 64_256,                  //     Tangut
+        x if x >= 110_960 && x <= 111_359 => 64_257,                  //     Nushu
+        x if x >= 131_072 && x <= 173_791 => 64_384 + (left_val >> 15), //   CJK2
+        x if x >= 173_824 && x <= 191_471 => 64_384 + (left_val >> 15), //   CJK2
+        x if x >= 196_608 && x <= 201_551 => 64_384 + (left_val >> 15), //   CJK2
+        _ => 64_448 + (left_val >> 15),                               //     unass.
+    };
+
+    if INCLUDED_UNASSIGNED.contains(&left_val) {
+        aaaa = 64_448 + (left_val >> 15);
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    if shifting {
+        // Add an arbitrary fourth weight if shifting
+        vec![aaaa as u16, 32, 2, 65_535]
+    } else {
+        vec![aaaa as u16, 32, 2]
+    }
+}
+
+fn get_implicit_b(left_val: u32, shifting: bool) -> Vec<u16> {
+    #[allow(clippy::manual_range_contains)]
+    let mut bbbb = match left_val {
+        x if x >= 13_312 && x <= 19_903 => left_val & 32_767, //      CJK2
+        x if x >= 19_968 && x <= 40_959 => left_val & 32_767, //      CJK1
+        x if x >= 63_744 && x <= 64_255 => left_val & 32_767, //      CJK1
+        x if x >= 94_208 && x <= 101_119 => left_val - 94_208, //     Tangut
+        x if x >= 101_120 && x <= 101_631 => left_val - 101_120, //   Khitan
+        x if x >= 101_632 && x <= 101_775 => left_val - 94_208, //    Tangut
+        x if x >= 110_960 && x <= 111_359 => left_val - 110_960, //   Nushu
+        x if x >= 131_072 && x <= 173_791 => left_val & 32_767, //    CJK2
+        x if x >= 173_824 && x <= 191_471 => left_val & 32_767, //    CJK2
+        x if x >= 196_608 && x <= 201_551 => left_val & 32_767, //    CJK2
+        _ => left_val & 32_767,                               //      unass.
+    };
+
+    if INCLUDED_UNASSIGNED.contains(&left_val) {
+        bbbb = left_val & 32_767;
+    }
+
+    // BBBB always gets bitwise ORed with this value
+    bbbb |= 32_768;
+
+    #[allow(clippy::cast_possible_truncation)]
+    if shifting {
+        // Add an arbitrary fourth weight if shifting
+        vec![bbbb as u16, 0, 0, 65_535]
+    } else {
+        vec![bbbb as u16, 0, 0]
+    }
 }
 
 #[cfg(test)]
@@ -471,7 +595,8 @@ mod tests {
                 test_string.push(c);
             }
 
-            let sk = str_to_sort_key(&test_string, options);
+            let nfd = get_nfd(&test_string);
+            let sk = nfd_to_sk(nfd, options);
 
             let comparison = compare_sort_keys(&sk, &max_sk);
             if comparison == Ordering::Less {
