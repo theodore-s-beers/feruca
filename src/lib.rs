@@ -121,7 +121,7 @@ const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
 /// sorting strings) as a tiebreaker. A `collate_no_tiebreak` function may be added in the future,
 /// if there is demand for it.
 #[must_use]
-pub fn collate(str_a: &str, str_b: &str, options: &CollationOptions) -> Ordering {
+pub fn collate(str_a: &str, str_b: &str, opt: &CollationOptions) -> Ordering {
     // Early out
     if str_a == str_b {
         return Ordering::Equal;
@@ -136,8 +136,8 @@ pub fn collate(str_a: &str, str_b: &str, options: &CollationOptions) -> Ordering
         return str_a.cmp(str_b);
     }
 
-    let a_sort_key = nfd_to_sk(a_nfd, options);
-    let b_sort_key = nfd_to_sk(b_nfd, options);
+    let a_sort_key = nfd_to_sk(a_nfd, opt);
+    let b_sort_key = nfd_to_sk(b_nfd, opt);
 
     let comparison = compare_sort_keys(&a_sort_key, &b_sort_key);
 
@@ -173,9 +173,9 @@ fn get_nfd(input: &str) -> Vec<u32> {
     UnicodeNormalization::nfd(input).map(|c| c as u32).collect()
 }
 
-fn nfd_to_sk(nfd: Vec<u32>, options: &CollationOptions) -> Vec<u16> {
-    let cea = get_collation_element_array(nfd, options);
-    get_sort_key(&cea, options.shifting)
+fn nfd_to_sk(nfd: Vec<u32>, opt: &CollationOptions) -> Vec<u16> {
+    let cea = get_collation_element_array(nfd, opt);
+    get_sort_key(&cea, opt.shifting)
 }
 
 fn get_sort_key(collation_element_array: &[Vec<u16>], shifting: bool) -> Vec<u16> {
@@ -229,17 +229,17 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                 // If we found our row, push weights to the collation element array
                 for weights in row {
                     if shifting {
-                        let weight_values = get_weights_shifting(weights, last_variable);
-                        cea.push(weight_values);
+                        let weight_vals = get_shifted_weights(weights, last_variable);
+                        cea.push(weight_vals);
                         if weights.variable {
                             last_variable = true;
                         } else if weights.primary != 0 {
                             last_variable = false;
                         }
                     } else {
-                        let weight_values =
+                        let weight_vals =
                             vec![weights.primary, weights.secondary, weights.tertiary];
-                        cea.push(weight_values);
+                        cea.push(weight_vals);
                     }
                 }
 
@@ -306,18 +306,17 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                             // Then add these weights instead
                             for weights in new_value {
                                 if shifting {
-                                    let weight_values =
-                                        get_weights_shifting(weights, last_variable);
-                                    cea.push(weight_values);
+                                    let weight_vals = get_shifted_weights(weights, last_variable);
+                                    cea.push(weight_vals);
                                     if weights.variable {
                                         last_variable = true;
                                     } else if weights.primary != 0 {
                                         last_variable = false;
                                     }
                                 } else {
-                                    let weight_values =
+                                    let weight_vals =
                                         vec![weights.primary, weights.secondary, weights.tertiary];
-                                    cea.push(weight_values);
+                                    cea.push(weight_vals);
                                 }
                             }
 
@@ -347,17 +346,17 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
 
                     for weights in value {
                         if shifting {
-                            let weight_values = get_weights_shifting(weights, last_variable);
-                            cea.push(weight_values);
+                            let weight_vals = get_shifted_weights(weights, last_variable);
+                            cea.push(weight_vals);
                             if weights.variable {
                                 last_variable = true;
                             } else if weights.primary != 0 {
                                 last_variable = false;
                             }
                         } else {
-                            let weight_values =
+                            let weight_vals =
                                 vec![weights.primary, weights.secondary, weights.tertiary];
-                            cea.push(weight_values);
+                            cea.push(weight_vals);
                         }
                     }
 
@@ -419,17 +418,17 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                         // Then add these weights instead
                         for weights in new_value {
                             if shifting {
-                                let weight_values = get_weights_shifting(weights, last_variable);
-                                cea.push(weight_values);
+                                let weight_vals = get_shifted_weights(weights, last_variable);
+                                cea.push(weight_vals);
                                 if weights.variable {
                                     last_variable = true;
                                 } else if weights.primary != 0 {
                                     last_variable = false;
                                 }
                             } else {
-                                let weight_values =
+                                let weight_vals =
                                     vec![weights.primary, weights.secondary, weights.tertiary];
-                                cea.push(weight_values);
+                                cea.push(weight_vals);
                             }
                         }
 
@@ -458,17 +457,17 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
 
                 for weights in value {
                     if shifting {
-                        let weight_values = get_weights_shifting(weights, last_variable);
-                        cea.push(weight_values);
+                        let weight_vals = get_shifted_weights(weights, last_variable);
+                        cea.push(weight_vals);
                         if weights.variable {
                             last_variable = true;
                         } else if weights.primary != 0 {
                             last_variable = false;
                         }
                     } else {
-                        let weight_values =
+                        let weight_vals =
                             vec![weights.primary, weights.secondary, weights.tertiary];
-                        cea.push(weight_values);
+                        cea.push(weight_vals);
                     }
                 }
 
@@ -497,7 +496,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
     cea
 }
 
-fn get_weights_shifting(weights: &Weights, last_variable: bool) -> Vec<u16> {
+fn get_shifted_weights(weights: &Weights, last_variable: bool) -> Vec<u16> {
     if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
         vec![0, 0, 0, 0]
     } else if weights.variable {
