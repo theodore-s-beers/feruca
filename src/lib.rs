@@ -60,9 +60,9 @@ struct Weights {
 // Static/const
 //
 
-static FCD: Lazy<HashMap<u32, [u8; 2]>> = Lazy::new(|| {
+static FCD: Lazy<HashMap<u32, u16>> = Lazy::new(|| {
     let data = include_bytes!("bincode/fcd");
-    let decoded: HashMap<u32, [u8; 2]> = bincode::deserialize(data).unwrap();
+    let decoded: HashMap<u32, u16> = bincode::deserialize(data).unwrap();
     decoded
 });
 
@@ -202,8 +202,7 @@ fn fcd(input: &str) -> bool {
         }
 
         if let Some(vals) = FCD.get(&c_as_u32) {
-            curr_lead_cc = vals[0];
-            curr_trail_cc = vals[1];
+            [curr_lead_cc, curr_trail_cc] = vals.to_be_bytes();
         } else {
             curr_lead_cc = get_ccc(c) as u8;
             curr_trail_cc = get_ccc(c) as u8;
