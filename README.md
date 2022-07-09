@@ -7,7 +7,7 @@ Ferris 🦀 and UCA.
 
 I mean a few things by "basic implementation." First, I don't expect that this
 is currently very performant. My rough attempts at benchmarking suggest that
-feruca is on the order of 30–50x slower than
+feruca is on the order of 25–50x slower than `ucol` from
 [icu4c](https://github.com/unicode-org/icu). But my initial priority was to pass
 the official
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
