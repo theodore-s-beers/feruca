@@ -192,6 +192,11 @@ fn fcd(input: &str) -> bool {
     for c in input.chars() {
         c_as_u32 = c as u32;
 
+        if c_as_u32 < 192 {
+            prev_trail_cc = 0;
+            continue;
+        }
+
         if c_as_u32 == 3_969 || (44_032..=55_215).contains(&c_as_u32) {
             return false;
         }
