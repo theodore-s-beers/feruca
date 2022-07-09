@@ -132,14 +132,19 @@ pub fn collate(str_a: &str, str_b: &str, opt: &CollationOptions) -> Ordering {
         return Ordering::Equal;
     }
 
-    let a_nfd = get_nfd(str_a);
-    let b_nfd = get_nfd(str_b);
+    let mut a_nfd = get_nfd(str_a);
+    let mut b_nfd = get_nfd(str_b);
 
-    // I think it's worth offering an out here, too, in case two strings decompose to the same
+    // I think it's worth offering an out here, too, in case two strings decompose to the same.
+    // If we went forward and generated sort keys, they would be equal, and we would end up at the
+    // tiebreaker, anyway.
     if a_nfd == b_nfd {
         // Tiebreaker
         return str_a.cmp(str_b);
     }
+
+    let cldr = opt.keys_source == KeysSource::Cldr;
+    trim_prefix(&mut a_nfd, &mut b_nfd, cldr);
 
     let a_sort_key = nfd_to_sk(a_nfd, opt);
     let b_sort_key = nfd_to_sk(b_nfd, opt);
@@ -158,6 +163,28 @@ pub fn collate(str_a: &str, str_b: &str, opt: &CollationOptions) -> Ordering {
 // Functions, private
 //
 
+#[allow(unused)]
+fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: &CollationOptions) -> Ordering {
+    if str_a == str_b {
+        return Ordering::Equal;
+    }
+
+    let mut a_nfd = get_nfd(str_a);
+    let mut b_nfd = get_nfd(str_b);
+
+    if a_nfd == b_nfd {
+        return Ordering::Equal;
+    }
+
+    let cldr = opt.keys_source == KeysSource::Cldr;
+    trim_prefix(&mut a_nfd, &mut b_nfd, cldr);
+
+    let a_sort_key = nfd_to_sk(a_nfd, opt);
+    let b_sort_key = nfd_to_sk(b_nfd, opt);
+
+    compare_sort_keys(&a_sort_key, &b_sort_key)
+}
+
 fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
     let min_length = a.len().min(b.len());
 
@@ -172,6 +199,35 @@ fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
     }
 
     Ordering::Equal
+}
+
+fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
+    let prefix_len = find_prefix(a, b);
+
+    if prefix_len > 0 {
+        for elem in &a[0..prefix_len] {
+            if NEED_THREE.contains(elem) || NEED_TWO.contains(elem) {
+                return;
+            }
+        }
+
+        let sing = if cldr { &SING_CLDR } else { &SING };
+
+        if let Some(row) = sing.get(&a[prefix_len - 1]) {
+            for weights in row {
+                if weights.variable || weights.primary == 0 {
+                    return;
+                }
+            }
+        }
+
+        a.drain(0..prefix_len);
+        b.drain(0..prefix_len);
+    }
+}
+
+fn find_prefix(a: &[u32], b: &[u32]) -> usize {
+    a.iter().zip(b).take_while(|(x, y)| x == y).count()
 }
 
 fn get_nfd(input: &str) -> Vec<u32> {
@@ -656,7 +712,7 @@ mod tests {
     fn conformance(path: &str, options: &CollationOptions) {
         let test_data = std::fs::read_to_string(path).unwrap();
 
-        let mut max_sk: Vec<u16> = Vec::new();
+        let mut max_line = String::new();
 
         for line in test_data.lines() {
             if line.is_empty() || line.starts_with('#') {
@@ -674,15 +730,12 @@ mod tests {
                 test_string.push(c);
             }
 
-            let nfd = get_nfd(&test_string);
-            let sk = nfd_to_sk(nfd, options);
-
-            let comparison = compare_sort_keys(&sk, &max_sk);
+            let comparison = collate_no_tiebreak(&test_string, &max_line, options);
             if comparison == Ordering::Less {
                 panic!();
             }
 
-            max_sk = sk;
+            max_line = test_string;
         }
     }
 
