@@ -22,6 +22,7 @@ use unicode_normalization::UnicodeNormalization;
 /// two tables (DUCET and CLDR root), and between two approaches to the handling of variable-weight
 /// characters ("non-ignorable" and "shifted"). The default, and a good starting point for Unicode
 /// collation, is to use the CLDR table with the "shifted" approach.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct CollationOptions {
     /// The table of weights to be used (currently either DUCET or CLDR)
     pub keys_source: KeysSource,
@@ -40,7 +41,7 @@ impl Default for CollationOptions {
 }
 
 /// This enum provides for a choice of which table of character weights to use.
-#[derive(PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, Debug)]
 pub enum KeysSource {
     /// The table associated with the CLDR root collation order (recommended)
     Cldr,
@@ -48,7 +49,7 @@ pub enum KeysSource {
     Ducet,
 }
 
-#[derive(Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize)]
 struct Weights {
     variable: bool,
     primary: u16,
@@ -115,7 +116,7 @@ const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
 /// use feruca::{collate, CollationOptions};
 ///
 /// let mut names = ["Peng", "Peña", "Ernie", "Émile"];
-/// names.sort_by(|a, b| collate(a, b, &CollationOptions::default()));
+/// names.sort_by(|a, b| collate(a, b, CollationOptions::default()));
 ///
 /// let expected = ["Émile", "Ernie", "Peña", "Peng"];
 /// assert_eq!(names, expected);
@@ -126,7 +127,7 @@ const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
 /// sorting strings) as a tiebreaker. A `collate_no_tiebreak` function may be added in the future,
 /// if there is demand for it.
 #[must_use]
-pub fn collate(str_a: &str, str_b: &str, opt: &CollationOptions) -> Ordering {
+pub fn collate(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
     // Early out
     if str_a == str_b {
         return Ordering::Equal;
@@ -164,7 +165,7 @@ pub fn collate(str_a: &str, str_b: &str, opt: &CollationOptions) -> Ordering {
 //
 
 #[allow(unused)]
-fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: &CollationOptions) -> Ordering {
+fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
     if str_a == str_b {
         return Ordering::Equal;
     }
@@ -274,7 +275,7 @@ fn fcd(input: &str) -> bool {
     true
 }
 
-fn nfd_to_sk(nfd: Vec<u32>, opt: &CollationOptions) -> Vec<u16> {
+fn nfd_to_sk(nfd: Vec<u32>, opt: CollationOptions) -> Vec<u16> {
     let cea = get_collation_element_array(nfd, opt);
     get_sort_key(&cea, opt.shifting)
 }
@@ -299,7 +300,7 @@ fn get_sort_key(collation_element_array: &[Vec<u16>], shifting: bool) -> Vec<u16
 }
 
 #[allow(clippy::too_many_lines)]
-fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) -> Vec<Vec<u16>> {
+fn get_collation_element_array(mut char_vals: Vec<u32>, opt: CollationOptions) -> Vec<Vec<u16>> {
     let mut cea: Vec<Vec<u16>> = Vec::new();
 
     let cldr = opt.keys_source == KeysSource::Cldr;
@@ -336,7 +337,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
             if let Some(row) = singles.get(&left_val) {
                 for weights in row {
                     if shifting {
-                        let weight_vals = get_shifted_weights(weights, last_variable);
+                        let weight_vals = get_shifted_weights(*weights, last_variable);
                         cea.push(weight_vals);
                         if weights.variable {
                             last_variable = true;
@@ -435,7 +436,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                         if let Some(new_value) = multis.get(&new_subset) {
                             for weights in new_value {
                                 if shifting {
-                                    let weight_vals = get_shifted_weights(weights, last_variable);
+                                    let weight_vals = get_shifted_weights(*weights, last_variable);
                                     cea.push(weight_vals);
                                     if weights.variable {
                                         last_variable = true;
@@ -479,7 +480,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                     //
                     for weights in value {
                         if shifting {
-                            let weight_vals = get_shifted_weights(weights, last_variable);
+                            let weight_vals = get_shifted_weights(*weights, last_variable);
                             cea.push(weight_vals);
                             if weights.variable {
                                 last_variable = true;
@@ -559,7 +560,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                     if let Some(new_value) = multis.get(&new_subset) {
                         for weights in new_value {
                             if shifting {
-                                let weight_vals = get_shifted_weights(weights, last_variable);
+                                let weight_vals = get_shifted_weights(*weights, last_variable);
                                 cea.push(weight_vals);
                                 if weights.variable {
                                     last_variable = true;
@@ -601,7 +602,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                 //
                 for weights in value {
                     if shifting {
-                        let weight_vals = get_shifted_weights(weights, last_variable);
+                        let weight_vals = get_shifted_weights(*weights, last_variable);
                         cea.push(weight_vals);
                         if weights.variable {
                             last_variable = true;
@@ -632,7 +633,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
     cea
 }
 
-fn get_shifted_weights(weights: &Weights, last_variable: bool) -> Vec<u16> {
+fn get_shifted_weights(weights: Weights, last_variable: bool) -> Vec<u16> {
     if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
         vec![0, 0, 0, 0]
     } else if weights.variable {
@@ -709,7 +710,7 @@ fn get_implicit_b(left_val: u32, shifting: bool) -> Vec<u16> {
 mod tests {
     use super::*;
 
-    fn conformance(path: &str, options: &CollationOptions) {
+    fn conformance(path: &str, options: CollationOptions) {
         let test_data = std::fs::read_to_string(path).unwrap();
 
         let mut max_line = String::new();
@@ -748,7 +749,7 @@ mod tests {
             shifting: false,
         };
 
-        conformance(path, &options);
+        conformance(path, options);
     }
 
     #[test]
@@ -760,7 +761,7 @@ mod tests {
             shifting: true,
         };
 
-        conformance(path, &options);
+        conformance(path, options);
     }
 
     #[test]
@@ -772,7 +773,7 @@ mod tests {
             shifting: false,
         };
 
-        conformance(path, &options);
+        conformance(path, options);
     }
 
     #[test]
@@ -784,6 +785,6 @@ mod tests {
             shifting: true,
         };
 
-        conformance(path, &options);
+        conformance(path, options);
     }
 }
