@@ -502,10 +502,10 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: CollationOptions) -
                 // Reaching this point would imply that we looked for multiple code points; failed
                 // to find anything; fell back to search for the left code point; and didn't find
                 // that, either. So in theory, we would be dealing with an unlisted code point and
-                // skipping down to calculate implicit weights. But that's impossible, isn't it? If
-                // we started this path by checking for multiples, that means we had one of the
-                // code points in NEED_THREE or NEED_TWO -- all of which are listed in the tables.
-                // I think this is actually unreachable; and my testing bears that out.
+                // proceeding to calculate implicit weights. But that's impossible, isn't it? If we
+                // started this path by checking for multiples, that means we had one of the code
+                // points in NEED_THREE or NEED_TWO -- all of which are listed in the tables. I
+                // think this is actually unreachable; and my testing bears that out.
 
                 // no-op
             }
