@@ -60,28 +60,33 @@ struct Weights {
 // Static/const
 //
 
-static SINGLES: &[u8; 662_610] = include_bytes!("bincode/singles");
-static MULTIS: &[u8; 35_328] = include_bytes!("bincode/multis");
-static SINGLES_CLDR: &[u8; 662_466] = include_bytes!("bincode/singles_cldr");
-static MULTIS_CLDR: &[u8; 35_724] = include_bytes!("bincode/multis_cldr");
-
-static S_KEYS: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
-    let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(SINGLES).unwrap();
+static FCD: Lazy<HashMap<u32, [u8; 2]>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/fcd");
+    let decoded: HashMap<u32, [u8; 2]> = bincode::deserialize(data).unwrap();
     decoded
 });
 
-static M_KEYS: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
-    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(MULTIS).unwrap();
+static SING: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/singles");
+    let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
-static S_KEYS_CLDR: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
-    let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(SINGLES_CLDR).unwrap();
+static MULT: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/multis");
+    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
-static M_KEYS_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
-    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(MULTIS_CLDR).unwrap();
+static SING_CLDR: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/singles_cldr");
+    let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
+    decoded
+});
+
+static MULT_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/multis_cldr");
+    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
@@ -170,7 +175,43 @@ fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
 }
 
 fn get_nfd(input: &str) -> Vec<u32> {
-    UnicodeNormalization::nfd(input).map(|c| c as u32).collect()
+    if fcd(input) {
+        input.chars().map(|c| c as u32).collect()
+    } else {
+        UnicodeNormalization::nfd(input).map(|c| c as u32).collect()
+    }
+}
+
+fn fcd(input: &str) -> bool {
+    let mut c_as_u32: u32;
+    let mut curr_lead_cc: u8;
+    let mut curr_trail_cc: u8;
+
+    let mut prev_trail_cc: u8 = 0;
+
+    for c in input.chars() {
+        c_as_u32 = c as u32;
+
+        if c_as_u32 == 3_969 || (44_032..=55_215).contains(&c_as_u32) {
+            return false;
+        }
+
+        if let Some(vals) = FCD.get(&c_as_u32) {
+            curr_lead_cc = vals[0];
+            curr_trail_cc = vals[1];
+        } else {
+            curr_lead_cc = get_ccc(c) as u8;
+            curr_trail_cc = get_ccc(c) as u8;
+        }
+
+        if curr_lead_cc != 0 && curr_lead_cc < prev_trail_cc {
+            return false;
+        }
+
+        prev_trail_cc = curr_trail_cc;
+    }
+
+    true
 }
 
 fn nfd_to_sk(nfd: Vec<u32>, opt: &CollationOptions) -> Vec<u16> {
@@ -204,8 +245,8 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
     let cldr = opt.keys_source == KeysSource::Cldr;
     let shifting = opt.shifting;
 
-    let singles = if cldr { &S_KEYS_CLDR } else { &S_KEYS };
-    let multis = if cldr { &M_KEYS_CLDR } else { &M_KEYS };
+    let singles = if cldr { &SING_CLDR } else { &SING };
+    let multis = if cldr { &MULT_CLDR } else { &MULT };
 
     let mut left: usize = 0;
     let mut last_variable = false;
