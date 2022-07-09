@@ -255,6 +255,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
     let mut left: usize = 0;
     let mut last_variable = false;
 
+    // We spend essentially the entire function in this loop
     'outer: while left < char_vals.len() {
         let left_val = char_vals[left];
 
@@ -266,12 +267,17 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
             _ => 1,
         };
 
+        // If lookahead is 1, or if this is the last item in the vec, we'll take an easy path
         let check_multi = lookahead > 1 && char_vals.len() - left > 1;
 
-        // If lookahead is 1, or if this is the last item in the vec, take an easy path
         if !check_multi {
+            //
+            // OUTCOME 1
+            //
+            // We only had to check for a single code point, and found it, so we can push the
+            // weights and continue. This is the fastest path.
+            //
             if let Some(row) = singles.get(&left_val) {
-                // If we found our row, push weights to the collation element array
                 for weights in row {
                     if shifting {
                         let weight_vals = get_shifted_weights(weights, last_variable);
@@ -290,13 +296,29 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
 
                 // Increment and continue outer loop
                 left += 1;
-                continue 'outer;
+                continue;
             }
+
+            //
+            // OUTCOME 2
+            //
+            // We checked for a single code point and didn't find it. That means it's unlisted. We
+            // then calculate implicit weights, push them, and move on. I used to think there were
+            // multiple paths to the "implicit weights" case, but it seems not.
+            //
+
+            let first_weights = get_implicit_a(left_val, shifting);
+            cea.push(first_weights);
+
+            let second_weights = get_implicit_b(left_val, shifting);
+            cea.push(second_weights);
+
+            // Increment and continue outer loop
+            left += 1;
+            continue;
         }
 
-        // Next consider multi-code-point matches, if applicable
-        // If we just tried to find a single, and didn't find it, we skip all the way down to the
-        // implicit weights section
+        // Here we consider multi-code-point matches, if possible
 
         // Don't look past the end of the vec
         let mut right = if left + lookahead > char_vals.len() {
@@ -305,7 +327,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
             left + lookahead
         };
 
-        'middle: while check_multi && right > left {
+        while right > left {
             // If right - left == 1 (which cannot be the case in the first iteration), attempts to
             // find a slice have failed. So look for one code point, in the singles map
             if right - left == 1 {
@@ -346,9 +368,15 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                             vec![left_val, char_vals[max_right]]
                         };
 
-                        // If the new subset is found in the table...
+                        //
+                        // OUTCOME 3
+                        //
+                        // We found a discontiguous match for one code point. This is a bad path,
+                        // since it implies that we: checked for multiple code points; didn't find
+                        // them; fell back to check for the initial code point; found it; checked
+                        // for discontiguous matches; and found one. Anyway, push the weights...
+                        //
                         if let Some(new_value) = multis.get(&new_subset) {
-                            // Then add these weights instead
                             for weights in new_value {
                                 if shifting {
                                     let weight_vals = get_shifted_weights(weights, last_variable);
@@ -372,7 +400,7 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                             }
 
                             // Increment and continue outer loop
-                            left += right - left;
+                            left += 1;
                             continue 'outer;
                         }
 
@@ -386,9 +414,13 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                         }
                     }
 
-                    // At this point, we're not looking for a discontiguous match. We just need to
-                    // push the weights we found above.
-
+                    //
+                    // OUTCOME 4
+                    //
+                    // We checked for multiple code points; failed to find them; fell back to check
+                    // for the initial code point; found it; checked for discontiguous matches; and
+                    // did not find any. This is another bad path. Push the weights...
+                    //
                     for weights in value {
                         if shifting {
                             let weight_vals = get_shifted_weights(weights, last_variable);
@@ -406,16 +438,19 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                     }
 
                     // Increment and continue outer loop
-                    left += right - left;
+                    left += 1;
                     continue 'outer;
                 }
 
-                // We failed to find the last code point, after trying multiples and failing there,
-                // too. This is the most wasteful path. Now we skip down to calculate implicit
-                // weights for this code point. Decrementing `right` and continuing the middle loop
-                // should accomplish that.
-                right -= 1;
-                continue 'middle;
+                // Reaching this point would imply that we looked for multiple code points; failed
+                // to find anything; fell back to search for the left code point; and didn't find
+                // that, either. So in theory, we would be dealing with an unlisted code point and
+                // skipping down to calculate implicit weights. But that's impossible, isn't it? If
+                // we started this path by checking for multiples, that means we had one of the
+                // code points in NEED_THREE or NEED_TWO -- all of which are listed in the tables.
+                // I think this is actually unreachable; and my testing bears that out.
+
+                // no-op
             }
 
             // If we got here, we're trying to find a slice
@@ -458,9 +493,14 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                         [subset, [char_vals[max_right]].as_slice()].concat()
                     };
 
-                    // If the new subset is found in the table...
+                    //
+                    // OUTCOME 5
+                    //
+                    // We checked for multiple code points; found something; went on to check for
+                    // discontiguous matches; and found one. For a complicated case, this is a good
+                    // path. Push the weights...
+                    //
                     if let Some(new_value) = multis.get(&new_subset) {
-                        // Then add these weights instead
                         for weights in new_value {
                             if shifting {
                                 let weight_vals = get_shifted_weights(weights, last_variable);
@@ -497,9 +537,12 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
                     }
                 }
 
-                // At this point, we're not looking for a discontiguous match. We just need to push
-                // the weights from the original subset we found.
-
+                //
+                // OUTCOME 6
+                //
+                // We checked for multiple code points; found something; checked for discontiguous
+                // matches; and did not find any. This is an ok path. Push the weights...
+                //
                 for weights in value {
                     if shifting {
                         let weight_vals = get_shifted_weights(weights, last_variable);
@@ -525,19 +568,11 @@ fn get_collation_element_array(mut char_vals: Vec<u32>, opt: &CollationOptions) 
             right -= 1;
         }
 
-        // By now, we're looking for just one value, and it isn't in the table.
-        // Time for implicit weights...
-
-        let first_weights = get_implicit_a(left_val, shifting);
-        cea.push(first_weights);
-
-        let second_weights = get_implicit_b(left_val, shifting);
-        cea.push(second_weights);
-
         // Finally, increment and let outer loop continue
         left += 1;
     }
 
+    // Return!
     cea
 }
 
