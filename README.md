@@ -66,7 +66,7 @@ fn main() {
     // چنگیز
     // صدام
 
-    // Add an empty line between the lists (in case you actually run this)
+    // Add a line of space (in case you run this verbatim)
     println!();
 
     for item in naive {
