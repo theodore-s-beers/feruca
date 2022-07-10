@@ -51,7 +51,7 @@ fn main() {
 
     let mut naive = uca;
 
-    uca.sort_by(|a, b| collate(a, b, &CollationOptions::default()));
+    uca.sort_by(|a, b| collate(a, b, CollationOptions::default()));
     naive.sort();
 
     for item in uca {
@@ -66,6 +66,7 @@ fn main() {
     // چنگیز
     // صدام
 
+    // Add an empty line between the lists (in case you actually run this)
     println!();
 
     for item in naive {
