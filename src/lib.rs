@@ -147,8 +147,8 @@ pub fn collate(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
     let cldr = opt.keys_source == KeysSource::Cldr;
     trim_prefix(&mut a_nfd, &mut b_nfd, cldr);
 
-    let a_sort_key = nfd_to_sk(a_nfd, opt);
-    let b_sort_key = nfd_to_sk(b_nfd, opt);
+    let a_sort_key = nfd_to_sk(&mut a_nfd, opt);
+    let b_sort_key = nfd_to_sk(&mut b_nfd, opt);
 
     let comparison = compare_sort_keys(&a_sort_key, &b_sort_key);
 
@@ -180,8 +180,8 @@ fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: CollationOptions) -> Order
     let cldr = opt.keys_source == KeysSource::Cldr;
     trim_prefix(&mut a_nfd, &mut b_nfd, cldr);
 
-    let a_sort_key = nfd_to_sk(a_nfd, opt);
-    let b_sort_key = nfd_to_sk(b_nfd, opt);
+    let a_sort_key = nfd_to_sk(&mut a_nfd, opt);
+    let b_sort_key = nfd_to_sk(&mut b_nfd, opt);
 
     compare_sort_keys(&a_sort_key, &b_sort_key)
 }
@@ -275,7 +275,7 @@ fn fcd(input: &str) -> bool {
     true
 }
 
-fn nfd_to_sk(nfd: Vec<u32>, opt: CollationOptions) -> Vec<u16> {
+fn nfd_to_sk(nfd: &mut Vec<u32>, opt: CollationOptions) -> Vec<u16> {
     let cea = get_collation_element_array(nfd, opt);
     get_sort_key(&cea, opt.shifting)
 }
@@ -300,7 +300,7 @@ fn get_sort_key(collation_element_array: &[Vec<u16>], shifting: bool) -> Vec<u16
 }
 
 #[allow(clippy::too_many_lines)]
-fn get_collation_element_array(mut char_vals: Vec<u32>, opt: CollationOptions) -> Vec<Vec<u16>> {
+fn get_collation_element_array(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Vec<u16>> {
     let mut cea: Vec<Vec<u16>> = Vec::new();
 
     let cldr = opt.keys_source == KeysSource::Cldr;
@@ -645,24 +645,24 @@ fn get_shifted_weights(weights: Weights, last_variable: bool) -> Vec<u16> {
     }
 }
 
-fn get_implicit_a(left_val: u32, shifting: bool) -> Vec<u16> {
+fn get_implicit_a(code_point: u32, shifting: bool) -> Vec<u16> {
     #[allow(clippy::manual_range_contains)]
-    let mut aaaa = match left_val {
-        x if x >= 13_312 && x <= 19_903 => 64_384 + (left_val >> 15), //     CJK2
-        x if x >= 19_968 && x <= 40_959 => 64_320 + (left_val >> 15), //     CJK1
-        x if x >= 63_744 && x <= 64_255 => 64_320 + (left_val >> 15), //     CJK1
-        x if x >= 94_208 && x <= 101_119 => 64_256,                   //     Tangut
-        x if x >= 101_120 && x <= 101_631 => 64_258,                  //     Khitan
-        x if x >= 101_632 && x <= 101_775 => 64_256,                  //     Tangut
-        x if x >= 110_960 && x <= 111_359 => 64_257,                  //     Nushu
-        x if x >= 131_072 && x <= 173_791 => 64_384 + (left_val >> 15), //   CJK2
-        x if x >= 173_824 && x <= 191_471 => 64_384 + (left_val >> 15), //   CJK2
-        x if x >= 196_608 && x <= 201_551 => 64_384 + (left_val >> 15), //   CJK2
-        _ => 64_448 + (left_val >> 15),                               //     unass.
+    let mut aaaa = match code_point {
+        x if x >= 13_312 && x <= 19_903 => 64_384 + (code_point >> 15), //     CJK2
+        x if x >= 19_968 && x <= 40_959 => 64_320 + (code_point >> 15), //     CJK1
+        x if x >= 63_744 && x <= 64_255 => 64_320 + (code_point >> 15), //     CJK1
+        x if x >= 94_208 && x <= 101_119 => 64_256,                     //     Tangut
+        x if x >= 101_120 && x <= 101_631 => 64_258,                    //     Khitan
+        x if x >= 101_632 && x <= 101_775 => 64_256,                    //     Tangut
+        x if x >= 110_960 && x <= 111_359 => 64_257,                    //     Nushu
+        x if x >= 131_072 && x <= 173_791 => 64_384 + (code_point >> 15), //   CJK2
+        x if x >= 173_824 && x <= 191_471 => 64_384 + (code_point >> 15), //   CJK2
+        x if x >= 196_608 && x <= 201_551 => 64_384 + (code_point >> 15), //   CJK2
+        _ => 64_448 + (code_point >> 15),                               //     unass.
     };
 
-    if INCLUDED_UNASSIGNED.contains(&left_val) {
-        aaaa = 64_448 + (left_val >> 15);
+    if INCLUDED_UNASSIGNED.contains(&code_point) {
+        aaaa = 64_448 + (code_point >> 15);
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -674,24 +674,24 @@ fn get_implicit_a(left_val: u32, shifting: bool) -> Vec<u16> {
     }
 }
 
-fn get_implicit_b(left_val: u32, shifting: bool) -> Vec<u16> {
+fn get_implicit_b(code_point: u32, shifting: bool) -> Vec<u16> {
     #[allow(clippy::manual_range_contains)]
-    let mut bbbb = match left_val {
-        x if x >= 13_312 && x <= 19_903 => left_val & 32_767, //      CJK2
-        x if x >= 19_968 && x <= 40_959 => left_val & 32_767, //      CJK1
-        x if x >= 63_744 && x <= 64_255 => left_val & 32_767, //      CJK1
-        x if x >= 94_208 && x <= 101_119 => left_val - 94_208, //     Tangut
-        x if x >= 101_120 && x <= 101_631 => left_val - 101_120, //   Khitan
-        x if x >= 101_632 && x <= 101_775 => left_val - 94_208, //    Tangut
-        x if x >= 110_960 && x <= 111_359 => left_val - 110_960, //   Nushu
-        x if x >= 131_072 && x <= 173_791 => left_val & 32_767, //    CJK2
-        x if x >= 173_824 && x <= 191_471 => left_val & 32_767, //    CJK2
-        x if x >= 196_608 && x <= 201_551 => left_val & 32_767, //    CJK2
-        _ => left_val & 32_767,                               //      unass.
+    let mut bbbb = match code_point {
+        x if x >= 13_312 && x <= 19_903 => code_point & 32_767, //      CJK2
+        x if x >= 19_968 && x <= 40_959 => code_point & 32_767, //      CJK1
+        x if x >= 63_744 && x <= 64_255 => code_point & 32_767, //      CJK1
+        x if x >= 94_208 && x <= 101_119 => code_point - 94_208, //     Tangut
+        x if x >= 101_120 && x <= 101_631 => code_point - 101_120, //   Khitan
+        x if x >= 101_632 && x <= 101_775 => code_point - 94_208, //    Tangut
+        x if x >= 110_960 && x <= 111_359 => code_point - 110_960, //   Nushu
+        x if x >= 131_072 && x <= 173_791 => code_point & 32_767, //    CJK2
+        x if x >= 173_824 && x <= 191_471 => code_point & 32_767, //    CJK2
+        x if x >= 196_608 && x <= 201_551 => code_point & 32_767, //    CJK2
+        _ => code_point & 32_767,                               //      unass.
     };
 
-    if INCLUDED_UNASSIGNED.contains(&left_val) {
-        bbbb = left_val & 32_767;
+    if INCLUDED_UNASSIGNED.contains(&code_point) {
+        bbbb = code_point & 32_767;
     }
 
     // BBBB always gets bitwise ORed with this value
