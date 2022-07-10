@@ -186,51 +186,6 @@ fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: CollationOptions) -> Order
     compare_sort_keys(&a_sort_key, &b_sort_key)
 }
 
-fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
-    let min_length = a.len().min(b.len());
-
-    for i in 0..min_length {
-        if a[i] < b[i] {
-            return Ordering::Less;
-        }
-
-        if a[i] > b[i] {
-            return Ordering::Greater;
-        }
-    }
-
-    Ordering::Equal
-}
-
-fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
-    let prefix_len = find_prefix(a, b);
-
-    if prefix_len > 0 {
-        for elem in &a[0..prefix_len] {
-            if NEED_THREE.contains(elem) || NEED_TWO.contains(elem) {
-                return;
-            }
-        }
-
-        let sing = if cldr { &SING_CLDR } else { &SING };
-
-        if let Some(row) = sing.get(&a[prefix_len - 1]) {
-            for weights in row {
-                if weights.variable || weights.primary == 0 {
-                    return;
-                }
-            }
-        }
-
-        a.drain(0..prefix_len);
-        b.drain(0..prefix_len);
-    }
-}
-
-fn find_prefix(a: &[u32], b: &[u32]) -> usize {
-    a.iter().zip(b).take_while(|(x, y)| x == y).count()
-}
-
 fn get_nfd(input: &str) -> Vec<u32> {
     if fcd(input) {
         input.chars().map(|c| c as u32).collect()
@@ -275,6 +230,35 @@ fn fcd(input: &str) -> bool {
     true
 }
 
+fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
+    let prefix_len = find_prefix(a, b);
+
+    if prefix_len > 0 {
+        for elem in &a[0..prefix_len] {
+            if NEED_THREE.contains(elem) || NEED_TWO.contains(elem) {
+                return;
+            }
+        }
+
+        let sing = if cldr { &SING_CLDR } else { &SING };
+
+        if let Some(row) = sing.get(&a[prefix_len - 1]) {
+            for weights in row {
+                if weights.variable || weights.primary == 0 {
+                    return;
+                }
+            }
+        }
+
+        a.drain(0..prefix_len);
+        b.drain(0..prefix_len);
+    }
+}
+
+fn find_prefix(a: &[u32], b: &[u32]) -> usize {
+    a.iter().zip(b).take_while(|(x, y)| x == y).count()
+}
+
 fn nfd_to_sk(nfd: &mut Vec<u32>, opt: CollationOptions) -> Vec<u16> {
     let cea = get_collation_element_array(nfd, opt);
     get_sort_key(&cea, opt.shifting)
@@ -297,6 +281,22 @@ fn get_sort_key(collation_element_array: &[Vec<u16>], shifting: bool) -> Vec<u16
     }
 
     sort_key
+}
+
+fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
+    let min_length = a.len().min(b.len());
+
+    for i in 0..min_length {
+        if a[i] < b[i] {
+            return Ordering::Less;
+        }
+
+        if a[i] > b[i] {
+            return Ordering::Greater;
+        }
+    }
+
+    Ordering::Equal
 }
 
 #[allow(clippy::too_many_lines)]
@@ -633,18 +633,6 @@ fn get_collation_element_array(char_vals: &mut Vec<u32>, opt: CollationOptions) 
     cea
 }
 
-fn get_shifted_weights(weights: Weights, last_variable: bool) -> Vec<u16> {
-    if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
-        vec![0, 0, 0, 0]
-    } else if weights.variable {
-        vec![0, 0, 0, weights.primary]
-    } else if last_variable && weights.primary == 0 && weights.tertiary != 0 {
-        vec![0, 0, 0, 0]
-    } else {
-        vec![weights.primary, weights.secondary, weights.tertiary, 65_535]
-    }
-}
-
 fn get_implicit_a(code_point: u32, shifting: bool) -> Vec<u16> {
     #[allow(clippy::manual_range_contains)]
     let mut aaaa = match code_point {
@@ -703,6 +691,18 @@ fn get_implicit_b(code_point: u32, shifting: bool) -> Vec<u16> {
         vec![bbbb as u16, 0, 0, 65_535]
     } else {
         vec![bbbb as u16, 0, 0]
+    }
+}
+
+fn get_shifted_weights(weights: Weights, last_variable: bool) -> Vec<u16> {
+    if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
+        vec![0, 0, 0, 0]
+    } else if weights.variable {
+        vec![0, 0, 0, weights.primary]
+    } else if last_variable && weights.primary == 0 && weights.tertiary != 0 {
+        vec![0, 0, 0, 0]
+    } else {
+        vec![weights.primary, weights.secondary, weights.tertiary, 65_535]
     }
 }
 
