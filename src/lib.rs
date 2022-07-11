@@ -267,14 +267,14 @@ fn nfd_to_sk(nfd: &mut Vec<u32>, opt: CollationOptions) -> Vec<u16> {
 
 fn get_sort_key(collation_element_array: &[ArrayVec<[u16; 4]>], shifting: bool) -> Vec<u16> {
     let max_level = if shifting { 4 } else { 3 };
-    let mut sort_key: Vec<u16> = Vec::new();
+    let mut sort_key = Vec::new();
 
     for i in 0..max_level {
         if i > 0 {
             sort_key.push(0);
         }
 
-        for elem in collation_element_array.iter() {
+        for elem in collation_element_array {
             if elem[i] != 0 {
                 sort_key.push(elem[i]);
             }
@@ -286,18 +286,7 @@ fn get_sort_key(collation_element_array: &[ArrayVec<[u16; 4]>], shifting: bool) 
 
 fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
     let min_length = a.len().min(b.len());
-
-    for i in 0..min_length {
-        if a[i] < b[i] {
-            return Ordering::Less;
-        }
-
-        if a[i] > b[i] {
-            return Ordering::Greater;
-        }
-    }
-
-    Ordering::Equal
+    a[0..min_length].cmp(&b[0..min_length])
 }
 
 #[allow(clippy::too_many_lines)]
