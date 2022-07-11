@@ -1,7 +1,8 @@
 //! This crate provides a basic implementation of the Unicode Collation Algorithm. There is really
-//! just one function, `collate`, and a few options that can be passed to it. But the implementation
-//! conforms to the standard and allows for the use of the CLDR root collation order; so it may
-//! indeed be useful, even in this early stage of development.
+//! just one function, `collate`, and a few options that can be passed to it. (The
+//! `collate_no_tiebreak` function is a variation whose behavior is a bit more strict.) Despite the
+//! bare-bones API, this implementation conforms to the standard and allows for the use of the CLDR
+//! root collation order; so it may indeed be useful, even in this early stage of development.
 
 #![warn(clippy::pedantic, clippy::cargo)]
 #![allow(clippy::module_name_repetitions)]
@@ -70,10 +71,10 @@ struct Weights {
 // Public functions
 //
 
-/// This is, so far, the only public function in the library. It accepts as arguments two string
-/// references and a `CollationOptions` struct. It returns an `Ordering` value. This is designed to
-/// be used in conjunction with the `sort_by` function in the standard library. Simple usage might
-/// look like the following...
+/// This is the main public function in the library. It accepts as arguments two string references
+/// and a `CollationOptions` struct. It returns an `Ordering` value. This is designed to be used in
+/// conjunction with the `sort_by` function in the standard library. Simple usage might look like
+/// the following...
 ///
 /// ```
 /// use feruca::{collate, CollationOptions};
@@ -87,8 +88,8 @@ struct Weights {
 ///
 /// Significantly, in the event that two strings are ordered equally per the Unicode Collation
 /// Algorithm, this function will use byte-value comparison (i.e., the traditional, naïve way of
-/// sorting strings) as a tiebreaker. A `collate_no_tiebreak` function may be added in the future,
-/// if there is demand for it.
+/// sorting strings) as a tiebreaker. While this is probably appropriate in most cases, it can be
+/// avoided by using the `collate_no_tiebreak` function.
 #[must_use]
 pub fn collate(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
     // Early out
@@ -123,7 +124,9 @@ pub fn collate(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
     comparison
 }
 
-/// TODO: add documentation
+/// This is a variation on the `collate` function, to which it is almost identical. The difference
+/// is that, in the event that two strings are ordered equally per the Unicode Collation Algorithm,
+/// this function will not attempt to "break the tie" by using byte-value comparison.
 #[must_use]
 pub fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
     if str_a == str_b {
