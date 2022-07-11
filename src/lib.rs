@@ -74,9 +74,9 @@ static SING: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
     decoded
 });
 
-static MULT: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
+static MULT: Lazy<HashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis");
-    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(data).unwrap();
+    let decoded: HashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
@@ -86,9 +86,9 @@ static SING_CLDR: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
     decoded
 });
 
-static MULT_CLDR: Lazy<HashMap<Vec<u32>, Vec<Weights>>> = Lazy::new(|| {
+static MULT_CLDR: Lazy<HashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis_cldr");
-    let decoded: HashMap<Vec<u32>, Vec<Weights>> = bincode::deserialize(data).unwrap();
+    let decoded: HashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
@@ -235,14 +235,9 @@ fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
     let prefix_len = find_prefix(a, b);
 
     if prefix_len > 0 {
-        for elem in &a[0..prefix_len] {
-            if NEED_THREE.contains(elem) || NEED_TWO.contains(elem) {
-                return;
-            }
-        }
-
         let sing = if cldr { &SING_CLDR } else { &SING };
 
+        // Test final code point in prefix; bail if bad
         if let Some(row) = sing.get(&a[prefix_len - 1]) {
             for weights in row {
                 if weights.variable || weights.primary == 0 {
@@ -257,7 +252,10 @@ fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
 }
 
 fn find_prefix(a: &[u32], b: &[u32]) -> usize {
-    a.iter().zip(b).take_while(|(x, y)| x == y).count()
+    a.iter()
+        .zip(b)
+        .take_while(|(x, y)| x == y && !NEED_THREE.contains(x) && !NEED_TWO.contains(x))
+        .count()
 }
 
 fn nfd_to_sk(nfd: &mut Vec<u32>, opt: CollationOptions) -> Vec<u16> {
@@ -375,7 +373,7 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
             // find a slice have failed. So look for one code point, in the singles map
             if right - left == 1 {
                 // If we found it, we do still need to check for discontiguous matches
-                if let Some(value) = singles.get(&left_val) {
+                if let Some(row) = singles.get(&left_val) {
                     // Determine how much further right to look
                     let mut max_right = if right + 2 < char_vals.len() {
                         right + 2
@@ -406,9 +404,13 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
 
                         // Having made it this far, we can test a new subset, adding later char(s)
                         let new_subset = if try_two {
-                            [[left_val].as_slice(), &char_vals[max_right - 1..=max_right]].concat()
+                            ArrayVec::from([
+                                left_val,
+                                char_vals[max_right - 1],
+                                char_vals[max_right],
+                            ])
                         } else {
-                            vec![left_val, char_vals[max_right]]
+                            array_vec!([u32; 3] => left_val, char_vals[max_right])
                         };
 
                         //
@@ -419,8 +421,8 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
                         // them; fell back to check for the initial code point; found it; checked
                         // for discontiguous matches; and found one. Anyway, push the weights...
                         //
-                        if let Some(new_value) = multis.get(&new_subset) {
-                            for weights in new_value {
+                        if let Some(new_row) = multis.get(&new_subset) {
+                            for weights in new_row {
                                 if shifting {
                                     let weight_vals = get_shifted_weights(*weights, last_variable);
                                     cea.push(weight_vals);
@@ -465,7 +467,7 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
                     // for the initial code point; found it; checked for discontiguous matches; and
                     // did not find any. This is another bad path. Push the weights...
                     //
-                    for weights in value {
+                    for weights in row {
                         if shifting {
                             let weight_vals = get_shifted_weights(*weights, last_variable);
                             cea.push(weight_vals);
@@ -501,42 +503,27 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
             // If we got here, we're trying to find a slice
             let subset = &char_vals[left..right];
 
-            if let Some(value) = multis.get(subset) {
-                // If we found it, we need to check for discontiguous matches
-                // Determine how much further right to look
-                let mut max_right = if (right + 2) < char_vals.len() {
-                    right + 2
-                } else if (right + 1) < char_vals.len() {
-                    right + 1
-                } else {
-                    // This should skip the loop below. There will be no discontiguous match.
-                    right
-                };
+            if let Some(row) = multis.get(subset) {
+                // If we found it, we may need to check for a discontiguous match.
+                // But that's only if we matched on a set of two code points; and we'll only skip
+                // over one to find a possible third.
+                let mut try_discont = subset.len() == 2 && right + 1 < char_vals.len();
 
-                let mut try_two = max_right - right == 2 && cldr;
-
-                'inner: while max_right > right {
+                while try_discont {
                     // Need to make sure the sequence of CCCs is kosher
-                    let interest_cohort = &char_vals[right..=max_right];
-                    let mut max_ccc = 0;
+                    let ccc_a = get_ccc(char::from_u32(char_vals[right]).unwrap()) as u8;
+                    let ccc_b = get_ccc(char::from_u32(char_vals[right + 1]).unwrap()) as u8;
 
-                    for elem in interest_cohort {
-                        let ccc = get_ccc(char::from_u32(*elem).unwrap()) as u8;
-                        if ccc == 0 || ccc <= max_ccc {
-                            // Can also forget about try_two in this case
-                            try_two = false;
-                            max_right -= 1;
-                            continue 'inner;
-                        }
-                        max_ccc = ccc;
+                    if ccc_a == 0 || ccc_a >= ccc_b {
+                        // Bail -- no discontiguous match
+                        try_discont = false;
+                        continue;
                     }
 
-                    // Having made it this far, we can test a new subset, adding the later char(s)
-                    let new_subset = if try_two {
-                        [subset, &char_vals[max_right - 1..=max_right]].concat()
-                    } else {
-                        [subset, [char_vals[max_right]].as_slice()].concat()
-                    };
+                    // Having made it this far, we can test a new subset, adding the later char.
+                    // Again, this only happens if we found a match of two code points and want to
+                    // add a third; so we can be oddly specific.
+                    let new_subset = ArrayVec::from([subset[0], subset[1], char_vals[right + 1]]);
 
                     //
                     // OUTCOME 5
@@ -545,8 +532,8 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
                     // discontiguous matches; and found one. For a complicated case, this is a good
                     // path. Push the weights...
                     //
-                    if let Some(new_value) = multis.get(&new_subset) {
-                        for weights in new_value {
+                    if let Some(new_row) = multis.get(&new_subset) {
+                        for weights in new_row {
                             if shifting {
                                 let weight_vals = get_shifted_weights(*weights, last_variable);
                                 cea.push(weight_vals);
@@ -563,24 +550,16 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
                             }
                         }
 
-                        // Remove the pulled char(s) (in this order!)
-                        char_vals.remove(max_right);
-                        if try_two {
-                            char_vals.remove(max_right - 1);
-                        }
+                        // Remove the pulled char
+                        char_vals.remove(right + 1);
 
                         // Increment and continue outer loop
                         left += right - left;
                         continue 'outer;
                     }
 
-                    // If we tried for two, don't decrement max_right yet; inner loop will re-run
-                    if try_two {
-                        try_two = false;
-                    } else {
-                        // Otherwise decrement max_right; inner loop may re-run, or finish
-                        max_right -= 1;
-                    }
+                    // The loop will not run again -- no discontiguous match
+                    try_discont = false;
                 }
 
                 //
@@ -589,7 +568,7 @@ fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16
                 // We checked for multiple code points; found something; checked for discontiguous
                 // matches; and did not find any. This is an ok path. Push the weights...
                 //
-                for weights in value {
+                for weights in row {
                     if shifting {
                         let weight_vals = get_shifted_weights(*weights, last_variable);
                         cea.push(weight_vals);
