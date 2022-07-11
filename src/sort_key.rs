@@ -2,7 +2,7 @@ use crate::cea::get_cea;
 use crate::CollationOptions;
 use tinyvec::ArrayVec;
 
-pub(crate) fn nfd_to_sk(nfd: &mut Vec<u32>, opt: CollationOptions) -> Vec<u16> {
+pub fn nfd_to_sk(nfd: &mut Vec<u32>, opt: CollationOptions) -> Vec<u16> {
     let collation_element_array = get_cea(nfd, opt);
     get_sort_key(&collation_element_array, opt.shifting)
 }

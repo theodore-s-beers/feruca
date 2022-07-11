@@ -2,7 +2,7 @@ use crate::consts::FCD;
 use unicode_canonical_combining_class::get_canonical_combining_class as get_ccc;
 use unicode_normalization::UnicodeNormalization;
 
-pub(crate) fn get_nfd(input: &str) -> Vec<u32> {
+pub fn get_nfd(input: &str) -> Vec<u32> {
     if fcd(input) {
         input.chars().map(|c| c as u32).collect()
     } else {

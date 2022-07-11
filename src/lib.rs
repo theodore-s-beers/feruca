@@ -4,6 +4,7 @@
 //! indeed be useful, even in this early stage of development.
 
 #![warn(clippy::pedantic, clippy::cargo)]
+#![allow(clippy::module_name_repetitions)]
 #![deny(missing_docs)]
 
 use serde::Deserialize;

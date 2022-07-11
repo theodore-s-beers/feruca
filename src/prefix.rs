@@ -1,6 +1,6 @@
 use crate::consts::{NEED_THREE, NEED_TWO, SING, SING_CLDR};
 
-pub(crate) fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
+pub fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
     let prefix_len = find_prefix(a, b);
 
     if prefix_len > 0 {

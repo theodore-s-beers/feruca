@@ -2,7 +2,7 @@ use crate::consts::INCLUDED_UNASSIGNED;
 use crate::Weights;
 use tinyvec::{array_vec, ArrayVec};
 
-pub(crate) fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
+pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
     #[allow(clippy::manual_range_contains)]
     let mut aaaa = match code_point {
         x if x >= 13_312 && x <= 19_903 => 64_384 + (code_point >> 15), //     CJK2
@@ -31,7 +31,7 @@ pub(crate) fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 
     }
 }
 
-pub(crate) fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
+pub fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
     #[allow(clippy::manual_range_contains)]
     let mut bbbb = match code_point {
         x if x >= 13_312 && x <= 19_903 => code_point & 32_767, //      CJK2
