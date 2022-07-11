@@ -151,7 +151,7 @@ pub fn collate(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
     let a_sort_key = nfd_to_sk(&mut a_nfd, opt);
     let b_sort_key = nfd_to_sk(&mut b_nfd, opt);
 
-    let comparison = compare_sort_keys(&a_sort_key, &b_sort_key);
+    let comparison = a_sort_key.cmp(&b_sort_key);
 
     if comparison == Ordering::Equal {
         // Tiebreaker
@@ -184,7 +184,7 @@ fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: CollationOptions) -> Order
     let a_sort_key = nfd_to_sk(&mut a_nfd, opt);
     let b_sort_key = nfd_to_sk(&mut b_nfd, opt);
 
-    compare_sort_keys(&a_sort_key, &b_sort_key)
+    a_sort_key.cmp(&b_sort_key)
 }
 
 fn get_nfd(input: &str) -> Vec<u32> {
@@ -282,11 +282,6 @@ fn get_sort_key(collation_element_array: &[ArrayVec<[u16; 4]>], shifting: bool) 
     }
 
     sort_key
-}
-
-fn compare_sort_keys(a: &[u16], b: &[u16]) -> Ordering {
-    let min_length = a.len().min(b.len());
-    a[0..min_length].cmp(&b[0..min_length])
 }
 
 #[allow(clippy::too_many_lines)]
