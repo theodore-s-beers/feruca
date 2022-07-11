@@ -17,3 +17,10 @@ serde = { version = "1.0.139", features = ["derive"] }
 tinyvec = { version = "1.6.0", features = ["serde"] }
 unicode-canonical-combining-class = "0.3.0"
 unicode-normalization = "0.1.21"
+
+[dev-dependencies]
+criterion = "0.3.6"
+
+[[bench]]
+name = "conformance"
+harness = false
