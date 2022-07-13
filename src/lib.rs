@@ -76,9 +76,9 @@ struct Weights {
 //
 
 /// This is the main public function in the library. It accepts as arguments two string references
-/// and a `CollationOptions` struct. It returns an `Ordering` value. This is designed to be used in
-/// conjunction with the `sort_by` function in the standard library. Simple usage might look like
-/// the following...
+/// or byte slices, and a `CollationOptions` struct. It returns an `Ordering` value. This is
+/// designed to be used in conjunction with the `sort_by` function in the standard library. Simple
+/// usage might look like the following...
 ///
 /// ```
 /// use feruca::{collate, CollationOptions};
