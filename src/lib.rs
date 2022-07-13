@@ -12,6 +12,9 @@ use bstr::{ByteSlice, B};
 use serde::Deserialize;
 use std::cmp::Ordering;
 
+mod ascii;
+use ascii::{all_ascii, compare_ascii};
+
 mod cea;
 mod cea_utils;
 mod consts;
@@ -101,6 +104,12 @@ pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -
     let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
     let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
 
+    let easy = all_ascii(&a_chars, &b_chars);
+
+    if easy {
+        return compare_ascii(a_chars, b_chars);
+    }
+
     make_nfd(&mut a_chars);
     make_nfd(&mut b_chars);
 
@@ -143,6 +152,12 @@ pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord>(
 
     let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
     let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
+
+    let easy = all_ascii(&a_chars, &b_chars);
+
+    if easy {
+        return compare_ascii(a_chars, b_chars);
+    }
 
     make_nfd(&mut a_chars);
     make_nfd(&mut b_chars);
