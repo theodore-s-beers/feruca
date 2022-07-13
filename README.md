@@ -1,13 +1,25 @@
 # feruca – Unicode collation in Rust
 
 feruca is a basic implementation of the
-[Unicode Collation Algorithm](https://unicode.org/reports/tr10/) in 100% safe
-Rust (outside of the tests module). It is current with Unicode **version 14.0**.
-The name of the library is a portmanteau of Ferris 🦀 and UCA.
+[Unicode Collation Algorithm](https://unicode.org/reports/tr10/) in Rust. It's
+current with Unicode **version 14.0**. The name of the library is a portmanteau
+of Ferris 🦀 and UCA.
 
-I mean a few things by "basic implementation." First, I don't expect that this
-is highly performant. My rough attempts at benchmarking suggest that feruca is
-on the order of 20–40x slower than `ucol` from
+One unsafe function is called directly in this library:
+`char::from_u32_unchecked`. But this is done only after input is
+UTF-8-validated. It may soon be possible to remove these calls (despite their
+innocuousness in context).
+
+> Digression: More importantly, feruca is designed to be tolerant of problematic
+> input. The main function accepts either `&str` or `&[u8]`, and it relies on
+> the excellent [bstr](https://github.com/BurntSushi/bstr) library to generate a
+> validated list of Unicode scalar values, which can then be processed for
+> collation. This approach seems more useful than maintaining the illusion of
+> safety by assuming that all input will be clean.
+
+In describing feruca as a "basic implementation," I have a few things in mind.
+First, I don't expect that it's highly performant. My rough attempts at
+benchmarking suggest that this is on the order of 10–15x slower than `ucol` from
 [icu4c](https://github.com/unicode-org/icu). But my initial priority was to pass
 the official
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
@@ -21,16 +33,20 @@ variation from CLDR. (You can additionally choose between the "non-ignorable"
 and "shifted" strategies for handling variable-weight characters.) Adding
 further support for tailoring is a near-term priority.
 
-Third, the library has at present only one public function: `collate`, which
-accepts two string references (plus a `CollationOptions` struct), and returns an
-`Ordering`. That is, you can pass `collate` to the standard library function
-`sort_by` (see "Example usage").
+Third, the library has effectively⁰ just one public function: `collate`, which
+accepts two string references or byte slices (plus a `CollationOptions` struct),
+and returns an `Ordering`. That is, you can pass `collate` to the standard
+library function `sort_by` (see "Example usage").
 
 For many people and use cases, UCA sorting will not work properly without being
 able to specify a certain locale. That being said, the CLDR root collation order
 is already quite useful. When calling the `collate` function, you can pass
 default options (see below), which specify the use of the CLDR table with the
 "shifted" strategy. I think this is a good starting point.
+
+⁰ There is also a variant form, `collate_no_tiebreak`, which will return
+`Ordering::Equal` for any two strings that produce the same UCA sort key. (The
+normal version will fall back on byte-value comparison in such cases.)
 
 ## Example usage
 
