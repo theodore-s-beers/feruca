@@ -8,6 +8,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![deny(missing_docs)]
 
+use bstr::{ByteSlice, B};
 use serde::Deserialize;
 use std::cmp::Ordering;
 
@@ -16,7 +17,7 @@ mod cea_utils;
 mod consts;
 
 mod normalize;
-use normalize::get_nfd;
+use normalize::make_nfd;
 
 mod prefix;
 use prefix::trim_prefix;
@@ -91,34 +92,37 @@ struct Weights {
 /// sorting strings) as a tiebreaker. While this is probably appropriate in most cases, it can be
 /// avoided by using the `collate_no_tiebreak` function.
 #[must_use]
-pub fn collate(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
+pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -> Ordering {
     // Early out
-    if str_a == str_b {
+    if a == b {
         return Ordering::Equal;
     }
 
-    let mut a_nfd = get_nfd(str_a);
-    let mut b_nfd = get_nfd(str_b);
+    let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
+    let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
+
+    make_nfd(&mut a_chars);
+    make_nfd(&mut b_chars);
 
     // I think it's worth offering an out here, too, in case two strings decompose to the same.
     // If we went forward and generated sort keys, they would be equal, and we would end up at the
     // tiebreaker, anyway.
-    if a_nfd == b_nfd {
+    if a_chars == b_chars {
         // Tiebreaker
-        return str_a.cmp(str_b);
+        return a.cmp(b);
     }
 
     let cldr = opt.keys_source == KeysSource::Cldr;
-    trim_prefix(&mut a_nfd, &mut b_nfd, cldr);
+    trim_prefix(&mut a_chars, &mut b_chars, cldr);
 
-    let a_sort_key = nfd_to_sk(&mut a_nfd, opt);
-    let b_sort_key = nfd_to_sk(&mut b_nfd, opt);
+    let a_sort_key = nfd_to_sk(&mut a_chars, opt);
+    let b_sort_key = nfd_to_sk(&mut b_chars, opt);
 
     let comparison = a_sort_key.cmp(&b_sort_key);
 
     if comparison == Ordering::Equal {
         // Tiebreaker
-        return str_a.cmp(str_b);
+        return a.cmp(b);
     }
 
     comparison
@@ -128,23 +132,30 @@ pub fn collate(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
 /// is that, in the event that two strings are ordered equally per the Unicode Collation Algorithm,
 /// this function will not attempt to "break the tie" by using byte-value comparison.
 #[must_use]
-pub fn collate_no_tiebreak(str_a: &str, str_b: &str, opt: CollationOptions) -> Ordering {
-    if str_a == str_b {
+pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord>(
+    a: &T,
+    b: &T,
+    opt: CollationOptions,
+) -> Ordering {
+    if a == b {
         return Ordering::Equal;
     }
 
-    let mut a_nfd = get_nfd(str_a);
-    let mut b_nfd = get_nfd(str_b);
+    let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
+    let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
 
-    if a_nfd == b_nfd {
+    make_nfd(&mut a_chars);
+    make_nfd(&mut b_chars);
+
+    if a_chars == b_chars {
         return Ordering::Equal;
     }
 
     let cldr = opt.keys_source == KeysSource::Cldr;
-    trim_prefix(&mut a_nfd, &mut b_nfd, cldr);
+    trim_prefix(&mut a_chars, &mut b_chars, cldr);
 
-    let a_sort_key = nfd_to_sk(&mut a_nfd, opt);
-    let b_sort_key = nfd_to_sk(&mut b_nfd, opt);
+    let a_sort_key = nfd_to_sk(&mut a_chars, opt);
+    let b_sort_key = nfd_to_sk(&mut b_chars, opt);
 
     a_sort_key.cmp(&b_sort_key)
 }

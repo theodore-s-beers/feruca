@@ -114,7 +114,7 @@ pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<
                         let mut max_ccc = 0;
 
                         for elem in interest_cohort {
-                            let ccc = get_ccc(char::from_u32(*elem).unwrap()) as u8;
+                            let ccc = get_ccc(unsafe { char::from_u32_unchecked(*elem) }) as u8;
                             if ccc == 0 || ccc <= max_ccc {
                                 // Can also forget about try_two in this case
                                 try_two = false;
@@ -233,8 +233,10 @@ pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<
 
                 while try_discont {
                     // Need to make sure the sequence of CCCs is kosher
-                    let ccc_a = get_ccc(char::from_u32(char_vals[right]).unwrap()) as u8;
-                    let ccc_b = get_ccc(char::from_u32(char_vals[right + 1]).unwrap()) as u8;
+                    let ccc_a =
+                        get_ccc(unsafe { char::from_u32_unchecked(char_vals[right]) }) as u8;
+                    let ccc_b =
+                        get_ccc(unsafe { char::from_u32_unchecked(char_vals[right + 1]) }) as u8;
 
                     if ccc_a == 0 || ccc_a >= ccc_b {
                         // Bail -- no discontiguous match

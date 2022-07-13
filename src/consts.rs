@@ -1,6 +1,6 @@
 use crate::Weights;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tinyvec::ArrayVec;
 
 //
@@ -22,6 +22,18 @@ pub const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
 //
 // Static
 //
+
+pub static DECOMP: Lazy<HashMap<u32, Vec<u32>>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/decomp");
+    let decoded: HashMap<u32, Vec<u32>> = bincode::deserialize(data).unwrap();
+    decoded
+});
+
+pub static JAMO: Lazy<HashSet<u32>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/jamo");
+    let decoded: HashSet<u32> = bincode::deserialize(data).unwrap();
+    decoded
+});
 
 pub static FCD: Lazy<HashMap<u32, u16>> = Lazy::new(|| {
     let data = include_bytes!("bincode/fcd");

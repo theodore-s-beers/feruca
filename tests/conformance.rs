@@ -6,7 +6,7 @@ fn conformance(path: &str, options: CollationOptions) {
 
     let mut max_line = String::new();
 
-    for line in test_data.lines() {
+    'outer: for line in test_data.lines() {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
@@ -16,10 +16,15 @@ fn conformance(path: &str, options: CollationOptions) {
 
         for s in hex_values {
             let val = u32::from_str_radix(s, 16).unwrap();
-            // We have to use an unsafe function for the conformance tests because they
-            // deliberately introduce invalid character values.
-            let c = unsafe { std::char::from_u32_unchecked(val) };
-            test_string.push(c);
+
+            // Skip lines containing surrogate code points; they would all be replaced with U+FFFD.
+            // Conformant implementations are explicitly allowed to do this.
+            if val > 55_295 && val < 57_344 {
+                continue 'outer;
+            }
+
+            // We use the unsafe method because input will be validated, anyway
+            test_string.push(unsafe { char::from_u32_unchecked(val) });
         }
 
         let comparison = collate_no_tiebreak(&test_string, &max_line, options);
