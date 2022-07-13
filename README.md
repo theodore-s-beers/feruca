@@ -33,10 +33,10 @@ variation from CLDR. (You can additionally choose between the "non-ignorable"
 and "shifted" strategies for handling variable-weight characters.) Adding
 further support for tailoring is a near-term priority.
 
-Third, the library has effectively⁰ just one public function: `collate`, which
-accepts two string references or byte slices (plus a `CollationOptions` struct),
-and returns an `Ordering`. That is, you can pass `collate` to the standard
-library function `sort_by` (see "Example usage").
+Third, the library has effectively\[0\] just one public function: `collate`,
+which accepts two string references or byte slices (plus a `CollationOptions`
+struct), and returns an `Ordering`. That is, you can pass `collate` to the
+standard library function `sort_by` (see "Example usage").
 
 For many people and use cases, UCA sorting will not work properly without being
 able to specify a certain locale. That being said, the CLDR root collation order
@@ -44,7 +44,7 @@ is already quite useful. When calling the `collate` function, you can pass
 default options (see below), which specify the use of the CLDR table with the
 "shifted" strategy. I think this is a good starting point.
 
-⁰ There is also a variant form, `collate_no_tiebreak`, which will return
+\[0\]: There is also a variant form, `collate_no_tiebreak`, which will return
 `Ordering::Equal` for any two strings that produce the same UCA sort key. (The
 normal version will fall back on byte-value comparison in such cases.)
 
