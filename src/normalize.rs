@@ -11,7 +11,7 @@ const T_COUNT: u32 = 28;
 const N_COUNT: u32 = 588;
 
 pub fn make_nfd(input: &mut Vec<u32>) {
-    if fcd_vec(input) {
+    if fcd(input) {
         return;
     }
 
@@ -19,7 +19,7 @@ pub fn make_nfd(input: &mut Vec<u32>) {
     reorder(input);
 }
 
-fn fcd_vec(input: &[u32]) -> bool {
+fn fcd(input: &[u32]) -> bool {
     let mut curr_lead_cc: u8;
     let mut curr_trail_cc: u8;
 
