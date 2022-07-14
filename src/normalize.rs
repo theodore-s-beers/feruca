@@ -1,6 +1,6 @@
 use crate::consts::{DECOMP, FCD, JAMO};
 use tinyvec::{array_vec, ArrayVec};
-use unicode_canonical_combining_class::get_canonical_combining_class as get_ccc;
+use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 // Jamo-related consts; they live here for now
 const S_BASE: u32 = 0xAC00;
@@ -38,7 +38,7 @@ fn fcd(input: &[u32]) -> bool {
         if let Some(vals) = FCD.get(c) {
             [curr_lead_cc, curr_trail_cc] = vals.to_be_bytes();
         } else {
-            curr_lead_cc = get_ccc(unsafe { char::from_u32_unchecked(*c) }) as u8;
+            curr_lead_cc = get_ccc(*c) as u8;
             curr_trail_cc = curr_lead_cc;
         }
 
@@ -109,14 +109,14 @@ fn reorder(input: &mut Vec<u32>) {
         let mut i = 1;
 
         while i < n {
-            let ccc_b = get_ccc(unsafe { char::from_u32_unchecked(input[i]) }) as u8;
+            let ccc_b = get_ccc(input[i]) as u8;
 
             if ccc_b == 0 {
                 i += 2;
                 continue;
             }
 
-            let ccc_a = get_ccc(unsafe { char::from_u32_unchecked(input[i - 1]) }) as u8;
+            let ccc_a = get_ccc(input[i - 1]) as u8;
 
             if ccc_a == 0 || ccc_a <= ccc_b {
                 i += 1;

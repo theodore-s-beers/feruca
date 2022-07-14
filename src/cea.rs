@@ -2,7 +2,7 @@ use crate::cea_utils::{get_implicit_a, get_implicit_b, get_shifted_weights};
 use crate::consts::{MULT, MULT_CLDR, NEED_THREE, NEED_TWO, SING, SING_CLDR};
 use crate::{CollationOptions, KeysSource};
 use tinyvec::{array_vec, ArrayVec};
-use unicode_canonical_combining_class::get_canonical_combining_class as get_ccc;
+use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 #[allow(clippy::too_many_lines)]
 pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16; 4]>> {
@@ -114,7 +114,7 @@ pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<
                         let mut max_ccc = 0;
 
                         for elem in interest_cohort {
-                            let ccc = get_ccc(unsafe { char::from_u32_unchecked(*elem) }) as u8;
+                            let ccc = get_ccc(*elem) as u8;
                             if ccc == 0 || ccc <= max_ccc {
                                 // Can also forget about try_two in this case
                                 try_two = false;
@@ -233,10 +233,8 @@ pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<
 
                 while try_discont {
                     // Need to make sure the sequence of CCCs is kosher
-                    let ccc_a =
-                        get_ccc(unsafe { char::from_u32_unchecked(char_vals[right]) }) as u8;
-                    let ccc_b =
-                        get_ccc(unsafe { char::from_u32_unchecked(char_vals[right + 1]) }) as u8;
+                    let ccc_a = get_ccc(char_vals[right]) as u8;
+                    let ccc_b = get_ccc(char_vals[right + 1]) as u8;
 
                     if ccc_a == 0 || ccc_a >= ccc_b {
                         // Bail -- no discontiguous match
