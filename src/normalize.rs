@@ -1,14 +1,14 @@
-use crate::consts::{DECOMP, FCD, JAMO};
+use crate::consts::{DECOMP, FCD, JAMO_LV};
 use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 // Jamo-related consts; they live here for now
-const S_BASE: u32 = 0xAC00;
-const L_BASE: u32 = 0x1100;
-const V_BASE: u32 = 0x1161;
-const T_BASE: u32 = 0x11A7;
-const T_COUNT: u32 = 28;
-const N_COUNT: u32 = 588;
+const S_BASE: u16 = 0xAC00;
+const L_BASE: u16 = 0x1100;
+const V_BASE: u16 = 0x1161;
+const T_BASE: u16 = 0x11A7;
+const T_COUNT: u16 = 28;
+const N_COUNT: u16 = 588;
 
 pub fn make_nfd(input: &mut Vec<u32>) {
     if fcd(input) {
@@ -57,7 +57,8 @@ fn decompose(input: &mut Vec<u32>) {
 
     while i < input.len() {
         if input[i] >= 0xAC00 && input[i] <= 0xD7A3 {
-            let rep = decompose_jamo(input[i]);
+            #[allow(clippy::cast_possible_truncation)]
+            let rep = decompose_jamo(input[i] as u16);
             let n = rep.len();
             input.splice(i..=i, rep);
             i += n;
@@ -74,10 +75,10 @@ fn decompose(input: &mut Vec<u32>) {
     }
 }
 
-fn decompose_jamo(s: u32) -> ArrayVec<[u32; 3]> {
+fn decompose_jamo(s: u16) -> ArrayVec<[u32; 3]> {
     let s_index = s - S_BASE;
 
-    let lv = JAMO.get(&s).is_some();
+    let lv = JAMO_LV.contains(&s);
 
     if lv {
         let l_index = s_index / N_COUNT;
@@ -86,7 +87,7 @@ fn decompose_jamo(s: u32) -> ArrayVec<[u32; 3]> {
         let l_part = L_BASE + l_index;
         let v_part = V_BASE + v_index;
 
-        array_vec!([u32; 3] => l_part, v_part)
+        array_vec!([u32; 3] => u32::from(l_part), u32::from(v_part))
     } else {
         let l_index = s_index / N_COUNT;
         let v_index = (s_index % N_COUNT) / T_COUNT;
@@ -96,7 +97,7 @@ fn decompose_jamo(s: u32) -> ArrayVec<[u32; 3]> {
         let v_part = V_BASE + v_index;
         let t_part = T_BASE + t_index;
 
-        ArrayVec::from([l_part, v_part, t_part])
+        ArrayVec::from([u32::from(l_part), u32::from(v_part), u32::from(t_part)])
     }
 }
 
