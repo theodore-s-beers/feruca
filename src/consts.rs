@@ -77,6 +77,18 @@ pub static FCD: Lazy<HashMap<u32, u16>> = Lazy::new(|| {
     decoded
 });
 
+pub(crate) static LOW: Lazy<HashMap<u32, Weights>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/low");
+    let decoded: HashMap<u32, Weights> = bincode::deserialize(data).unwrap();
+    decoded
+});
+
+pub(crate) static LOW_CLDR: Lazy<HashMap<u32, Weights>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/low_cldr");
+    let decoded: HashMap<u32, Weights> = bincode::deserialize(data).unwrap();
+    decoded
+});
+
 pub(crate) static SING: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/singles");
     let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();

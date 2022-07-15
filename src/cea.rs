@@ -1,5 +1,5 @@
 use crate::cea_utils::{get_implicit_a, get_implicit_b, get_shifted_weights};
-use crate::consts::{MULT, MULT_CLDR, NEED_THREE, NEED_TWO, SING, SING_CLDR};
+use crate::consts::{LOW, LOW_CLDR, MULT, MULT_CLDR, NEED_THREE, NEED_TWO, SING, SING_CLDR};
 use crate::{CollationOptions, KeysSource};
 use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
@@ -11,6 +11,7 @@ pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<
     let cldr = opt.keys_source == KeysSource::Cldr;
     let shifting = opt.shifting;
 
+    let low = if cldr { &LOW_CLDR } else { &LOW };
     let singles = if cldr { &SING_CLDR } else { &SING };
     let multis = if cldr { &MULT_CLDR } else { &MULT };
 
@@ -20,6 +21,36 @@ pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<
     // We spend essentially the entire function in this loop
     'outer: while left < char_vals.len() {
         let left_val = char_vals[left];
+
+        //
+        // OUTCOME 0
+        //
+        // The code point was low, so we could draw from a small map that associates one u32 with
+        // one Weights struct. Then push the weights, shifting if necessary. This is the path that
+        // catches (most) ASCII characters present in not-completely-ASCII strings.
+        //
+        if left_val < 183 && left_val != 108 && left_val != 76 {
+            let weights = low.get(&left_val).unwrap(); // Guaranteed to succeed
+
+            if shifting {
+                let weight_vals = get_shifted_weights(*weights, last_variable);
+                cea.push(weight_vals);
+                if weights.variable {
+                    last_variable = true;
+                } else if weights.primary != 0 {
+                    last_variable = false;
+                }
+            } else {
+                let weight_vals = array_vec!(
+                    [u16; 4] => weights.primary, weights.secondary, weights.tertiary
+                );
+                cea.push(weight_vals);
+            }
+
+            // Increment and continue outer loop
+            left += 1;
+            continue;
+        }
 
         // Set lookahead depending on left_val. We need 3 in a few cases; 2 in several dozen cases;
         // and 1 otherwise.
