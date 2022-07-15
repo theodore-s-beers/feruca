@@ -21,8 +21,15 @@ pub fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
 }
 
 fn find_prefix(a: &[u32], b: &[u32]) -> usize {
-    a.iter()
-        .zip(b)
-        .take_while(|(x, y)| x == y && !NEED_THREE.contains(x) && !NEED_TWO.contains(x))
-        .count()
+    let mut count = 0;
+
+    for i in 0..a.len().min(b.len()) {
+        if a[i] != b[i] || NEED_TWO.contains(&a[i]) || NEED_THREE.contains(&a[i]) {
+            break;
+        }
+
+        count += 1;
+    }
+
+    count
 }

@@ -56,16 +56,23 @@ fn decompose(input: &mut Vec<u32>) {
     let mut i: usize = 0;
 
     while i < input.len() {
-        if input[i] >= 0xAC00 && input[i] <= 0xD7A3 {
+        let code_point = input[i];
+
+        if code_point < 192 {
+            i += 1;
+            continue;
+        }
+
+        if (0xAC00..=0xD7A3).contains(&code_point) {
             #[allow(clippy::cast_possible_truncation)]
-            let rep = decompose_jamo(input[i] as u16);
+            let rep = decompose_jamo(code_point as u16);
             let n = rep.len();
             input.splice(i..=i, rep);
             i += n;
             continue;
         }
 
-        if let Some(rep) = DECOMP.get(&input[i]) {
+        if let Some(rep) = DECOMP.get(&code_point) {
             input.splice(i..=i, rep.clone());
             i += rep.len();
             continue;
