@@ -1,9 +1,18 @@
-use crate::consts::ASCII_AN;
 use std::cmp::Ordering;
 
 pub fn all_ascii(a: &[u32], b: &[u32]) -> bool {
-    if a.iter().any(|c| !ASCII_AN.contains(c)) || b.iter().any(|c| !ASCII_AN.contains(c)) {
-        return false;
+    for i in 0..a.len().min(b.len()) {
+        if a[i] > 122                      // Too high
+            || b[i] > 122
+            || a[i] < 48                   // Too low
+            || b[i] < 48
+            || (58..=64).contains(&a[i])   // Non-alphanumeric
+            || (58..=64).contains(&b[i])
+            || (91..=96).contains(&a[i])   // Non-alphanumeric
+            || (91..=96).contains(&b[i])
+        {
+            return false;
+        }
     }
 
     true
