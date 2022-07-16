@@ -19,6 +19,9 @@ mod cea;
 mod cea_utils;
 mod consts;
 
+mod first_weight;
+use first_weight::{get_first_primary, safe_first_chars};
+
 mod normalize;
 use normalize::make_nfd;
 
@@ -96,20 +99,22 @@ struct Weights {
 /// avoided by using the `collate_no_tiebreak` function.
 #[must_use]
 pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -> Ordering {
-    // Early out
+    // Early out; equal is equal
     if a == b {
         return Ordering::Equal;
     }
 
+    // Turn both into Vecs of u32 code points, while validating UTF-8
     let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
     let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
 
+    // Check if both are entirely alphanumeric ASCII
     let easy = all_ascii(&a_chars, &b_chars);
-
     if easy {
         return compare_ascii(a_chars, b_chars);
     }
 
+    // Normalize to NFD
     make_nfd(&mut a_chars);
     make_nfd(&mut b_chars);
 
@@ -121,9 +126,28 @@ pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -
         return a.cmp(b);
     }
 
+    // Check for a shared prefix that might be safe to trim
     let cldr = opt.keys_source == KeysSource::Cldr;
     trim_prefix(&mut a_chars, &mut b_chars, cldr);
 
+    // After prefix trimming, one of the Vecs may be empty (but not both!)
+    if a_chars.is_empty() || b_chars.is_empty() {
+        return a_chars.cmp(&b_chars);
+    }
+
+    // One last chance for an early out: if the opening code points of the two Vecs are different,
+    // and neither requires checking for a multi-code-point sequence, then we can try comparing
+    // their first primary weights. If those are different, and both non-zero, it's decisive.
+    if safe_first_chars(&a_chars, &b_chars) {
+        let a_first_primary = get_first_primary(a_chars[0], opt);
+        let b_first_primary = get_first_primary(b_chars[0], opt);
+
+        if a_first_primary != b_first_primary && a_first_primary != 0 && b_first_primary != 0 {
+            return a_first_primary.cmp(&b_first_primary);
+        }
+    }
+
+    // Otherwise we move forward with full sort keys
     let a_sort_key = nfd_to_sk(&mut a_chars, opt);
     let b_sort_key = nfd_to_sk(&mut b_chars, opt);
 
@@ -154,7 +178,6 @@ pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord>(
     let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
 
     let easy = all_ascii(&a_chars, &b_chars);
-
     if easy {
         return compare_ascii(a_chars, b_chars);
     }
@@ -168,6 +191,19 @@ pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord>(
 
     let cldr = opt.keys_source == KeysSource::Cldr;
     trim_prefix(&mut a_chars, &mut b_chars, cldr);
+
+    if a_chars.is_empty() || b_chars.is_empty() {
+        return a_chars.cmp(&b_chars);
+    }
+
+    if safe_first_chars(&a_chars, &b_chars) {
+        let a_first_primary = get_first_primary(a_chars[0], opt);
+        let b_first_primary = get_first_primary(b_chars[0], opt);
+
+        if a_first_primary != b_first_primary && a_first_primary != 0 && b_first_primary != 0 {
+            return a_first_primary.cmp(&b_first_primary);
+        }
+    }
 
     let a_sort_key = nfd_to_sk(&mut a_chars, opt);
     let b_sort_key = nfd_to_sk(&mut b_chars, opt);
