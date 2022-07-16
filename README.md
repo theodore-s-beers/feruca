@@ -14,7 +14,7 @@ UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
 First, I don't expect that it will win any awards for performance. My rough
-attempts at benchmarking suggest that this is on the order of 10–20x slower than
+attempts at benchmarking suggest that this is on the order of 10–15x slower than
 `ucol` from [icu4c](https://github.com/unicode-org/icu). But my initial priority
 was to pass the official
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
