@@ -7,8 +7,16 @@ use tinyvec::ArrayVec;
 // Const
 //
 
+// Unassigned code points that are erroneously included in one of the ranges of code points used to
+// calculate implicit weights
+pub const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
+
+// Code points that can start three-code-point sequences in the collation tables. These values don't
+// "need" to be u32, but that's what they'll be compared against
 pub const NEED_THREE: [u32; 4] = [3_270, 3_545, 4_018, 4_019];
 
+// Code points that can start two-code-point sequences in the collation tables. This used to include
+// duplicate values from NEED_THREE, but that's unnecessary.
 pub const NEED_TWO: [u32; 59] = [
     76, 108, 1_048, 1_080, 1_575, 1_608, 1_610, 2_503, 2_887, 2_962, 3_014, 3_015, 3_142, 3_263,
     3_274, 3_398, 3_399, 3_548, 3_648, 3_649, 3_650, 3_651, 3_652, 3_661, 3_776, 3_777, 3_778,
@@ -17,12 +25,15 @@ pub const NEED_TWO: [u32; 59] = [
     69_937, 69_938, 70_471, 70_841, 71_096, 71_097, 71_989,
 ];
 
-pub const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
-
 //
 // Static
 //
 
+// I think a hash set may perform better than an array, given the size (~400). But it could always
+// be changed.
+//
+// I did go for u16 for this -- same with the jamo-related consts in the `normalize` module. That
+// means casting the code point to u16. I wonder if it would be better to keep everything in u32.
 pub static JAMO_LV: Lazy<HashSet<u16>> = Lazy::new(|| {
     HashSet::from([
         44_032, 44_060, 44_088, 44_116, 44_144, 44_172, 44_200, 44_228, 44_256, 44_284, 44_312,
@@ -65,48 +76,57 @@ pub static JAMO_LV: Lazy<HashSet<u16>> = Lazy::new(|| {
     ])
 });
 
+// Map a code point to its canonical decomposition (if any)
 pub static DECOMP: Lazy<HashMap<u32, Vec<u32>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/decomp");
     let decoded: HashMap<u32, Vec<u32>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
+// Map a code point to the first and last CCCs (two u8s packed into a u16) of its canonical
+// decomposition (if any)
 pub static FCD: Lazy<HashMap<u32, u16>> = Lazy::new(|| {
     let data = include_bytes!("bincode/fcd");
     let decoded: HashMap<u32, u16> = bincode::deserialize(data).unwrap();
     decoded
 });
 
+// Map a low code point to its collation weights (DUCET)
 pub(crate) static LOW: Lazy<HashMap<u32, Weights>> = Lazy::new(|| {
     let data = include_bytes!("bincode/low");
     let decoded: HashMap<u32, Weights> = bincode::deserialize(data).unwrap();
     decoded
 });
 
-pub(crate) static LOW_CLDR: Lazy<HashMap<u32, Weights>> = Lazy::new(|| {
-    let data = include_bytes!("bincode/low_cldr");
-    let decoded: HashMap<u32, Weights> = bincode::deserialize(data).unwrap();
-    decoded
-});
-
+// Map a single code point to its collation weights (DUCET)
 pub(crate) static SING: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/singles");
     let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
+// Map a sequence of code points to its collation weights (DUCET)
 pub(crate) static MULT: Lazy<HashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis");
     let decoded: HashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
+// Map a low code point to its collation weights (CLDR)
+pub(crate) static LOW_CLDR: Lazy<HashMap<u32, Weights>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/low_cldr");
+    let decoded: HashMap<u32, Weights> = bincode::deserialize(data).unwrap();
+    decoded
+});
+
+// Map a single code point to its collation weights (CLDR)
 pub(crate) static SING_CLDR: Lazy<HashMap<u32, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/singles_cldr");
     let decoded: HashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
+// Map a sequence of code points to its collation weights (CLDR)
 pub(crate) static MULT_CLDR: Lazy<HashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis_cldr");
     let decoded: HashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
