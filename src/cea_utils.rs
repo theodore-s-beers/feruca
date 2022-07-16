@@ -3,19 +3,18 @@ use crate::Weights;
 use tinyvec::{array_vec, ArrayVec};
 
 pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
-    #[allow(clippy::manual_range_contains)]
     let mut aaaa = match code_point {
-        x if x >= 13_312 && x <= 19_903 => 64_384 + (code_point >> 15), //     CJK2
-        x if x >= 19_968 && x <= 40_959 => 64_320 + (code_point >> 15), //     CJK1
-        x if x >= 63_744 && x <= 64_255 => 64_320 + (code_point >> 15), //     CJK1
-        x if x >= 94_208 && x <= 101_119 => 64_256,                     //     Tangut
-        x if x >= 101_120 && x <= 101_631 => 64_258,                    //     Khitan
-        x if x >= 101_632 && x <= 101_775 => 64_256,                    //     Tangut
-        x if x >= 110_960 && x <= 111_359 => 64_257,                    //     Nushu
-        x if x >= 131_072 && x <= 173_791 => 64_384 + (code_point >> 15), //   CJK2
-        x if x >= 173_824 && x <= 191_471 => 64_384 + (code_point >> 15), //   CJK2
-        x if x >= 196_608 && x <= 201_551 => 64_384 + (code_point >> 15), //   CJK2
-        _ => 64_448 + (code_point >> 15),                               //     unass.
+        x if (13_312..=19_903).contains(&x) => 64_384 + (code_point >> 15), //     CJK2
+        x if (19_968..=40_959).contains(&x) => 64_320 + (code_point >> 15), //     CJK1
+        x if (63_744..=64_255).contains(&x) => 64_320 + (code_point >> 15), //     CJK1
+        x if (94_208..=101_119).contains(&x) => 64_256,                     //     Tangut
+        x if (101_120..=101_631).contains(&x) => 64_258,                    //     Khitan
+        x if (101_632..=101_775).contains(&x) => 64_256,                    //     Tangut
+        x if (110_960..=111_359).contains(&x) => 64_257,                    //     Nushu
+        x if (131_072..=173_791).contains(&x) => 64_384 + (code_point >> 15), //   CJK2
+        x if (173_824..=191_471).contains(&x) => 64_384 + (code_point >> 15), //   CJK2
+        x if (196_608..=201_551).contains(&x) => 64_384 + (code_point >> 15), //   CJK2
+        _ => 64_448 + (code_point >> 15),                                   //     unass.
     };
 
     if INCLUDED_UNASSIGNED.contains(&code_point) {
@@ -32,19 +31,18 @@ pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
 }
 
 pub fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
-    #[allow(clippy::manual_range_contains)]
     let mut bbbb = match code_point {
-        x if x >= 13_312 && x <= 19_903 => code_point & 32_767, //      CJK2
-        x if x >= 19_968 && x <= 40_959 => code_point & 32_767, //      CJK1
-        x if x >= 63_744 && x <= 64_255 => code_point & 32_767, //      CJK1
-        x if x >= 94_208 && x <= 101_119 => code_point - 94_208, //     Tangut
-        x if x >= 101_120 && x <= 101_631 => code_point - 101_120, //   Khitan
-        x if x >= 101_632 && x <= 101_775 => code_point - 94_208, //    Tangut
-        x if x >= 110_960 && x <= 111_359 => code_point - 110_960, //   Nushu
-        x if x >= 131_072 && x <= 173_791 => code_point & 32_767, //    CJK2
-        x if x >= 173_824 && x <= 191_471 => code_point & 32_767, //    CJK2
-        x if x >= 196_608 && x <= 201_551 => code_point & 32_767, //    CJK2
-        _ => code_point & 32_767,                               //      unass.
+        x if (13_312..=19_903).contains(&x) => code_point & 32_767, //      CJK2
+        x if (19_968..=40_959).contains(&x) => code_point & 32_767, //      CJK1
+        x if (63_744..=64_255).contains(&x) => code_point & 32_767, //      CJK1
+        x if (94_208..=101_119).contains(&x) => code_point - 94_208, //     Tangut
+        x if (101_120..=101_631).contains(&x) => code_point - 101_120, //   Khitan
+        x if (101_632..=101_775).contains(&x) => code_point - 94_208, //    Tangut
+        x if (110_960..=111_359).contains(&x) => code_point - 110_960, //   Nushu
+        x if (131_072..=173_791).contains(&x) => code_point & 32_767, //    CJK2
+        x if (173_824..=191_471).contains(&x) => code_point & 32_767, //    CJK2
+        x if (196_608..=201_551).contains(&x) => code_point & 32_767, //    CJK2
+        _ => code_point & 32_767,                                   //      unass.
     };
 
     if INCLUDED_UNASSIGNED.contains(&code_point) {
