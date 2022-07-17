@@ -14,6 +14,7 @@ pub fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
                 }
             }
         }
+        // If the code point wasn't in the table, it can't be variable or ignorable
 
         a.drain(0..prefix_len);
         b.drain(0..prefix_len);

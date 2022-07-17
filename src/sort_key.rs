@@ -183,22 +183,3 @@ pub fn compare_incremental(
     // equal strings -- one before normalization, one after.)
     Ordering::Equal
 }
-
-fn _get_sort_key(collation_element_array: &[ArrayVec<[u16; 4]>], shifting: bool) -> Vec<u16> {
-    let max_level = if shifting { 4 } else { 3 };
-    let mut sort_key = Vec::new();
-
-    for i in 0..max_level {
-        if i > 0 {
-            sort_key.push(0);
-        }
-
-        for elem in collation_element_array {
-            if elem[i] != 0 {
-                sort_key.push(elem[i]);
-            }
-        }
-    }
-
-    sort_key
-}
