@@ -5,12 +5,11 @@ feruca is a basic implementation of the
 current with Unicode **version 14.0**. The name of the library is a portmanteau
 of Ferris 🦀 and UCA.
 
-Outside of the tests module, no `unsafe` is used directly in this library. It
-relies on the well-vetted [bstr](https://github.com/BurntSushi/bstr) to accept
-input (in the form of either `&str` or `&[u8]`), to perform UTF-8 validation,
-and to generate a list of Unicode scalar values, which can then be processed for
-collation. The idea is to be tolerant of input that may not be entirely kosher
-UTF-8.
+No `unsafe` is used directly in this library. It relies on the well-vetted
+[bstr](https://github.com/BurntSushi/bstr) to accept input (in the form of
+either `&str` or `&[u8]`), to perform UTF-8 validation, and to generate a list
+of Unicode scalar values, which can then be processed for collation. The idea is
+to be tolerant of input that may not be entirely kosher UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
 First, I don't expect that it will win any awards for performance. My rough

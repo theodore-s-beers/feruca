@@ -24,8 +24,7 @@ fn conformance(path: &str, options: CollationOptions) {
                 continue 'outer;
             }
 
-            // We use the unsafe method because input will be validated, anyway
-            test_string.push(unsafe { char::from_u32_unchecked(val) });
+            test_string.push(char::from_u32(val).unwrap());
         }
 
         let comparison = collate_no_tiebreak(&test_string, &max_line, options);
