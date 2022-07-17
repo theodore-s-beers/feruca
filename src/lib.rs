@@ -16,6 +16,8 @@ mod ascii;
 use ascii::{all_ascii, compare_ascii};
 
 mod cea;
+use cea::generate_cea;
+
 mod cea_utils;
 mod consts;
 
@@ -29,7 +31,7 @@ mod prefix;
 use prefix::trim_prefix;
 
 mod sort_key;
-use sort_key::nfd_to_sk;
+use sort_key::compare_incremental;
 
 //
 // Structs and enums
@@ -147,11 +149,12 @@ pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -
         }
     }
 
-    // Otherwise we move forward with full sort keys
-    let a_sort_key = nfd_to_sk(&mut a_chars, opt);
-    let b_sort_key = nfd_to_sk(&mut b_chars, opt);
+    // Otherwise we move forward with full collation element arrays
+    let a_cea = generate_cea(&mut a_chars, opt);
+    let b_cea = generate_cea(&mut b_chars, opt);
 
-    let comparison = a_sort_key.cmp(&b_sort_key);
+    // Sort keys are processed incrementally, until they yield a result
+    let comparison = compare_incremental(&a_cea, &b_cea, opt.shifting);
 
     if comparison == Ordering::Equal {
         // Tiebreaker
@@ -205,8 +208,8 @@ pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord>(
         }
     }
 
-    let a_sort_key = nfd_to_sk(&mut a_chars, opt);
-    let b_sort_key = nfd_to_sk(&mut b_chars, opt);
+    let a_cea = generate_cea(&mut a_chars, opt);
+    let b_cea = generate_cea(&mut b_chars, opt);
 
-    a_sort_key.cmp(&b_sort_key)
+    compare_incremental(&a_cea, &b_cea, opt.shifting)
 }

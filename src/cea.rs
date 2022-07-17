@@ -5,7 +5,7 @@ use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 #[allow(clippy::too_many_lines)]
-pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16; 4]>> {
+pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16; 4]>> {
     let mut cea: Vec<ArrayVec<[u16; 4]>> = Vec::new();
 
     let cldr = opt.keys_source == KeysSource::Cldr;
@@ -68,7 +68,7 @@ pub fn get_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<
             // OUTCOME 1
             //
             // We only had to check for a single code point, and found it, so we can push the
-            // weights and continue. This is the fastest path.
+            // weights and continue. This is a relatively fast path.
             //
             if let Some(row) = singles.get(&left_val) {
                 for weights in row {
