@@ -10,6 +10,25 @@ pub fn trim_prefix(a: &mut Vec<u32>, b: &mut Vec<u32>, cldr: bool) {
         if let Some(row) = sing.get(&a[prefix_len - 1]) {
             for weights in row {
                 if weights.variable || weights.primary == 0 {
+                    // Before giving up, try moving back one code point and checking again? Then
+                    // remove a shorter prefix? In benchmarks, this was a wash. But maybe it could
+                    // salvage trimming a shared prefix in some pathological cases.
+
+                    if prefix_len > 1 {
+                        if let Some(row) = sing.get(&a[prefix_len - 2]) {
+                            for weights in row {
+                                // Looks like we can get away with only checking variability here
+                                if weights.variable {
+                                    return;
+                                }
+                            }
+                        }
+
+                        // If that worked, trim the prefix, minus the last code point
+                        a.drain(0..prefix_len - 1);
+                        b.drain(0..prefix_len - 1);
+                    }
+
                     return;
                 }
             }
