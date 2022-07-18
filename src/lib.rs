@@ -129,8 +129,7 @@ pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -
     }
 
     // Check for a shared prefix that might be safe to trim
-    let cldr = opt.keys_source == KeysSource::Cldr;
-    trim_prefix(&mut a_chars, &mut b_chars, cldr);
+    trim_prefix(&mut a_chars, &mut b_chars, opt);
 
     // After prefix trimming, one of the Vecs may be empty (but not both!)
     if a_chars.is_empty() || b_chars.is_empty() {
@@ -192,8 +191,7 @@ pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord>(
         return Ordering::Equal;
     }
 
-    let cldr = opt.keys_source == KeysSource::Cldr;
-    trim_prefix(&mut a_chars, &mut b_chars, cldr);
+    trim_prefix(&mut a_chars, &mut b_chars, opt);
 
     if a_chars.is_empty() || b_chars.is_empty() {
         return a_chars.cmp(&b_chars);
