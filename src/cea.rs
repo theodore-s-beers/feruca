@@ -52,6 +52,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
             continue;
         }
 
+        // At this point, we aren't dealing with a low code point
+
         // Set lookahead depending on left_val. We need 3 in a few cases; 2 in several dozen cases;
         // and 1 otherwise.
         let lookahead: usize = match left_val {
@@ -60,8 +62,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
             _ => 1,
         };
 
-        // If lookahead is 1, or if this is the last item in the vec, we'll take an easy path
-        let check_multi = lookahead > 1 && char_vals.len() - left > 1;
+        // If lookahead is 1, or if this is the last item in the vec, we'll take an easier path
+        let check_multi = lookahead > 1 && (char_vals.len() - left > 1);
 
         if !check_multi {
             //
@@ -137,7 +139,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
                         right
                     };
 
-                    let mut try_two = max_right - right == 2 && cldr;
+                    let mut try_two = (max_right - right == 2) && cldr;
 
                     'inner: while max_right > right {
                         // Make sure the sequence of CCC values is kosher
@@ -218,7 +220,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
                     //
                     // We checked for multiple code points; failed to find them; fell back to check
                     // for the initial code point; found it; checked for discontiguous matches; and
-                    // did not find any. This is another bad path. Push the weights...
+                    // did not find any. This is a really bad path. Push the weights...
                     //
                     for weights in row {
                         if shifting {
@@ -253,14 +255,14 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
                 // no-op
             }
 
-            // If we got here, we're trying to find a slice
+            // At this point, we're trying to find a slice; this comes "before" the section above
             let subset = &char_vals[left..right];
 
             if let Some(row) = multis.get(subset) {
                 // If we found it, we may need to check for a discontiguous match.
                 // But that's only if we matched on a set of two code points; and we'll only skip
                 // over one to find a possible third.
-                let mut try_discont = subset.len() == 2 && right + 1 < char_vals.len();
+                let mut try_discont = subset.len() == 2 && (right + 1 < char_vals.len());
 
                 while try_discont {
                     // Need to make sure the sequence of CCCs is kosher
@@ -281,8 +283,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
                     //
                     // OUTCOME 5
                     //
-                    // We checked for multiple code points; found something; went on to check for
-                    // discontiguous matches; and found one. For a complicated case, this is a good
+                    // We checked for multiple code points; found something; went on to check for a
+                    // discontiguous match; and found one. For a complicated case, this is a good
                     // path. Push the weights...
                     //
                     if let Some(new_row) = multis.get(&new_subset) {
@@ -319,7 +321,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
                 // OUTCOME 6
                 //
                 // We checked for multiple code points; found something; checked for discontiguous
-                // matches; and did not find any. This is an ok path. Push the weights...
+                // matches; and did not find any. This is an ok path? Push the weights...
                 //
                 for weights in row {
                     if shifting {
@@ -347,8 +349,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
             right -= 1;
         }
 
-        // Finally, increment and let outer loop continue
-        left += 1;
+        // This is another unreachable point. All possible cases for the outer loop have been
+        // handled. There's no need to increment.
     }
 
     // Return!
