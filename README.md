@@ -13,9 +13,11 @@ to be tolerant of input that may not be entirely kosher UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
 First, I don't expect that it will win any awards for performance. My rough
-attempts at benchmarking suggest that this is on the order of 8–12x slower than
-`ucol` from [icu4c](https://github.com/unicode-org/icu). But my initial priority
-was to pass the official
+attempts at benchmarking suggest that this is on the order of 8–11x slower than
+`ucol` from [icu4c](https://github.com/unicode-org/icu). (On the other hand,
+that isn't as bad as one might imagine, considering the incredible degree of
+optimization achieved in the ICU libraries.) But my initial priority was to pass
+the official
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
 feruca also passes the conformance tests for the
 [CLDR](https://github.com/unicode-org/cldr) root collation order (more on this
