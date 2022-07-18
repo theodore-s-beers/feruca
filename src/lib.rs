@@ -100,7 +100,11 @@ struct Weights {
 /// sorting strings) as a tiebreaker. While this is probably appropriate in most cases, it can be
 /// avoided by using the `collate_no_tiebreak` function.
 #[must_use]
-pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -> Ordering {
+pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(
+    a: &T,
+    b: &T,
+    opt: CollationOptions,
+) -> Ordering {
     // Early out; equal is equal
     if a == b {
         return Ordering::Equal;
@@ -167,7 +171,7 @@ pub fn collate<T: AsRef<[u8]> + Eq + Ord>(a: &T, b: &T, opt: CollationOptions) -
 /// is that, in the event that two strings are ordered equally per the Unicode Collation Algorithm,
 /// this function will not attempt to "break the tie" by using byte-value comparison.
 #[must_use]
-pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord>(
+pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(
     a: &T,
     b: &T,
     opt: CollationOptions,
