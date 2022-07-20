@@ -106,8 +106,8 @@ found in input to the `collate` function will be converted to the standard
 "replacement character," `U+FFFD`. Conformant implementations of the UCA are
 explicitly allowed to follow this approach. It does mean, however, that a
 handful of lines (out of hundreds of thousands) in the conformance tests need to
-be skipped. If you look at the `conformance` function in the tests module, you
-will see that any line containing a surrogate code point is passed over.
+be skipped. If you look at the `conformance` function in the tests module,
+you'll see that any line containing a surrogate code point is passed over.
 
 ## Bincode
 
