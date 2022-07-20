@@ -95,3 +95,30 @@ fn main() {
     // چنگیز
 }
 ```
+
+## Conformance
+
+The UCA conformance tests can be run with the command `cargo test --release`.
+Please note that, as a result of this library's reliance on `bstr` for UTF-8
+validation, any
+[surrogate code points](https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Surrogates)
+found in input to the `collate` function will be converted to the standard
+"replacement character," `U+FFFD`. Conformant implementations of the UCA are
+explicitly allowed to follow this approach. It does mean, however, that a
+handful of lines (out of hundreds of thousands) in the conformance tests need to
+be skipped. If you look at the `conformance` function in the tests module, you
+will see that any line containing a surrogate code point is passed over.
+
+## Bincode
+
+The binary files included with feruca represent hash tables of Unicode data.
+They are generated in a separate repo,
+[feruca-mapper](https://github.com/theodore-s-beers/feruca-mapper), and
+serialized using [bincode](https://docs.rs/bincode/). You can rebuild them
+yourself, if you prefer.
+
+## Licensing
+
+The text files in the `test-data` directory are covered by the
+[Unicode License Agreement](https://www.unicode.org/license.txt). Everything
+else is MIT-licensed.
