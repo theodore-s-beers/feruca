@@ -20,10 +20,10 @@ pub fn get_first_primary(val: u32, opt: CollationOptions) -> u16 {
 
     // Fast path for low code points
     if val < 183 && val != 108 && val != 76 {
-        let weights = low.get(&val).unwrap(); // Guaranteed to succeed
+        let weights = low[&val]; // Guaranteed to succeed
 
         if shifting {
-            let weight_vals = get_shifted_weights(*weights, false);
+            let weight_vals = get_shifted_weights(weights, false);
             return weight_vals[0];
         }
 

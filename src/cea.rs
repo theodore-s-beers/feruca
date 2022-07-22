@@ -30,10 +30,10 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<Arra
         // catches (most) ASCII characters present in not-completely-ASCII strings.
         //
         if left_val < 183 && left_val != 108 && left_val != 76 {
-            let weights = low.get(&left_val).unwrap(); // Guaranteed to succeed
+            let weights = low[&left_val]; // Guaranteed to succeed
 
             if shifting {
-                let weight_vals = get_shifted_weights(*weights, last_variable);
+                let weight_vals = get_shifted_weights(weights, last_variable);
                 cea.push(weight_vals);
                 if weights.variable {
                     last_variable = true;
