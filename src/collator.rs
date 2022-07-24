@@ -62,7 +62,7 @@ impl Collator {
     /// Significantly, in the event that two strings are ordered equally per the Unicode Collation
     /// Algorithm, this method will use byte-value comparison (i.e., the traditional, naïve way of
     /// sorting strings) as a tiebreaker. While this is probably appropriate in most cases, it can
-    /// be avoided by using the `collate_no_tiebreak` function.
+    /// be avoided by using the `collate_no_tiebreak` method.
     pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(self, a: &T, b: &T) -> Ordering {
         // Early out; equal is equal
         if a == b {
