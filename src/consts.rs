@@ -1,6 +1,6 @@
 use crate::Weights;
 use once_cell::sync::Lazy;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::HashSet;
 use tinyvec::ArrayVec;
 
@@ -131,5 +131,12 @@ pub(crate) static SING_CLDR: Lazy<FxHashMap<u32, Vec<Weights>>> = Lazy::new(|| {
 pub(crate) static MULT_CLDR: Lazy<FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis_cldr");
     let decoded: FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
+    decoded
+});
+
+// A hash set of code points that have either a variable weight, or a primary weight of zero
+pub static VARIABLE: Lazy<FxHashSet<u32>> = Lazy::new(|| {
+    let data = include_bytes!("bincode/variable");
+    let decoded: FxHashSet<u32> = bincode::deserialize(data).unwrap();
     decoded
 });
