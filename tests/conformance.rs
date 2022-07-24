@@ -1,7 +1,7 @@
-use feruca::{collate_no_tiebreak, CollationOptions, KeysSource};
+use feruca::{Collator, KeysSource};
 use std::cmp::Ordering;
 
-fn conformance(path: &str, options: CollationOptions) {
+fn conformance(path: &str, collator: Collator) {
     let test_data = std::fs::read_to_string(path).unwrap();
 
     let mut max_line = String::new();
@@ -26,7 +26,7 @@ fn conformance(path: &str, options: CollationOptions) {
             test_string.push(char::from_u32(val).unwrap());
         }
 
-        let comparison = collate_no_tiebreak(&test_string, &max_line, options);
+        let comparison = collator.collate_no_tiebreak(&test_string, &max_line);
         if comparison == Ordering::Less {
             panic!();
         }
@@ -39,46 +39,43 @@ fn conformance(path: &str, options: CollationOptions) {
 fn ducet_non_ignorable() {
     let path = "test-data/CollationTest_NON_IGNORABLE_SHORT.txt";
 
-    let options = CollationOptions {
+    let collator = Collator {
         keys_source: KeysSource::Ducet,
         shifting: false,
     };
 
-    conformance(path, options);
+    conformance(path, collator);
 }
 
 #[test]
 fn ducet_shifted() {
     let path = "test-data/CollationTest_SHIFTED_SHORT.txt";
 
-    let options = CollationOptions {
+    let collator = Collator {
         keys_source: KeysSource::Ducet,
         shifting: true,
     };
 
-    conformance(path, options);
+    conformance(path, collator);
 }
 
 #[test]
 fn cldr_non_ignorable() {
     let path = "test-data/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt";
 
-    let options = CollationOptions {
+    let collator = Collator {
         keys_source: KeysSource::Cldr,
         shifting: false,
     };
 
-    conformance(path, options);
+    conformance(path, collator);
 }
 
 #[test]
 fn cldr_shifted() {
     let path = "test-data/CollationTest_CLDR_SHIFTED_SHORT.txt";
 
-    let options = CollationOptions {
-        keys_source: KeysSource::Cldr,
-        shifting: true,
-    };
+    let collator = Collator::default();
 
-    conformance(path, options);
+    conformance(path, collator);
 }

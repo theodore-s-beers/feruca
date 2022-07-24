@@ -1,5 +1,5 @@
 use bstr::B;
-use feruca::{collate, CollationOptions};
+use feruca::Collator;
 use std::cmp::Ordering;
 
 #[test]
@@ -7,7 +7,8 @@ fn bytes_literal() {
     let a = b"Theodore";
     let b = b"Th\xE9odore";
 
-    let comp = collate(a, b, CollationOptions::default());
+    let collator = Collator::default();
+    let comp = collator.collate(a, b);
     assert_eq!(comp, Ordering::Less);
 }
 
@@ -19,6 +20,7 @@ fn bytes_auto() {
     let x = B(a);
     let y = B(b);
 
-    let comp = collate(&x, &y, CollationOptions::default());
+    let collator = Collator::default();
+    let comp = collator.collate(x, y);
     assert_eq!(comp, Ordering::Less);
 }

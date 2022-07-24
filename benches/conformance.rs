@@ -1,8 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use feruca::{collate_no_tiebreak, CollationOptions, KeysSource};
+use feruca::{Collator, KeysSource};
 use std::cmp::Ordering;
 
-fn conformance(path: &str, options: CollationOptions) {
+fn conformance(path: &str, collator: Collator) {
     let test_data = std::fs::read_to_string(path).unwrap();
 
     let mut max_line = String::new();
@@ -27,7 +27,7 @@ fn conformance(path: &str, options: CollationOptions) {
             test_string.push(char::from_u32(val).unwrap());
         }
 
-        let comparison = collate_no_tiebreak(&test_string, &max_line, options);
+        let comparison = collator.collate_no_tiebreak(&test_string, &max_line);
         if comparison == Ordering::Less {
             panic!();
         }
@@ -41,7 +41,7 @@ fn ducet_ni(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/CollationTest_NON_IGNORABLE_SHORT.txt",
-                CollationOptions {
+                Collator {
                     keys_source: KeysSource::Ducet,
                     shifting: false,
                 },
@@ -55,7 +55,7 @@ fn ducet_shifted(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/CollationTest_SHIFTED_SHORT.txt",
-                CollationOptions {
+                Collator {
                     keys_source: KeysSource::Ducet,
                     shifting: true,
                 },
@@ -69,7 +69,7 @@ fn cldr_ni(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt",
-                CollationOptions {
+                Collator {
                     keys_source: KeysSource::Cldr,
                     shifting: false,
                 },
@@ -83,7 +83,7 @@ fn cldr_shifted(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/CollationTest_CLDR_SHIFTED_SHORT.txt",
-                CollationOptions::default(),
+                Collator::default(),
             )
         })
     });

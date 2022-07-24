@@ -1,15 +1,15 @@
 use crate::cea_utils::{get_implicit_a, get_implicit_b, get_shifted_weights};
 use crate::consts::{LOW, LOW_CLDR, MULT, MULT_CLDR, NEED_THREE, NEED_TWO, SING, SING_CLDR};
-use crate::{CollationOptions, KeysSource};
+use crate::{Collator, KeysSource};
 use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 #[allow(clippy::too_many_lines)]
-pub fn generate_cea(char_vals: &mut Vec<u32>, opt: CollationOptions) -> Vec<ArrayVec<[u16; 4]>> {
+pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<ArrayVec<[u16; 4]>> {
     let mut cea: Vec<ArrayVec<[u16; 4]>> = Vec::new();
 
-    let cldr = opt.keys_source == KeysSource::Cldr;
-    let shifting = opt.shifting;
+    let cldr = collator.keys_source == KeysSource::Cldr;
+    let shifting = collator.shifting;
 
     let low = if cldr { &LOW_CLDR } else { &LOW };
     let singles = if cldr { &SING_CLDR } else { &SING };

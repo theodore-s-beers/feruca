@@ -1,4 +1,4 @@
-use crate::Weights;
+use crate::types::Weights;
 use once_cell::sync::Lazy;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::HashSet;
@@ -93,42 +93,42 @@ pub static FCD: Lazy<FxHashMap<u32, u16>> = Lazy::new(|| {
 });
 
 // Map a low code point to its collation weights (DUCET)
-pub(crate) static LOW: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
+pub static LOW: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
     let data = include_bytes!("bincode/low");
     let decoded: FxHashMap<u32, Weights> = bincode::deserialize(data).unwrap();
     decoded
 });
 
 // Map a single code point to its collation weights (DUCET)
-pub(crate) static SING: Lazy<FxHashMap<u32, Vec<Weights>>> = Lazy::new(|| {
+pub static SING: Lazy<FxHashMap<u32, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/singles");
     let decoded: FxHashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (DUCET)
-pub(crate) static MULT: Lazy<FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
+pub static MULT: Lazy<FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis");
     let decoded: FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
 // Map a low code point to its collation weights (CLDR)
-pub(crate) static LOW_CLDR: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
+pub static LOW_CLDR: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
     let data = include_bytes!("bincode/low_cldr");
     let decoded: FxHashMap<u32, Weights> = bincode::deserialize(data).unwrap();
     decoded
 });
 
 // Map a single code point to its collation weights (CLDR)
-pub(crate) static SING_CLDR: Lazy<FxHashMap<u32, Vec<Weights>>> = Lazy::new(|| {
+pub static SING_CLDR: Lazy<FxHashMap<u32, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/singles_cldr");
     let decoded: FxHashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
-pub(crate) static MULT_CLDR: Lazy<FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
+pub static MULT_CLDR: Lazy<FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis_cldr");
     let decoded: FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
     decoded

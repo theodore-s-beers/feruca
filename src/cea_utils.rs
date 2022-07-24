@@ -1,5 +1,5 @@
 use crate::consts::INCLUDED_UNASSIGNED;
-use crate::Weights;
+use crate::types::Weights;
 use tinyvec::{array_vec, ArrayVec};
 
 pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
@@ -61,7 +61,7 @@ pub fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
     }
 }
 
-pub(crate) fn get_shifted_weights(weights: Weights, last_variable: bool) -> ArrayVec<[u16; 4]> {
+pub fn get_shifted_weights(weights: Weights, last_variable: bool) -> ArrayVec<[u16; 4]> {
     if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
         ArrayVec::from([0, 0, 0, 0])
     } else if weights.variable {
