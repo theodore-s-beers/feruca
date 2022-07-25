@@ -1,5 +1,5 @@
-use crate::cea_utils::{get_implicit_a, get_shifted_weights};
-use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO, SING, SING_CLDR};
+use crate::cea_utils::{get_implicit_a, get_shifted_weights, get_table_singles};
+use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
 
 pub fn safe_first_chars(a_chars: &[u32], b_chars: &[u32]) -> bool {
@@ -15,7 +15,7 @@ pub fn get_first_primary(val: u32, collator: Collator) -> u16 {
     let shifting = collator.shifting;
 
     let low = if cldr { &LOW_CLDR } else { &LOW };
-    let singles = if cldr { &SING_CLDR } else { &SING };
+    let singles = get_table_singles(collator.tailoring);
 
     // Fast path for low code points
     if val < 183 && val != 108 && val != 76 {

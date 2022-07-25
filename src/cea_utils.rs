@@ -76,12 +76,18 @@ pub fn get_shifted_weights(weights: Weights, last_variable: bool) -> ArrayVec<[u
     }
 }
 
-pub fn get_tables(
-    tailoring: Tailoring,
-) -> (&'static Lazy<SinglesTable>, &'static Lazy<MultisTable>) {
+pub fn get_table_multis(tailoring: Tailoring) -> &'static Lazy<MultisTable> {
     match tailoring {
-        Tailoring::Cldr(Locale::ArabicScript) => (&SING_AR, &MULT_AR),
-        Tailoring::Cldr(Locale::Root) => (&SING_CLDR, &MULT_CLDR),
-        Tailoring::Ducet => (&SING, &MULT),
+        Tailoring::Cldr(Locale::ArabicScript) => &MULT_AR,
+        Tailoring::Cldr(Locale::Root) => &MULT_CLDR,
+        Tailoring::Ducet => &MULT,
+    }
+}
+
+pub fn get_table_singles(tailoring: Tailoring) -> &'static Lazy<SinglesTable> {
+    match tailoring {
+        Tailoring::Cldr(Locale::ArabicScript) => &SING_AR,
+        Tailoring::Cldr(Locale::Root) => &SING_CLDR,
+        Tailoring::Ducet => &SING,
     }
 }

@@ -1,4 +1,6 @@
-use crate::cea_utils::{get_implicit_a, get_implicit_b, get_shifted_weights, get_tables};
+use crate::cea_utils::{
+    get_implicit_a, get_implicit_b, get_shifted_weights, get_table_multis, get_table_singles,
+};
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
 use tinyvec::{array_vec, ArrayVec};
@@ -12,7 +14,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<ArrayVe
     let shifting = collator.shifting;
 
     let low = if cldr { &LOW_CLDR } else { &LOW };
-    let (singles, multis) = get_tables(collator.tailoring);
+    let singles = get_table_singles(collator.tailoring);
+    let multis = get_table_multis(collator.tailoring);
 
     let mut left: usize = 0;
     let mut last_variable = false;
