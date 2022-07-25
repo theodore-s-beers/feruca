@@ -1,7 +1,6 @@
 use crate::cea_utils::{get_implicit_a, get_shifted_weights};
-use crate::consts::{LOW, LOW_CLDR, SING, SING_CLDR};
-use crate::consts::{NEED_THREE, NEED_TWO};
-use crate::{Collator, KeysSource};
+use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO, SING, SING_CLDR};
+use crate::{Collator, Tailoring};
 
 pub fn safe_first_chars(a_chars: &[u32], b_chars: &[u32]) -> bool {
     a_chars[0] != b_chars[0]
@@ -12,7 +11,7 @@ pub fn safe_first_chars(a_chars: &[u32], b_chars: &[u32]) -> bool {
 }
 
 pub fn get_first_primary(val: u32, collator: Collator) -> u16 {
-    let cldr = collator.keys_source == KeysSource::Cldr;
+    let cldr = collator.tailoring != Tailoring::Ducet;
     let shifting = collator.shifting;
 
     let low = if cldr { &LOW_CLDR } else { &LOW };

@@ -1,8 +1,7 @@
-use crate::types::Weights;
+use crate::types::{MultisTable, SinglesTable, Weights};
 use once_cell::sync::Lazy;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::HashSet;
-use tinyvec::ArrayVec;
 
 //
 // Const
@@ -100,16 +99,16 @@ pub static LOW: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
 });
 
 // Map a single code point to its collation weights (DUCET)
-pub static SING: Lazy<FxHashMap<u32, Vec<Weights>>> = Lazy::new(|| {
+pub static SING: Lazy<SinglesTable> = Lazy::new(|| {
     let data = include_bytes!("bincode/singles");
-    let decoded: FxHashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
+    let decoded: SinglesTable = bincode::deserialize(data).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (DUCET)
-pub static MULT: Lazy<FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
+pub static MULT: Lazy<MultisTable> = Lazy::new(|| {
     let data = include_bytes!("bincode/multis");
-    let decoded: FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
+    let decoded: MultisTable = bincode::deserialize(data).unwrap();
     decoded
 });
 
@@ -121,16 +120,16 @@ pub static LOW_CLDR: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
 });
 
 // Map a single code point to its collation weights (CLDR)
-pub static SING_CLDR: Lazy<FxHashMap<u32, Vec<Weights>>> = Lazy::new(|| {
-    let data = include_bytes!("bincode/singles_cldr");
-    let decoded: FxHashMap<u32, Vec<Weights>> = bincode::deserialize(data).unwrap();
+pub const DATA_SING_CLDR: &[u8; 662_466] = include_bytes!("bincode/singles_cldr");
+pub static SING_CLDR: Lazy<SinglesTable> = Lazy::new(|| {
+    let decoded: SinglesTable = bincode::deserialize(DATA_SING_CLDR).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
-pub static MULT_CLDR: Lazy<FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>>> = Lazy::new(|| {
-    let data = include_bytes!("bincode/multis_cldr");
-    let decoded: FxHashMap<ArrayVec<[u32; 3]>, Vec<Weights>> = bincode::deserialize(data).unwrap();
+pub const DATA_MULT_CLDR: &[u8; 35_724] = include_bytes!("bincode/multis_cldr");
+pub static MULT_CLDR: Lazy<MultisTable> = Lazy::new(|| {
+    let decoded: MultisTable = bincode::deserialize(DATA_MULT_CLDR).unwrap();
     decoded
 });
 

@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use feruca::{Collator, KeysSource};
+use feruca::{Collator, Tailoring};
 use std::cmp::Ordering;
 
 fn conformance(path: &str, collator: Collator) {
@@ -42,7 +42,7 @@ fn ducet_ni(c: &mut Criterion) {
             conformance(
                 "test-data/CollationTest_NON_IGNORABLE_SHORT.txt",
                 Collator {
-                    keys_source: KeysSource::Ducet,
+                    tailoring: Tailoring::Ducet,
                     shifting: false,
                 },
             )
@@ -56,7 +56,7 @@ fn ducet_shifted(c: &mut Criterion) {
             conformance(
                 "test-data/CollationTest_SHIFTED_SHORT.txt",
                 Collator {
-                    keys_source: KeysSource::Ducet,
+                    tailoring: Tailoring::Ducet,
                     shifting: true,
                 },
             )
@@ -70,7 +70,7 @@ fn cldr_ni(c: &mut Criterion) {
             conformance(
                 "test-data/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt",
                 Collator {
-                    keys_source: KeysSource::Cldr,
+                    tailoring: Tailoring::default(),
                     shifting: false,
                 },
             )

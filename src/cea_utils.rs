@@ -1,5 +1,8 @@
-use crate::consts::INCLUDED_UNASSIGNED;
-use crate::types::Weights;
+use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
+use crate::tailor::{MULT_AR, SING_AR};
+use crate::types::{MultisTable, SinglesTable, Weights};
+use crate::{Locale, Tailoring};
+use once_cell::sync::Lazy;
 use tinyvec::{array_vec, ArrayVec};
 
 pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
@@ -70,5 +73,15 @@ pub fn get_shifted_weights(weights: Weights, last_variable: bool) -> ArrayVec<[u
         ArrayVec::from([0, 0, 0, 0])
     } else {
         ArrayVec::from([weights.primary, weights.secondary, weights.tertiary, 65_535])
+    }
+}
+
+pub fn get_tables(
+    tailoring: Tailoring,
+) -> (&'static Lazy<SinglesTable>, &'static Lazy<MultisTable>) {
+    match tailoring {
+        Tailoring::Cldr(Locale::ArabicScript) => (&SING_AR, &MULT_AR),
+        Tailoring::Cldr(Locale::Root) => (&SING_CLDR, &MULT_CLDR),
+        Tailoring::Ducet => (&SING, &MULT),
     }
 }

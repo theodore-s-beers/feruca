@@ -1,6 +1,6 @@
-use crate::cea_utils::{get_implicit_a, get_implicit_b, get_shifted_weights};
-use crate::consts::{LOW, LOW_CLDR, MULT, MULT_CLDR, NEED_THREE, NEED_TWO, SING, SING_CLDR};
-use crate::{Collator, KeysSource};
+use crate::cea_utils::{get_implicit_a, get_implicit_b, get_shifted_weights, get_tables};
+use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
+use crate::{Collator, Tailoring};
 use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
@@ -8,12 +8,11 @@ use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_
 pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<ArrayVec<[u16; 4]>> {
     let mut cea: Vec<ArrayVec<[u16; 4]>> = Vec::new();
 
-    let cldr = collator.keys_source == KeysSource::Cldr;
+    let cldr = collator.tailoring != Tailoring::Ducet;
     let shifting = collator.shifting;
 
     let low = if cldr { &LOW_CLDR } else { &LOW };
-    let singles = if cldr { &SING_CLDR } else { &SING };
-    let multis = if cldr { &MULT_CLDR } else { &MULT };
+    let (singles, multis) = get_tables(collator.tailoring);
 
     let mut left: usize = 0;
     let mut last_variable = false;

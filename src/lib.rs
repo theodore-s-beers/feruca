@@ -20,6 +20,7 @@ mod first_weight;
 mod normalize;
 mod prefix;
 mod sort_key;
+mod tailor;
 
 mod types;
-pub use types::KeysSource;
+pub use types::{Locale, Tailoring};

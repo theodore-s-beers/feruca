@@ -7,20 +7,26 @@ use crate::first_weight::{get_first_primary, safe_first_chars};
 use crate::normalize::make_nfd;
 use crate::prefix::trim_prefix;
 use crate::sort_key::compare_incremental;
-use crate::KeysSource;
+use crate::Tailoring;
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
 /// used in collation. The method `collate` or `collate_no_tiebreak` will then compare two string
 /// references (or byte slices) according to the selected options, and return an `Ordering` value.
 ///
-/// At present, you can choose between two tables of character weights (DUCET and CLDR root), and
-/// between two approaches to the handling of variable-weight characters ("non-ignorable" and
-/// "shifted"). The default, and a good starting point for Unicode collation, is to use the CLDR
-/// table with the "shifted" approach.
+/// You can choose between two tables of character weights: DUCET and CLDR. With the CLDR table,
+/// there is a further choice of locale tailoring. The `Root` locale represents the table in its
+/// unmodified form. The `ArabicScript` locale shifts the weights of Arabic-script letters so that
+/// they sort before the Latin script. Further locales will be added over time.
+///
+/// You can also choose between two approaches to the handling of variable-weight characters:
+/// "non-ignorable" and "shifted."
+///
+/// The default for `Collator` is to use the CLDR table with the `Root` locale, and the "shifted"
+/// approach. This is a good starting point for collation in many languages.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Collator {
-    /// The table of weights to be used (currently either DUCET or CLDR)
-    pub keys_source: KeysSource,
+    /// The table of weights to be used: DUCET or CLDR (with a choice of locale for the latter)
+    pub tailoring: Tailoring,
     /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
     /// purposes, `shifting` is either true (recommended) or false.
     pub shifting: bool,
@@ -29,7 +35,7 @@ pub struct Collator {
 impl Default for Collator {
     fn default() -> Self {
         Self {
-            keys_source: KeysSource::Cldr,
+            tailoring: Tailoring::default(),
             shifting: true,
         }
     }
