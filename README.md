@@ -12,7 +12,7 @@ of Unicode scalar values, which can then be processed for collation. The idea is
 to be tolerant of input that may not be entirely kosher UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
-First, I don't expect that it will win any awards for performance. My rough
+**First**, I don't expect that it will win any awards for performance. My rough
 attempts at benchmarking suggest that this is on the order of 8–10x slower than
 `ucol` from [icu4c](https://github.com/unicode-org/icu). (On the other hand,
 that isn't as bad as one might imagine, considering the incredible degree of
@@ -22,23 +22,37 @@ official
 feruca also passes the conformance tests for the
 [CLDR](https://github.com/unicode-org/cldr) root collation order.
 
-Second, there is not yet support for tailoring, beyond being able to choose
-between the Default Unicode Collation Element Table (DUCET) and the default
-variation from CLDR. (You can additionally choose between the "non-ignorable"
-and "shifted" strategies for handling variable-weight characters.) Adding locale
-tailoring is a medium-term goal—but that will be an arduous project in itself.
+**Second**, support for tailoring is minimal (so far). You can choose between
+two tables of character weights: the Default Unicode Collation Element Table
+(DUCET), or the CLDR variation thereof. The CLDR table then becomes the starting
+point for actual collation tailoring based on language/locale. I have added only
+one tailoring, intended for use with Arabic-script languages. It shifts letters
+in the Arabic script so that they sort before the Latin script. This is enough
+for my own work with Persian and Arabic texts. The CLDR table in its unmodified
+form—i.e., the root collation order—works out-of-the-box for several other
+languages. I do plan to add more tailorings, but it will be a gradual process,
+and driven by demand. Realistically, feruca will never have the kind of
+all-encompassing, flexible support for tailoring that is provided by ICU. My
+feeling is that there's a place for less sophisticated solutions, with simpler
+APIs, smaller dependency trees, etc. (If you have thoughts on this, I would be
+interested in hearing them.)
 
-Third, the library has effectively\[0\] just one public method, `collate`,
+Apart from locale tailoring, you can choose between the "non-ignorable" and
+"shifted" strategies for handling variable-weight characters—with the latter
+being the default.
+
+**Third**, this library has effectively\[0\] just one public method, `collate`,
 belonging to a struct, `Collator`, which sets a few options. `collate` accepts
 two string references or byte slices, and returns an `Ordering` value. It is
 designed to be passed as a comparator to the standard library method `sort_by`
 (or `sort_unstable_by`). See "Example usage" below.
 
 For many people and use cases, UCA sorting will not work properly without being
-able to specify a certain locale. That being said, the CLDR root collation order
-is already quite useful. When defining a `Collator`, you can set the default
-options (see below), which specify the use of the CLDR table with the "shifted"
-strategy. I think this is a good starting point.
+able to specify a certain locale. Again, however, it is worth emphasizing the
+usefulness of the CLDR root collation order on its own. When defining a
+`Collator`, you can set the default options (see below), which specify the use
+of the CLDR table with the "shifted" strategy. I think this is a good starting
+point.
 
 \[0\]: There is also a variant form, `collate_no_tiebreak`, which will return
 `Ordering::Equal` for any two strings that produce the same UCA sort key. (The
