@@ -1,5 +1,18 @@
-use feruca::Collator;
+use feruca::{Collator, Locale, Tailoring};
 use std::cmp::Ordering;
+
+#[test]
+fn arabic_script() {
+    let persian = "ی";
+    let latin = "a";
+
+    let collator = Collator {
+        tailoring: Tailoring::Cldr(Locale::ArabicScript),
+        shifting: true,
+    };
+    let comp = collator.collate(persian, latin);
+    assert_eq!(comp, Ordering::Less);
+}
 
 #[test]
 fn capitalization() {
