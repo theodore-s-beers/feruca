@@ -12,7 +12,7 @@ use std::collections::HashSet;
 pub const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
 
 // Code points that can start three-code-point sequences in the collation tables. These values don't
-// "need" to be u32, but that's what they'll be compared against
+// "need" to be u32, but that's what they'll be compared against.
 pub const NEED_THREE: [u32; 4] = [3_270, 3_545, 4_018, 4_019];
 
 // Code points that can start two-code-point sequences in the collation tables. This used to include

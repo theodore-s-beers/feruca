@@ -69,7 +69,7 @@ pub fn get_shifted_weights(weights: Weights, last_variable: bool) -> ArrayVec<[u
         ArrayVec::from([0, 0, 0, 0])
     } else if weights.variable {
         ArrayVec::from([0, 0, 0, weights.primary])
-    } else if last_variable && weights.primary == 0 && weights.tertiary != 0 {
+    } else if last_variable && weights.primary == 0 {
         ArrayVec::from([0, 0, 0, 0])
     } else {
         ArrayVec::from([weights.primary, weights.secondary, weights.tertiary, 65_535])
