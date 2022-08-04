@@ -13,7 +13,7 @@ to be tolerant of input that may not be entirely kosher UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
 **First**, I don't expect that it will win any awards for performance. My rough
-attempts at benchmarking suggest that this is on the order of 8–10x slower than
+attempts at benchmarking suggest that this is on the order of 5–7x slower than
 `ucol` from [icu4c](https://github.com/unicode-org/icu). (On the other hand,
 that isn't as bad as one might imagine, considering the incredible degree of
 optimization achieved in the ICU libraries.) My initial priority was to pass the
@@ -77,7 +77,7 @@ fn main() {
 
     let mut naive = uca;
 
-    let collator = Collator::default();
+    let mut collator = Collator::default();
     uca.sort_by(|a, b| collator.collate(a, b));
 
     naive.sort();
