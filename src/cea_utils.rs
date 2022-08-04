@@ -1,9 +1,22 @@
+use crate::cea::generate_cea;
 use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
 use crate::tailor::{MULT_AR, SING_AR};
 use crate::types::{MultisTable, SinglesTable, Weights};
-use crate::{Locale, Tailoring};
+use crate::{Collator, Locale, Tailoring};
 use once_cell::sync::Lazy;
 use tinyvec::{array_vec, ArrayVec};
+
+pub fn get_cea(word: &mut Vec<u32>, collator: &mut Collator) -> Vec<ArrayVec<[u16; 4]>> {
+    if let Some(hit) = collator.get_cache(word) {
+        return hit.clone();
+    }
+
+    let orig = word.clone();
+
+    let cea = generate_cea(word, collator);
+    collator.put_cache(orig, cea.clone());
+    cea
+}
 
 pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
     let mut aaaa = match code_point {

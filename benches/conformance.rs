@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use feruca::{Collator, Tailoring};
 use std::cmp::Ordering;
 
-fn conformance(path: &str, collator: Collator) {
+fn conformance(path: &str, mut collator: Collator) {
     let test_data = std::fs::read_to_string(path).unwrap();
 
     let mut max_line = String::new();
@@ -41,10 +41,7 @@ fn ducet_ni(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/CollationTest_NON_IGNORABLE_SHORT.txt",
-                Collator {
-                    tailoring: Tailoring::Ducet,
-                    shifting: false,
-                },
+                Collator::new(Tailoring::Ducet, false),
             )
         })
     });
@@ -55,10 +52,7 @@ fn ducet_shifted(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/CollationTest_SHIFTED_SHORT.txt",
-                Collator {
-                    tailoring: Tailoring::Ducet,
-                    shifting: true,
-                },
+                Collator::new(Tailoring::Ducet, true),
             )
         })
     });
@@ -69,10 +63,7 @@ fn cldr_ni(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt",
-                Collator {
-                    tailoring: Tailoring::default(),
-                    shifting: false,
-                },
+                Collator::new(Tailoring::default(), false),
             )
         })
     });

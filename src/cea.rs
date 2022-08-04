@@ -7,7 +7,7 @@ use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 #[allow(clippy::too_many_lines)]
-pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<ArrayVec<[u16; 4]>> {
+pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayVec<[u16; 4]>> {
     let mut cea: Vec<ArrayVec<[u16; 4]>> = Vec::new();
 
     let cldr = collator.tailoring != Tailoring::Ducet;

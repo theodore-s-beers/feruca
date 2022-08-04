@@ -10,7 +10,7 @@ fn bytes_auto() {
     let x = B(a);
     let y = B(b);
 
-    let collator = Collator::default();
+    let mut collator = Collator::default();
     let comp = collator.collate(x, y);
     assert_eq!(comp, Ordering::Less);
 }
@@ -20,7 +20,7 @@ fn bytes_literal() {
     let a = b"Theodore";
     let b = b"Th\xE9odore";
 
-    let collator = Collator::default();
+    let mut collator = Collator::default();
     let comp = collator.collate(a, b);
     assert_eq!(comp, Ordering::Less);
 }

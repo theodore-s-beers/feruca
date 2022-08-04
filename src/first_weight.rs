@@ -10,7 +10,7 @@ pub fn safe_first_chars(a_chars: &[u32], b_chars: &[u32]) -> bool {
         && !NEED_THREE.contains(&b_chars[0])
 }
 
-pub fn get_first_primary(val: u32, collator: Collator) -> u16 {
+pub fn get_first_primary(val: u32, collator: &Collator) -> u16 {
     let cldr = collator.tailoring != Tailoring::Ducet;
     let shifting = collator.shifting;
 

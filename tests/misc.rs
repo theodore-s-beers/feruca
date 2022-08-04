@@ -6,10 +6,7 @@ fn arabic_script() {
     let persian = "ی";
     let latin = "a";
 
-    let collator = Collator {
-        tailoring: Tailoring::Cldr(Locale::ArabicScript),
-        shifting: true,
-    };
+    let mut collator = Collator::new(Tailoring::Cldr(Locale::ArabicScript), true);
     let comp = collator.collate(persian, latin);
     assert_eq!(comp, Ordering::Less);
 }
@@ -19,7 +16,7 @@ fn capitalization() {
     let a = "Američane";
     let b = "ameriške";
 
-    let collator = Collator::default();
+    let mut collator = Collator::default();
     let comp = collator.collate(a, b);
     assert_eq!(comp, Ordering::Less);
 }

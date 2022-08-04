@@ -1,8 +1,10 @@
 use bstr::{ByteSlice, B};
+use lru::LruCache;
 use std::cmp::Ordering;
+use tinyvec::ArrayVec;
 
 use crate::ascii::{all_ascii, compare_ascii};
-use crate::cea::generate_cea;
+use crate::cea_utils::get_cea;
 use crate::first_weight::{get_first_primary, safe_first_chars};
 use crate::normalize::make_nfd;
 use crate::prefix::trim_prefix;
@@ -23,29 +25,39 @@ use crate::Tailoring;
 ///
 /// The default for `Collator` is to use the CLDR table with the `Root` locale, and the "shifted"
 /// approach. This is a good starting point for collation in many languages.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug)]
 pub struct Collator {
     /// The table of weights to be used: DUCET or CLDR (with a choice of locale for the latter)
     pub tailoring: Tailoring,
     /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
     /// purposes, `shifting` is either true (recommended) or false.
     pub shifting: bool,
+    cache: LruCache<Vec<u32>, Vec<ArrayVec<[u16; 4]>>>,
 }
 
 impl Default for Collator {
     fn default() -> Self {
-        Self {
-            tailoring: Tailoring::default(),
-            shifting: true,
-        }
+        Self::new(Tailoring::default(), true)
     }
 }
 
 impl Collator {
+    pub(crate) fn get_cache(&mut self, word: &[u32]) -> Option<&Vec<ArrayVec<[u16; 4]>>> {
+        self.cache.get(word)
+    }
+
+    pub(crate) fn put_cache(&mut self, word: Vec<u32>, cea: Vec<ArrayVec<[u16; 4]>>) {
+        self.cache.put(word, cea);
+    }
+
     /// Create a new `Collator`. This is equivalent to calling `Collator::default()`.
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(tailoring: Tailoring, shifting: bool) -> Self {
+        Self {
+            tailoring,
+            shifting,
+            cache: LruCache::new(128),
+        }
     }
 
     /// This is the primary method in the library. It accepts as arguments two string references or
@@ -56,7 +68,7 @@ impl Collator {
     /// ```
     /// use feruca::{Collator};
     ///
-    /// let collator = Collator::default();
+    /// let mut collator = Collator::default();
     ///
     /// let mut names = ["Peng", "Peña", "Ernie", "Émile"];
     /// names.sort_by(|a, b| collator.collate(a, b));
@@ -69,7 +81,7 @@ impl Collator {
     /// Algorithm, this method will use byte-value comparison (i.e., the traditional, naïve way of
     /// sorting strings) as a tiebreaker. While this is probably appropriate in most cases, it can
     /// be avoided by using the `collate_no_tiebreak` method.
-    pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(self, a: &T, b: &T) -> Ordering {
+    pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(&mut self, a: &T, b: &T) -> Ordering {
         // Early out; equal is equal
         if a == b {
             return Ordering::Equal;
@@ -118,8 +130,8 @@ impl Collator {
         }
 
         // Otherwise we move forward with full collation element arrays
-        let a_cea = generate_cea(&mut a_chars, self);
-        let b_cea = generate_cea(&mut b_chars, self);
+        let a_cea = get_cea(&mut a_chars, self);
+        let b_cea = get_cea(&mut b_chars, self);
 
         // Sort keys are processed incrementally, until they yield a result
         let comparison = compare_incremental(&a_cea, &b_cea, self.shifting);
@@ -135,7 +147,11 @@ impl Collator {
     /// This is a variation on `collate`, to which it is almost identical. The difference is that,
     /// in the event that two strings are ordered equally per the Unicode Collation Algorithm, this
     /// method will not attempt to "break the tie" by using byte-value comparison.
-    pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(self, a: &T, b: &T) -> Ordering {
+    pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(
+        &mut self,
+        a: &T,
+        b: &T,
+    ) -> Ordering {
         if a == b {
             return Ordering::Equal;
         }
@@ -170,8 +186,8 @@ impl Collator {
             }
         }
 
-        let a_cea = generate_cea(&mut a_chars, self);
-        let b_cea = generate_cea(&mut b_chars, self);
+        let a_cea = get_cea(&mut a_chars, self);
+        let b_cea = get_cea(&mut b_chars, self);
 
         compare_incremental(&a_cea, &b_cea, self.shifting)
     }
