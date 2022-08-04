@@ -3,7 +3,7 @@ use lru::LruCache;
 use std::cmp::Ordering;
 use tinyvec::ArrayVec;
 
-use crate::ascii::{all_ascii, compare_ascii};
+use crate::ascii::try_ascii;
 use crate::cea_utils::get_cea;
 use crate::first_weight::{get_first_primary, safe_first_chars};
 use crate::normalize::make_nfd;
@@ -91,10 +91,10 @@ impl Collator {
         let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
         let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
 
-        // Check if both are entirely alphanumeric ASCII
-        let easy = all_ascii(&a_chars, &b_chars);
-        if easy {
-            return compare_ascii(a_chars, b_chars);
+        // If we can get a decisive result from comparing alphanumeric ASCII characters in the two
+        // strings, return that
+        if let Some(o) = try_ascii(&a_chars, &b_chars) {
+            return o;
         }
 
         // Normalize to NFD
@@ -102,8 +102,8 @@ impl Collator {
         make_nfd(&mut b_chars);
 
         // I think it's worth offering an out here, too, in case two strings decompose to the same.
-        // If we went forward and generated sort keys, they would be equal, and we would end up at the
-        // tiebreaker, anyway.
+        // If we went forward and generated sort keys, they would be equal, and we would end up at
+        // the tiebreaker, anyway.
         if a_chars == b_chars {
             // Tiebreaker
             return a.cmp(b);
@@ -159,9 +159,8 @@ impl Collator {
         let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
         let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
 
-        let easy = all_ascii(&a_chars, &b_chars);
-        if easy {
-            return compare_ascii(a_chars, b_chars);
+        if let Some(o) = try_ascii(&a_chars, &b_chars) {
+            return o;
         }
 
         make_nfd(&mut a_chars);
