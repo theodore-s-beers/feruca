@@ -50,7 +50,8 @@ impl Collator {
         self.cache.put(word, cea);
     }
 
-    /// Create a new `Collator`. This is equivalent to calling `Collator::default()`.
+    /// Create a new `Collator` with the specified options. Please note that it is also possible
+    /// to call `Collator::default()`.
     #[must_use]
     pub fn new(tailoring: Tailoring, shifting: bool) -> Self {
         Self {
