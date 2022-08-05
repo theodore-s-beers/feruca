@@ -42,14 +42,6 @@ impl Default for Collator {
 }
 
 impl Collator {
-    pub(crate) fn get_cache(&mut self, word: &[u32]) -> Option<&Vec<ArrayVec<[u16; 4]>>> {
-        self.cache.get(word)
-    }
-
-    pub(crate) fn put_cache(&mut self, word: Vec<u32>, cea: Vec<ArrayVec<[u16; 4]>>) {
-        self.cache.put(word, cea);
-    }
-
     /// Create a new `Collator` with the specified options. Please note that it is also possible
     /// to call `Collator::default()`.
     #[must_use]
@@ -190,5 +182,13 @@ impl Collator {
         let b_cea = get_cea(&mut b_chars, self);
 
         compare_incremental(&a_cea, &b_cea, self.shifting)
+    }
+
+    pub(crate) fn get_cache(&mut self, word: &[u32]) -> Option<&Vec<ArrayVec<[u16; 4]>>> {
+        self.cache.get(word)
+    }
+
+    pub(crate) fn put_cache(&mut self, word: Vec<u32>, cea: Vec<ArrayVec<[u16; 4]>>) {
+        self.cache.put(word, cea);
     }
 }
