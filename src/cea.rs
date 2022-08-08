@@ -17,11 +17,12 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
     let singles = get_table_singles(collator.tailoring);
     let multis = get_table_multis(collator.tailoring);
 
+    let mut input_length = char_vals.len();
     let mut left: usize = 0;
     let mut last_variable = false;
 
     // We spend essentially the entire function in this loop
-    'outer: while left < char_vals.len() {
+    'outer: while left < input_length {
         let left_val = char_vals[left];
 
         //
@@ -65,7 +66,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
         };
 
         // If lookahead is 1, or if this is the last item in the vec, we'll take an easier path
-        let check_multi = lookahead > 1 && (char_vals.len() - left > 1);
+        let check_multi = lookahead > 1 && (input_length - left > 1);
 
         if !check_multi {
             //
@@ -119,8 +120,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
         // Here we consider multi-code-point matches, if possible
 
         // Don't look past the end of the vec
-        let mut right = if left + lookahead > char_vals.len() {
-            char_vals.len()
+        let mut right = if left + lookahead > input_length {
+            input_length
         } else {
             left + lookahead
         };
@@ -132,9 +133,9 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                 // If we found it, we do still need to check for discontiguous matches
                 if let Some(row) = singles.get(&left_val) {
                     // Determine how much further right to look
-                    let mut max_right = if right + 2 < char_vals.len() {
+                    let mut max_right = if right + 2 < input_length {
                         right + 2
-                    } else if right + 1 < char_vals.len() {
+                    } else if right + 1 < input_length {
                         right + 1
                     } else {
                         // This should skip the loop below. There will be no discontiguous match.
@@ -198,8 +199,10 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
 
                             // Remove the pulled char(s) (in this order!)
                             char_vals.remove(max_right);
+                            input_length -= 1;
                             if try_two {
                                 char_vals.remove(max_right - 1);
+                                input_length -= 1;
                             }
 
                             // Increment and continue outer loop
@@ -264,7 +267,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                 // If we found it, we may need to check for a discontiguous match.
                 // But that's only if we matched on a set of two code points; and we'll only skip
                 // over one to find a possible third.
-                let mut try_discont = subset.len() == 2 && (right + 1 < char_vals.len());
+                let mut try_discont = subset.len() == 2 && (right + 1 < input_length);
 
                 while try_discont {
                     // Need to make sure the sequence of CCCs is kosher
@@ -309,6 +312,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
 
                         // Remove the pulled char
                         char_vals.remove(right + 1);
+                        input_length -= 1;
 
                         // Increment and continue outer loop
                         left += right - left;

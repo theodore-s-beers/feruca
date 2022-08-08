@@ -3,8 +3,11 @@ use std::cmp::Ordering;
 pub fn try_ascii(a: &[u32], b: &[u32]) -> Option<Ordering> {
     let mut backup: Option<Ordering> = None;
 
-    for i in 0..a.len().min(b.len()) {
-        if !ascii_an(a[i]) || !ascii_an(b[i]) {
+    let a_len = a.len();
+    let b_len = b.len();
+
+    for i in 0..a_len.min(b_len) {
+        if !ascii_alphanumeric(a[i]) || !ascii_alphanumeric(b[i]) {
             return None;
         }
 
@@ -12,32 +15,37 @@ pub fn try_ascii(a: &[u32], b: &[u32]) -> Option<Ordering> {
             continue;
         }
 
-        let new_a = if a[i] > 90 { a[i] - 32 } else { a[i] };
-        let new_b = if b[i] > 90 { b[i] - 32 } else { b[i] };
+        let a_folded = if a[i] > 90 { a[i] - 32 } else { a[i] };
+        let b_folded = if b[i] > 90 { b[i] - 32 } else { b[i] };
 
-        if new_a == new_b {
+        // This means the characters differ only in case (since they weren't equal before folding)
+        if a_folded == b_folded {
             if backup == None {
+                // Set backup as the comparison of the original characters, in reverse order
                 backup = Some(b[i].cmp(&a[i]));
             }
 
             continue;
         }
 
-        return Some(new_a.cmp(&new_b));
+        return Some(a_folded.cmp(&b_folded));
     }
 
-    if a.len() != b.len() {
-        return Some(a.len().cmp(&b.len()));
+    // Slices were equal so far; if one is longer, it wins
+    if a_len != b_len {
+        return Some(a_len.cmp(&b_len));
     }
 
+    // This would mean we found a case difference, but no other (incl. length); return it
     if backup.is_some() {
         return backup;
     }
 
+    // This may be unreachable in practice, but whatever
     Some(Ordering::Equal)
 }
 
-fn ascii_an(c: u32) -> bool {
+fn ascii_alphanumeric(c: u32) -> bool {
     if !(48..=122).contains(&c) || (58..=64).contains(&c) || (91..=96).contains(&c) {
         return false;
     }
