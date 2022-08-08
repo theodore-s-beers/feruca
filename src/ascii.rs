@@ -46,9 +46,5 @@ pub fn try_ascii(a: &[u32], b: &[u32]) -> Option<Ordering> {
 }
 
 fn ascii_alphanumeric(c: u32) -> bool {
-    if !(48..=122).contains(&c) || (58..=64).contains(&c) || (91..=96).contains(&c) {
-        return false;
-    }
-
-    true
+    (48..=122).contains(&c) && !(58..=64).contains(&c) && !(91..=96).contains(&c)
 }

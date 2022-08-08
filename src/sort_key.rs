@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
 use tinyvec::ArrayVec;
 
-// I'll compress this function later; I just got it working
-#[allow(clippy::too_many_lines)]
 pub fn compare_incremental(
     a_cea: &[ArrayVec<[u16; 4]>],
     b_cea: &[ArrayVec<[u16; 4]>],
@@ -11,125 +9,19 @@ pub fn compare_incremental(
     let a_len = a_cea.len();
     let b_len = b_cea.len();
 
-    let mut a_cursor = 0;
-    let mut b_cursor = 0;
-
-    loop {
-        let mut a_prim: u16 = 0;
-        let mut b_prim: u16 = 0;
-
-        while a_cursor < a_len {
-            if a_cea[a_cursor][0] != 0 {
-                a_prim = a_cea[a_cursor][0];
-                a_cursor += 1;
-                break;
-            }
-            a_cursor += 1;
-        }
-
-        while b_cursor < b_len {
-            if b_cea[b_cursor][0] != 0 {
-                b_prim = b_cea[b_cursor][0];
-                b_cursor += 1;
-                break;
-            }
-            b_cursor += 1;
-        }
-
-        // This means no further primary weight was found in one of the strings
-        if a_prim == 0 || b_prim == 0 {
-            // If one of them did have another primary weight, it wins; return
-            if a_prim != b_prim {
-                return a_prim.cmp(&b_prim);
-            }
-            // Else break the primary weight loop
-            break;
-        }
-
-        // If both weights are non-zero, and not equal, return their comparison
-        if a_prim != b_prim {
-            return a_prim.cmp(&b_prim);
-        }
+    // Primary
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 0) {
+        return o;
     }
 
-    // Reset cursors
-    a_cursor = 0;
-    b_cursor = 0;
-
-    loop {
-        let mut a_sec: u16 = 0;
-        let mut b_sec: u16 = 0;
-
-        while a_cursor < a_len {
-            if a_cea[a_cursor][1] != 0 {
-                a_sec = a_cea[a_cursor][1];
-                a_cursor += 1;
-                break;
-            }
-            a_cursor += 1;
-        }
-
-        while b_cursor < b_len {
-            if b_cea[b_cursor][1] != 0 {
-                b_sec = b_cea[b_cursor][1];
-                b_cursor += 1;
-                break;
-            }
-            b_cursor += 1;
-        }
-
-        // Same logic, but for secondary weights
-
-        if a_sec == 0 || b_sec == 0 {
-            if a_sec != b_sec {
-                return a_sec.cmp(&b_sec);
-            }
-            break;
-        }
-
-        if a_sec != b_sec {
-            return a_sec.cmp(&b_sec);
-        }
+    // Secondary
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 1) {
+        return o;
     }
 
-    // Reset cursors
-    a_cursor = 0;
-    b_cursor = 0;
-
-    loop {
-        let mut a_ter: u16 = 0;
-        let mut b_ter: u16 = 0;
-
-        while a_cursor < a_len {
-            if a_cea[a_cursor][2] != 0 {
-                a_ter = a_cea[a_cursor][2];
-                a_cursor += 1;
-                break;
-            }
-            a_cursor += 1;
-        }
-
-        while b_cursor < b_len {
-            if b_cea[b_cursor][2] != 0 {
-                b_ter = b_cea[b_cursor][2];
-                b_cursor += 1;
-                break;
-            }
-            b_cursor += 1;
-        }
-
-        // Same logic, but for tertiary weights
-
-        if a_ter == 0 || b_ter == 0 {
-            if a_ter != b_ter {
-                return a_ter.cmp(&b_ter);
-            }
-            break;
-        }
-
-        if a_ter != b_ter {
-            return a_ter.cmp(&b_ter);
-        }
+    // Tertiary
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 2) {
+        return o;
     }
 
     // If not shifting, stop here
@@ -137,44 +29,9 @@ pub fn compare_incremental(
         return Ordering::Equal;
     }
 
-    // Reset cursors
-    a_cursor = 0;
-    b_cursor = 0;
-
-    loop {
-        let mut a_quat: u16 = 0;
-        let mut b_quat: u16 = 0;
-
-        while a_cursor < a_len {
-            if a_cea[a_cursor][3] != 0 {
-                a_quat = a_cea[a_cursor][3];
-                a_cursor += 1;
-                break;
-            }
-            a_cursor += 1;
-        }
-
-        while b_cursor < b_len {
-            if b_cea[b_cursor][3] != 0 {
-                b_quat = b_cea[b_cursor][3];
-                b_cursor += 1;
-                break;
-            }
-            b_cursor += 1;
-        }
-
-        // Same logic, but for quaternary weights
-
-        if a_quat == 0 || b_quat == 0 {
-            if a_quat != b_quat {
-                return a_quat.cmp(&b_quat);
-            }
-            break;
-        }
-
-        if a_quat != b_quat {
-            return a_quat.cmp(&b_quat);
-        }
+    // Quaternary
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 3) {
+        return o;
     }
 
     // If we got to this point, return Equal. The efficiency of processing and comparing sort keys
@@ -182,4 +39,53 @@ pub fn compare_incremental(
     // way through tertiary or quaternary weights. (Remember, there are two earlier fast paths for
     // equal strings -- one before normalization, one after.)
     Ordering::Equal
+}
+
+fn compare_at_lvl(
+    a_cea: &[ArrayVec<[u16; 4]>],
+    b_cea: &[ArrayVec<[u16; 4]>],
+    a_len: usize,
+    b_len: usize,
+    lvl: usize,
+) -> Option<Ordering> {
+    let mut a_cursor = 0;
+    let mut b_cursor = 0;
+
+    loop {
+        let mut a_weight: u16 = 0;
+        let mut b_weight: u16 = 0;
+
+        while a_cursor < a_len {
+            if a_cea[a_cursor][lvl] != 0 {
+                a_weight = a_cea[a_cursor][lvl];
+                a_cursor += 1;
+                break;
+            }
+            a_cursor += 1;
+        }
+
+        while b_cursor < b_len {
+            if b_cea[b_cursor][lvl] != 0 {
+                b_weight = b_cea[b_cursor][lvl];
+                b_cursor += 1;
+                break;
+            }
+            b_cursor += 1;
+        }
+
+        // This means no further weight at the given level was found in one of the strings
+        if a_weight == 0 || b_weight == 0 {
+            // If one of them did have another such weight, it wins; return that
+            if a_weight != b_weight {
+                return Some(a_weight.cmp(&b_weight));
+            }
+            // Else return None
+            return None;
+        }
+
+        // If both weights are non-zero, and not equal, return their comparison
+        if a_weight != b_weight {
+            return Some(a_weight.cmp(&b_weight));
+        }
+    }
 }
