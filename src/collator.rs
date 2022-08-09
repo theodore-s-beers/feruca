@@ -5,7 +5,7 @@ use tinyvec::ArrayVec;
 
 use crate::ascii::try_ascii;
 use crate::cea_utils::get_cea;
-use crate::first_weight::{get_first_primary, safe_first_chars};
+use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
 use crate::prefix::trim_prefix;
 use crate::sort_key::compare_incremental;
@@ -110,16 +110,12 @@ impl Collator {
             return a_chars.cmp(&b_chars);
         }
 
-        // One last chance for an early out: if the opening code points of the two Vecs are different,
-        // and neither requires checking for a multi-code-point sequence, then we can try comparing
-        // their first primary weights. If those are different, and both non-zero, it's decisive.
-        if safe_first_chars(&a_chars, &b_chars) {
-            let a_first_primary = get_first_primary(a_chars[0], self);
-            let b_first_primary = get_first_primary(b_chars[0], self);
-
-            if a_first_primary != b_first_primary && a_first_primary != 0 && b_first_primary != 0 {
-                return a_first_primary.cmp(&b_first_primary);
-            }
+        // One last chance for an early out: if the opening code points of the two Vecs are
+        // different, and neither requires checking for a multi-code-point sequence, then we can
+        // try comparing their first primary weights. If those are different, and both non-zero,
+        // it's decisive.
+        if let Some(o) = try_initial(&a_chars, &b_chars, self) {
+            return o;
         }
 
         // Otherwise we move forward with full collation element arrays
@@ -169,13 +165,8 @@ impl Collator {
             return a_chars.cmp(&b_chars);
         }
 
-        if safe_first_chars(&a_chars, &b_chars) {
-            let a_first_primary = get_first_primary(a_chars[0], self);
-            let b_first_primary = get_first_primary(b_chars[0], self);
-
-            if a_first_primary != b_first_primary && a_first_primary != 0 && b_first_primary != 0 {
-                return a_first_primary.cmp(&b_first_primary);
-            }
+        if let Some(o) = try_initial(&a_chars, &b_chars, self) {
+            return o;
         }
 
         let a_cea = get_cea(&mut a_chars, self);
