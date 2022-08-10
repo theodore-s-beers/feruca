@@ -52,23 +52,15 @@ fn compare_at_lvl(
         let a_weight = a_filter.next().unwrap_or(0);
         let b_weight = b_filter.next().unwrap_or(0);
 
-        // If either value is 0...
-        if a_weight == 0 || b_weight == 0 {
-            // If one is nonzero, it wins; return the comparison
-            if a_weight != b_weight {
-                return Some(a_weight.cmp(&b_weight));
-            }
-
-            // Else return None
-            //
-            // This is the default return. It is guaranteed to be reached eventually, when the two
-            // iterators are exhausted.
-            return None;
-        }
-
-        // If both weights are nonzero, and non-equal, return the comparison
+        // If the weights are non-equal, return the comparison
         if a_weight != b_weight {
             return Some(a_weight.cmp(&b_weight));
+        }
+
+        // If both weights are 0, return None. This is the default return. It will be reached
+        // eventually, when both iterators are exhausted.
+        if a_weight == 0 && b_weight == 0 {
+            return None;
         }
 
         // Else the loop continues
