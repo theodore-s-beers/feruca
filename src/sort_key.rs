@@ -6,21 +6,18 @@ pub fn compare_incremental(
     b_cea: &[ArrayVec<[u16; 4]>],
     shifting: bool,
 ) -> Ordering {
-    let a_len = a_cea.len();
-    let b_len = b_cea.len();
-
     // Primary
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 0) {
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, 0) {
         return o;
     }
 
     // Secondary
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 1) {
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, 1) {
         return o;
     }
 
     // Tertiary
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 2) {
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, 2) {
         return o;
     }
 
@@ -30,7 +27,7 @@ pub fn compare_incremental(
     }
 
     // Quaternary
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, a_len, b_len, 3) {
+    if let Some(o) = compare_at_lvl(a_cea, b_cea, 3) {
         return o;
     }
 
@@ -44,48 +41,36 @@ pub fn compare_incremental(
 fn compare_at_lvl(
     a_cea: &[ArrayVec<[u16; 4]>],
     b_cea: &[ArrayVec<[u16; 4]>],
-    a_len: usize,
-    b_len: usize,
     lvl: usize,
 ) -> Option<Ordering> {
-    let mut a_cursor = 0;
-    let mut b_cursor = 0;
+    // These iterators will try to find nonzero weights at the given level
+    let mut a_filter = a_cea.iter().map(|row| row[lvl]).filter(|x| *x != 0);
+    let mut b_filter = b_cea.iter().map(|row| row[lvl]).filter(|x| *x != 0);
 
     loop {
-        let mut a_weight: u16 = 0;
-        let mut b_weight: u16 = 0;
+        // Advance each iterator, using 0 as the default value
+        let a_weight = a_filter.next().unwrap_or(0);
+        let b_weight = b_filter.next().unwrap_or(0);
 
-        while a_cursor < a_len {
-            if a_cea[a_cursor][lvl] != 0 {
-                a_weight = a_cea[a_cursor][lvl];
-                a_cursor += 1;
-                break;
-            }
-            a_cursor += 1;
-        }
-
-        while b_cursor < b_len {
-            if b_cea[b_cursor][lvl] != 0 {
-                b_weight = b_cea[b_cursor][lvl];
-                b_cursor += 1;
-                break;
-            }
-            b_cursor += 1;
-        }
-
-        // This means no further weight at the given level was found in one of the strings
+        // If either value is 0...
         if a_weight == 0 || b_weight == 0 {
-            // If one of them did have another such weight, it wins; return that
+            // If one is nonzero, it wins; return the comparison
             if a_weight != b_weight {
                 return Some(a_weight.cmp(&b_weight));
             }
+
             // Else return None
+            //
+            // This is the default return. It is guaranteed to be reached eventually, when the two
+            // iterators are exhausted.
             return None;
         }
 
-        // If both weights are non-zero, and not equal, return their comparison
+        // If both weights are nonzero, and non-equal, return the comparison
         if a_weight != b_weight {
             return Some(a_weight.cmp(&b_weight));
         }
+
+        // Else the loop continues
     }
 }
