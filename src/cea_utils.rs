@@ -78,11 +78,9 @@ pub fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
 }
 
 pub fn get_shifted_weights(weights: Weights, last_variable: bool) -> ArrayVec<[u16; 4]> {
-    if weights.primary == 0 && weights.secondary == 0 && weights.tertiary == 0 {
-        ArrayVec::from([0, 0, 0, 0])
-    } else if weights.variable {
+    if weights.variable {
         ArrayVec::from([0, 0, 0, weights.primary])
-    } else if last_variable && weights.primary == 0 {
+    } else if weights.primary == 0 && (weights.tertiary == 0 || last_variable) {
         ArrayVec::from([0, 0, 0, 0])
     } else {
         ArrayVec::from([weights.primary, weights.secondary, weights.tertiary, 65_535])
