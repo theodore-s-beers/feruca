@@ -37,7 +37,6 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
     let shifting = coll.shifting;
 
     let low = if cldr { &LOW_CLDR } else { &LOW };
-    let singles = get_table_singles(coll.tailoring);
 
     // Fast path for low code points
     if val < 183 && val != 108 && val != 76 {
@@ -52,6 +51,8 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
     }
 
     // Or look in the big table
+    let singles = get_table_singles(coll.tailoring);
+
     if let Some(row) = singles.get(&val) {
         if shifting {
             let weight_vals = get_shifted_weights(row[0], false);

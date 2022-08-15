@@ -20,7 +20,7 @@ pub fn try_ascii(a: &[u32], b: &[u32]) -> Option<Ordering> {
 
         // This means the characters differ only in case (since they weren't equal before folding)
         if a_folded == b_folded {
-            if backup == None {
+            if backup.is_none() {
                 // Set backup as the comparison of the original characters, in reverse order
                 backup = Some(b[i].cmp(&a[i]));
             }
