@@ -77,16 +77,6 @@ pub fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
     }
 }
 
-pub fn get_shifted_weights(weights: Weights, last_variable: bool) -> ArrayVec<[u16; 4]> {
-    if weights.variable {
-        ArrayVec::from([0, 0, 0, weights.primary])
-    } else if weights.primary == 0 && (weights.tertiary == 0 || last_variable) {
-        ArrayVec::from([0, 0, 0, 0])
-    } else {
-        ArrayVec::from([weights.primary, weights.secondary, weights.tertiary, 65_535])
-    }
-}
-
 pub fn get_table_multis(tailoring: Tailoring) -> &'static Lazy<MultisTable> {
     match tailoring {
         Tailoring::Cldr(Locale::ArabicScript) => &MULT_AR,
@@ -100,5 +90,17 @@ pub fn get_table_singles(tailoring: Tailoring) -> &'static Lazy<SinglesTable> {
         Tailoring::Cldr(Locale::ArabicScript) => &SING_AR,
         Tailoring::Cldr(Locale::Root) => &SING_CLDR,
         Tailoring::Ducet => &SING,
+    }
+}
+
+pub fn handle_shifted_weights(weights: Weights, last_variable: &mut bool) -> ArrayVec<[u16; 4]> {
+    if weights.variable {
+        *last_variable = true;
+        ArrayVec::from([0, 0, 0, weights.primary])
+    } else if weights.primary == 0 && (weights.tertiary == 0 || *last_variable) {
+        ArrayVec::from([0, 0, 0, 0])
+    } else {
+        *last_variable = false;
+        ArrayVec::from([weights.primary, weights.secondary, weights.tertiary, 65_535])
     }
 }

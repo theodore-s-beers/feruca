@@ -1,4 +1,4 @@
-use crate::cea_utils::{get_implicit_a, get_shifted_weights, get_table_singles};
+use crate::cea_utils::{get_implicit_a, get_table_singles, handle_shifted_weights};
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
 use std::cmp::Ordering;
@@ -43,7 +43,7 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
         let weights = low[&val]; // Guaranteed to succeed
 
         if shifting {
-            let weight_vals = get_shifted_weights(weights, false);
+            let weight_vals = handle_shifted_weights(weights, &mut false);
             return weight_vals[0];
         }
 
@@ -55,7 +55,7 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
 
     if let Some(row) = singles.get(&val) {
         if shifting {
-            let weight_vals = get_shifted_weights(row[0], false);
+            let weight_vals = handle_shifted_weights(row[0], &mut false);
             return weight_vals[0];
         }
 

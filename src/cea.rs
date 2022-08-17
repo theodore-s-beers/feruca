@@ -1,5 +1,5 @@
 use crate::cea_utils::{
-    get_implicit_a, get_implicit_b, get_shifted_weights, get_table_multis, get_table_singles,
+    get_implicit_a, get_implicit_b, get_table_multis, get_table_singles, handle_shifted_weights,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
@@ -36,13 +36,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
             let weights = low[&left_val]; // Guaranteed to succeed
 
             if shifting {
-                let weight_vals = get_shifted_weights(weights, last_variable);
+                let weight_vals = handle_shifted_weights(weights, &mut last_variable);
                 cea.push(weight_vals);
-                if weights.variable {
-                    last_variable = true;
-                } else if weights.primary != 0 {
-                    last_variable = false;
-                }
             } else {
                 let weight_vals = array_vec!(
                     [u16; 4] => weights.primary, weights.secondary, weights.tertiary
@@ -78,13 +73,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
             if let Some(row) = singles.get(&left_val) {
                 for weights in row {
                     if shifting {
-                        let weight_vals = get_shifted_weights(*weights, last_variable);
+                        let weight_vals = handle_shifted_weights(*weights, &mut last_variable);
                         cea.push(weight_vals);
-                        if weights.variable {
-                            last_variable = true;
-                        } else if weights.primary != 0 {
-                            last_variable = false;
-                        }
                     } else {
                         let weight_vals = array_vec!(
                             [u16; 4] => weights.primary, weights.secondary, weights.tertiary
@@ -182,13 +172,9 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                         if let Some(new_row) = multis.get(&new_subset) {
                             for weights in new_row {
                                 if shifting {
-                                    let weight_vals = get_shifted_weights(*weights, last_variable);
+                                    let weight_vals =
+                                        handle_shifted_weights(*weights, &mut last_variable);
                                     cea.push(weight_vals);
-                                    if weights.variable {
-                                        last_variable = true;
-                                    } else if weights.primary != 0 {
-                                        last_variable = false;
-                                    }
                                 } else {
                                     let weight_vals = array_vec!(
                                         [u16; 4] => weights.primary, weights.secondary, weights.tertiary
@@ -229,13 +215,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                     //
                     for weights in row {
                         if shifting {
-                            let weight_vals = get_shifted_weights(*weights, last_variable);
+                            let weight_vals = handle_shifted_weights(*weights, &mut last_variable);
                             cea.push(weight_vals);
-                            if weights.variable {
-                                last_variable = true;
-                            } else if weights.primary != 0 {
-                                last_variable = false;
-                            }
                         } else {
                             let weight_vals = array_vec!(
                                 [u16; 4] => weights.primary, weights.secondary, weights.tertiary
@@ -295,13 +276,9 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                     if let Some(new_row) = multis.get(&new_subset) {
                         for weights in new_row {
                             if shifting {
-                                let weight_vals = get_shifted_weights(*weights, last_variable);
+                                let weight_vals =
+                                    handle_shifted_weights(*weights, &mut last_variable);
                                 cea.push(weight_vals);
-                                if weights.variable {
-                                    last_variable = true;
-                                } else if weights.primary != 0 {
-                                    last_variable = false;
-                                }
                             } else {
                                 let weight_vals = array_vec!(
                                     [u16; 4] => weights.primary, weights.secondary, weights.tertiary
@@ -331,13 +308,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                 //
                 for weights in row {
                     if shifting {
-                        let weight_vals = get_shifted_weights(*weights, last_variable);
+                        let weight_vals = handle_shifted_weights(*weights, &mut last_variable);
                         cea.push(weight_vals);
-                        if weights.variable {
-                            last_variable = true;
-                        } else if weights.primary != 0 {
-                            last_variable = false;
-                        }
                     } else {
                         let weight_vals = array_vec!(
                             [u16; 4] => weights.primary, weights.secondary, weights.tertiary
