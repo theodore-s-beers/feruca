@@ -5,6 +5,23 @@ use crate::types::{MultisTable, SinglesTable, Weights};
 use crate::{Collator, Locale, Tailoring};
 use once_cell::sync::Lazy;
 use tinyvec::{array_vec, ArrayVec};
+use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
+
+pub fn ccc_sequence_ok(interest_cohort: &[u32]) -> bool {
+    let mut max_ccc = 0;
+
+    for elem in interest_cohort {
+        let ccc = get_ccc(*elem) as u8;
+
+        if ccc == 0 || ccc <= max_ccc {
+            return false;
+        }
+
+        max_ccc = ccc;
+    }
+
+    true
+}
 
 pub fn get_cea(word: &mut Vec<u32>, collator: &mut Collator) -> Vec<ArrayVec<[u16; 4]>> {
     if let Some(hit) = collator.get_cache(word) {
@@ -77,6 +94,19 @@ pub fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
     }
 }
 
+pub fn get_subset(
+    try_two: bool,
+    left_val: u32,
+    char_vals: &[u32],
+    max_right: usize,
+) -> ArrayVec<[u32; 3]> {
+    if try_two {
+        ArrayVec::from([left_val, char_vals[max_right - 1], char_vals[max_right]])
+    } else {
+        array_vec!([u32; 3] => left_val, char_vals[max_right])
+    }
+}
+
 pub fn get_table_multis(tailoring: Tailoring) -> &'static Lazy<MultisTable> {
     match tailoring {
         Tailoring::Cldr(Locale::ArabicScript) => &MULT_AR,
@@ -93,6 +123,31 @@ pub fn get_table_singles(tailoring: Tailoring) -> &'static Lazy<SinglesTable> {
     }
 }
 
+pub fn handle_implicit_weights(left_val: u32, shifting: bool, cea: &mut Vec<ArrayVec<[u16; 4]>>) {
+    let first_weights = get_implicit_a(left_val, shifting);
+    cea.push(first_weights);
+
+    let second_weights = get_implicit_b(left_val, shifting);
+    cea.push(second_weights);
+}
+
+pub fn handle_low_weights(
+    shifting: bool,
+    weights: Weights,
+    last_variable: &mut bool,
+    cea: &mut Vec<ArrayVec<[u16; 4]>>,
+) {
+    if shifting {
+        let weight_vals = handle_shifted_weights(weights, last_variable);
+        cea.push(weight_vals);
+    } else {
+        let weight_vals = array_vec!(
+            [u16; 4] => weights.primary, weights.secondary, weights.tertiary
+        );
+        cea.push(weight_vals);
+    }
+}
+
 pub fn handle_shifted_weights(weights: Weights, last_variable: &mut bool) -> ArrayVec<[u16; 4]> {
     if weights.variable {
         *last_variable = true;
@@ -102,5 +157,33 @@ pub fn handle_shifted_weights(weights: Weights, last_variable: &mut bool) -> Arr
     } else {
         *last_variable = false;
         ArrayVec::from([weights.primary, weights.secondary, weights.tertiary, 65_535])
+    }
+}
+
+pub fn push_weights(
+    row: &Vec<Weights>,
+    shifting: bool,
+    last_variable: &mut bool,
+    cea: &mut Vec<ArrayVec<[u16; 4]>>,
+) {
+    for weights in row {
+        if shifting {
+            let weight_vals = handle_shifted_weights(*weights, last_variable);
+            cea.push(weight_vals);
+        } else {
+            let weight_vals = array_vec!(
+                [u16; 4] => weights.primary, weights.secondary, weights.tertiary
+            );
+            cea.push(weight_vals);
+        }
+    }
+}
+
+pub fn remove_pulled(char_vals: &mut Vec<u32>, i: usize, input_length: &mut usize, try_two: bool) {
+    char_vals.remove(i);
+    *input_length -= 1;
+    if try_two {
+        char_vals.remove(i - 1);
+        *input_length -= 1;
     }
 }

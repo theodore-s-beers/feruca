@@ -1,12 +1,12 @@
 use crate::cea_utils::{
-    get_implicit_a, get_implicit_b, get_table_multis, get_table_singles, handle_shifted_weights,
+    ccc_sequence_ok, get_subset, get_table_multis, get_table_singles, handle_implicit_weights,
+    handle_low_weights, push_weights, remove_pulled,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
-use tinyvec::{array_vec, ArrayVec};
+use tinyvec::ArrayVec;
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
-#[allow(clippy::too_many_lines)]
 pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayVec<[u16; 4]>> {
     let mut cea: Vec<ArrayVec<[u16; 4]>> = Vec::new();
 
@@ -35,15 +35,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
         if left_val < 183 && left_val != 108 && left_val != 76 {
             let weights = low[&left_val]; // Guaranteed to succeed
 
-            if shifting {
-                let weight_vals = handle_shifted_weights(weights, &mut last_variable);
-                cea.push(weight_vals);
-            } else {
-                let weight_vals = array_vec!(
-                    [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-                );
-                cea.push(weight_vals);
-            }
+            handle_low_weights(shifting, weights, &mut last_variable, &mut cea);
 
             // Increment and continue outer loop
             left += 1;
@@ -71,17 +63,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
             // weights and continue. This is a relatively fast path.
             //
             if let Some(row) = singles.get(&left_val) {
-                for weights in row {
-                    if shifting {
-                        let weight_vals = handle_shifted_weights(*weights, &mut last_variable);
-                        cea.push(weight_vals);
-                    } else {
-                        let weight_vals = array_vec!(
-                            [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-                        );
-                        cea.push(weight_vals);
-                    }
-                }
+                push_weights(row, shifting, &mut last_variable, &mut cea);
 
                 // Increment and continue outer loop
                 left += 1;
@@ -95,12 +77,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
             // then calculate implicit weights, push them, and move on. I used to think there were
             // multiple paths to the "implicit weights" case, but it seems not.
             //
-
-            let first_weights = get_implicit_a(left_val, shifting);
-            cea.push(first_weights);
-
-            let second_weights = get_implicit_b(left_val, shifting);
-            cea.push(second_weights);
+            handle_implicit_weights(left_val, shifting, &mut cea);
 
             // Increment and continue outer loop
             left += 1;
@@ -123,13 +100,10 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                 // If we found it, we do still need to check for discontiguous matches
                 if let Some(row) = singles.get(&left_val) {
                     // Determine how much further right to look
-                    let mut max_right = if right + 2 < input_length {
-                        right + 2
-                    } else if right + 1 < input_length {
-                        right + 1
-                    } else {
-                        // This should skip the loop below. There will be no discontiguous match.
-                        right
+                    let mut max_right = match right {
+                        r if r + 2 < input_length => r + 2,
+                        r if r + 1 < input_length => r + 1,
+                        _ => right, // Skip the loop below; there will be no discontiguous match
                     };
 
                     let mut try_two = (max_right - right == 2) && cldr;
@@ -137,29 +111,16 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                     'inner: while max_right > right {
                         // Make sure the sequence of CCC values is kosher
                         let interest_cohort = &char_vals[right..=max_right];
-                        let mut max_ccc = 0;
 
-                        for elem in interest_cohort {
-                            let ccc = get_ccc(*elem) as u8;
-                            if ccc == 0 || ccc <= max_ccc {
-                                // Can also forget about try_two in this case
-                                try_two = false;
-                                max_right -= 1;
-                                continue 'inner;
-                            }
-                            max_ccc = ccc;
+                        if !ccc_sequence_ok(interest_cohort) {
+                            // Can also forget about try_two in this case
+                            try_two = false;
+                            max_right -= 1;
+                            continue 'inner;
                         }
 
                         // Having made it this far, we can test a new subset, adding later char(s)
-                        let new_subset = if try_two {
-                            ArrayVec::from([
-                                left_val,
-                                char_vals[max_right - 1],
-                                char_vals[max_right],
-                            ])
-                        } else {
-                            array_vec!([u32; 3] => left_val, char_vals[max_right])
-                        };
+                        let new_subset = get_subset(try_two, left_val, char_vals, max_right);
 
                         //
                         // OUTCOME 3
@@ -170,26 +131,10 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                         // for discontiguous matches; and found one. Anyway, push the weights...
                         //
                         if let Some(new_row) = multis.get(&new_subset) {
-                            for weights in new_row {
-                                if shifting {
-                                    let weight_vals =
-                                        handle_shifted_weights(*weights, &mut last_variable);
-                                    cea.push(weight_vals);
-                                } else {
-                                    let weight_vals = array_vec!(
-                                        [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-                                    );
-                                    cea.push(weight_vals);
-                                }
-                            }
+                            push_weights(new_row, shifting, &mut last_variable, &mut cea);
 
-                            // Remove the pulled char(s) (in this order!)
-                            char_vals.remove(max_right);
-                            input_length -= 1;
-                            if try_two {
-                                char_vals.remove(max_right - 1);
-                                input_length -= 1;
-                            }
+                            // Remove the pulled char(s)
+                            remove_pulled(char_vals, max_right, &mut input_length, try_two);
 
                             // Increment and continue outer loop
                             left += 1;
@@ -213,17 +158,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                     // for the initial code point; found it; checked for discontiguous matches; and
                     // did not find any. This is a really bad path. Push the weights...
                     //
-                    for weights in row {
-                        if shifting {
-                            let weight_vals = handle_shifted_weights(*weights, &mut last_variable);
-                            cea.push(weight_vals);
-                        } else {
-                            let weight_vals = array_vec!(
-                                [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-                            );
-                            cea.push(weight_vals);
-                        }
-                    }
+                    push_weights(row, shifting, &mut last_variable, &mut cea);
 
                     // Increment and continue outer loop
                     left += 1;
@@ -274,22 +209,10 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                     // path. Push the weights...
                     //
                     if let Some(new_row) = multis.get(&new_subset) {
-                        for weights in new_row {
-                            if shifting {
-                                let weight_vals =
-                                    handle_shifted_weights(*weights, &mut last_variable);
-                                cea.push(weight_vals);
-                            } else {
-                                let weight_vals = array_vec!(
-                                    [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-                                );
-                                cea.push(weight_vals);
-                            }
-                        }
+                        push_weights(new_row, shifting, &mut last_variable, &mut cea);
 
                         // Remove the pulled char
-                        char_vals.remove(right + 1);
-                        input_length -= 1;
+                        remove_pulled(char_vals, right + 1, &mut input_length, false);
 
                         // Increment and continue outer loop
                         left += right - left;
@@ -306,17 +229,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                 // We checked for multiple code points; found something; checked for discontiguous
                 // matches; and did not find any. This is an ok path? Push the weights...
                 //
-                for weights in row {
-                    if shifting {
-                        let weight_vals = handle_shifted_weights(*weights, &mut last_variable);
-                        cea.push(weight_vals);
-                    } else {
-                        let weight_vals = array_vec!(
-                            [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-                        );
-                        cea.push(weight_vals);
-                    }
-                }
+                push_weights(row, shifting, &mut last_variable, &mut cea);
 
                 // Increment and continue outer loop
                 left += right - left;
