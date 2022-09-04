@@ -20,7 +20,7 @@ pub enum Tailoring {
 
 impl Default for Tailoring {
     fn default() -> Self {
-        Tailoring::Cldr(Locale::default())
+        Self::Cldr(Locale::default())
     }
 }
 
@@ -38,7 +38,7 @@ pub enum Locale {
 
 impl Default for Locale {
     fn default() -> Self {
-        Locale::Root
+        Self::Root
     }
 }
 

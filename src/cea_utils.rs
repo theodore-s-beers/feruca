@@ -35,24 +35,24 @@ pub fn get_cea(word: &mut Vec<u32>, collator: &mut Collator) -> Vec<ArrayVec<[u1
     cea
 }
 
-pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
-    let mut aaaa = match code_point {
-        x if (13_312..=19_903).contains(&x) => 64_384 + (code_point >> 15), //     CJK2
-        x if (19_968..=40_959).contains(&x) => 64_320 + (code_point >> 15), //     CJK1
-        x if (63_744..=64_255).contains(&x) => 64_320 + (code_point >> 15), //     CJK1
-        x if (94_208..=101_119).contains(&x) => 64_256,                     //     Tangut
-        x if (101_120..=101_631).contains(&x) => 64_258,                    //     Khitan
-        x if (101_632..=101_775).contains(&x) => 64_256,                    //     Tangut
-        x if (110_960..=111_359).contains(&x) => 64_257,                    //     Nushu
-        x if (131_072..=173_791).contains(&x) => 64_384 + (code_point >> 15), //   CJK2
-        x if (173_824..=191_471).contains(&x) => 64_384 + (code_point >> 15), //   CJK2
-        x if (196_608..=201_551).contains(&x) => 64_384 + (code_point >> 15), //   CJK2
-        _ => 64_448 + (code_point >> 15),                                   //     unass.
+pub fn get_implicit_a(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
+    let aaaa = if INCLUDED_UNASSIGNED.contains(&cp) {
+        64_448 + (cp >> 15)
+    } else {
+        match cp {
+            x if (13_312..=19_903).contains(&x) => 64_384 + (cp >> 15), //     CJK2
+            x if (19_968..=40_959).contains(&x) => 64_320 + (cp >> 15), //     CJK1
+            x if (63_744..=64_255).contains(&x) => 64_320 + (cp >> 15), //     CJK1
+            x if (94_208..=101_119).contains(&x) => 64_256,             //     Tangut
+            x if (101_120..=101_631).contains(&x) => 64_258,            //     Khitan
+            x if (101_632..=101_775).contains(&x) => 64_256,            //     Tangut
+            x if (110_960..=111_359).contains(&x) => 64_257,            //     Nushu
+            x if (131_072..=173_791).contains(&x) => 64_384 + (cp >> 15), //   CJK2
+            x if (173_824..=191_471).contains(&x) => 64_384 + (cp >> 15), //   CJK2
+            x if (196_608..=201_551).contains(&x) => 64_384 + (cp >> 15), //   CJK2
+            _ => 64_448 + (cp >> 15),                                   //     unass.
+        }
     };
-
-    if INCLUDED_UNASSIGNED.contains(&code_point) {
-        aaaa = 64_448 + (code_point >> 15);
-    }
 
     #[allow(clippy::cast_possible_truncation)]
     if shifting {
@@ -63,24 +63,24 @@ pub fn get_implicit_a(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
     }
 }
 
-pub fn get_implicit_b(code_point: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
-    let mut bbbb = match code_point {
-        x if (13_312..=19_903).contains(&x) => code_point & 32_767, //      CJK2
-        x if (19_968..=40_959).contains(&x) => code_point & 32_767, //      CJK1
-        x if (63_744..=64_255).contains(&x) => code_point & 32_767, //      CJK1
-        x if (94_208..=101_119).contains(&x) => code_point - 94_208, //     Tangut
-        x if (101_120..=101_631).contains(&x) => code_point - 101_120, //   Khitan
-        x if (101_632..=101_775).contains(&x) => code_point - 94_208, //    Tangut
-        x if (110_960..=111_359).contains(&x) => code_point - 110_960, //   Nushu
-        x if (131_072..=173_791).contains(&x) => code_point & 32_767, //    CJK2
-        x if (173_824..=191_471).contains(&x) => code_point & 32_767, //    CJK2
-        x if (196_608..=201_551).contains(&x) => code_point & 32_767, //    CJK2
-        _ => code_point & 32_767,                                   //      unass.
+pub fn get_implicit_b(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
+    let mut bbbb = if INCLUDED_UNASSIGNED.contains(&cp) {
+        cp & 32_767
+    } else {
+        match cp {
+            x if (13_312..=19_903).contains(&x) => cp & 32_767, //      CJK2
+            x if (19_968..=40_959).contains(&x) => cp & 32_767, //      CJK1
+            x if (63_744..=64_255).contains(&x) => cp & 32_767, //      CJK1
+            x if (94_208..=101_119).contains(&x) => cp - 94_208, //     Tangut
+            x if (101_120..=101_631).contains(&x) => cp - 101_120, //   Khitan
+            x if (101_632..=101_775).contains(&x) => cp - 94_208, //    Tangut
+            x if (110_960..=111_359).contains(&x) => cp - 110_960, //   Nushu
+            x if (131_072..=173_791).contains(&x) => cp & 32_767, //    CJK2
+            x if (173_824..=191_471).contains(&x) => cp & 32_767, //    CJK2
+            x if (196_608..=201_551).contains(&x) => cp & 32_767, //    CJK2
+            _ => cp & 32_767,                                   //      unass.
+        }
     };
-
-    if INCLUDED_UNASSIGNED.contains(&code_point) {
-        bbbb = code_point & 32_767;
-    }
 
     // BBBB always gets bitwise ORed with this value
     bbbb |= 32_768;

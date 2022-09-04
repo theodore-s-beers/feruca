@@ -87,17 +87,15 @@ fn decompose_jamo(s: u16) -> ArrayVec<[u32; 3]> {
 
     let lv = JAMO_LV.contains(&s);
 
-    if lv {
-        let l_index = s_index / N_COUNT;
-        let v_index = (s_index % N_COUNT) / T_COUNT;
+    let l_index = s_index / N_COUNT;
+    let v_index = (s_index % N_COUNT) / T_COUNT;
 
+    if lv {
         let l_part = L_BASE + l_index;
         let v_part = V_BASE + v_index;
 
         array_vec!([u32; 3] => u32::from(l_part), u32::from(v_part))
     } else {
-        let l_index = s_index / N_COUNT;
-        let v_index = (s_index % N_COUNT) / T_COUNT;
         let t_index = s_index % T_COUNT;
 
         let l_part = L_BASE + l_index;
