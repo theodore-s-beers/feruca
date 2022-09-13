@@ -12,8 +12,8 @@ exclude = ["/test-data/"]
 
 [dependencies]
 bincode = "1.3.3"
-bstr = "1.0.0"
-lru = "0.7.8"
+bstr = "1.0.1"
+lru = "0.8.0"
 once_cell = "1.14.0"
 rustc-hash = "1.1.0"
 serde = { version = "1.0.144", features = ["derive"] }
@@ -21,7 +21,7 @@ tinyvec = { version = "1.6.0", features = ["serde"] }
 unicode-canonical-combining-class = "0.4.0"
 
 [dev-dependencies]
-criterion = "0.3.6"
+criterion = "0.4.0"
 
 [[bench]]
 name = "conformance"
