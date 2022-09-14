@@ -9,7 +9,7 @@ use std::collections::HashSet;
 
 // Unassigned code points that are erroneously included in one of the ranges of code points used to
 // calculate implicit weights
-pub const INCLUDED_UNASSIGNED: [u32; 4] = [177_977, 178_206, 183_970, 191_457];
+pub const INCLUDED_UNASSIGNED: [u32; 4] = [177_978, 178_206, 183_970, 191_457];
 
 // Code points that can start three-code-point sequences in the collation tables. These values don't
 // "need" to be u32, but that's what they'll be compared against.
@@ -120,7 +120,7 @@ pub static LOW_CLDR: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
 });
 
 // Map a single code point to its collation weights (CLDR)
-pub const DATA_SING_CLDR: &[u8; 662_466] = include_bytes!("bincode/singles_cldr");
+pub const DATA_SING_CLDR: &[u8; 668_097] = include_bytes!("bincode/singles_cldr");
 pub static SING_CLDR: Lazy<SinglesTable> = Lazy::new(|| {
     let decoded: SinglesTable = bincode::deserialize(DATA_SING_CLDR).unwrap();
     decoded

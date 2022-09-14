@@ -40,7 +40,7 @@ fn ducet_ni(c: &mut Criterion) {
     c.bench_function("DUCET, non-ignorable", |b| {
         b.iter(|| {
             conformance(
-                "test-data/CollationTest_NON_IGNORABLE_SHORT.txt",
+                "test-data/15/CollationTest_NON_IGNORABLE_SHORT.txt",
                 Collator::new(Tailoring::Ducet, false),
             )
         })
@@ -51,7 +51,7 @@ fn ducet_shifted(c: &mut Criterion) {
     c.bench_function("DUCET, shifted", |b| {
         b.iter(|| {
             conformance(
-                "test-data/CollationTest_SHIFTED_SHORT.txt",
+                "test-data/15/CollationTest_SHIFTED_SHORT.txt",
                 Collator::new(Tailoring::Ducet, true),
             )
         })
@@ -62,7 +62,7 @@ fn cldr_ni(c: &mut Criterion) {
     c.bench_function("CLDR, non-ignorable", |b| {
         b.iter(|| {
             conformance(
-                "test-data/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt",
+                "test-data/15/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt",
                 Collator::new(Tailoring::default(), false),
             )
         })
@@ -73,7 +73,7 @@ fn cldr_shifted(c: &mut Criterion) {
     c.bench_function("CLDR, shifted", |b| {
         b.iter(|| {
             conformance(
-                "test-data/CollationTest_CLDR_SHIFTED_SHORT.txt",
+                "test-data/15/CollationTest_CLDR_SHIFTED_SHORT.txt",
                 Collator::default(),
             )
         })

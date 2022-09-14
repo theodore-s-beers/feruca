@@ -49,7 +49,7 @@ pub fn get_implicit_a(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
             x if (110_960..=111_359).contains(&x) => 64_257,            //     Nushu
             x if (131_072..=173_791).contains(&x) => 64_384 + (cp >> 15), //   CJK2
             x if (173_824..=191_471).contains(&x) => 64_384 + (cp >> 15), //   CJK2
-            x if (196_608..=201_551).contains(&x) => 64_384 + (cp >> 15), //   CJK2
+            x if (196_608..=205_743).contains(&x) => 64_384 + (cp >> 15), //   CJK2
             _ => 64_448 + (cp >> 15),                                   //     unass.
         }
     };
@@ -77,7 +77,7 @@ pub fn get_implicit_b(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
             x if (110_960..=111_359).contains(&x) => cp - 110_960, //   Nushu
             x if (131_072..=173_791).contains(&x) => cp & 32_767, //    CJK2
             x if (173_824..=191_471).contains(&x) => cp & 32_767, //    CJK2
-            x if (196_608..=201_551).contains(&x) => cp & 32_767, //    CJK2
+            x if (196_608..=205_743).contains(&x) => cp & 32_767, //    CJK2
             _ => cp & 32_767,                                   //      unass.
         }
     };

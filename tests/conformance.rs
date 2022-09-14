@@ -37,28 +37,28 @@ fn conformance(path: &str, mut collator: Collator) {
 
 #[test]
 fn ducet_non_ignorable() {
-    let path = "test-data/CollationTest_NON_IGNORABLE_SHORT.txt";
+    let path = "test-data/15/CollationTest_NON_IGNORABLE_SHORT.txt";
     let collator = Collator::new(Tailoring::Ducet, false);
     conformance(path, collator);
 }
 
 #[test]
 fn ducet_shifted() {
-    let path = "test-data/CollationTest_SHIFTED_SHORT.txt";
+    let path = "test-data/15/CollationTest_SHIFTED_SHORT.txt";
     let collator = Collator::new(Tailoring::Ducet, true);
     conformance(path, collator);
 }
 
 #[test]
 fn cldr_non_ignorable() {
-    let path = "test-data/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt";
+    let path = "test-data/15/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt";
     let collator = Collator::new(Tailoring::default(), false);
     conformance(path, collator);
 }
 
 #[test]
 fn cldr_shifted() {
-    let path = "test-data/CollationTest_CLDR_SHIFTED_SHORT.txt";
+    let path = "test-data/15/CollationTest_CLDR_SHIFTED_SHORT.txt";
     let collator = Collator::default();
     conformance(path, collator);
 }
