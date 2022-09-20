@@ -2,7 +2,7 @@
 
 feruca is a basic implementation of the
 [Unicode Collation Algorithm](https://unicode.org/reports/tr10/) in Rust. It's
-current with Unicode **version 14.0**. The name of the library is a portmanteau
+current with Unicode **version 15.0**. The name of the library is a portmanteau
 of Ferris 🦀 and UCA.
 
 No `unsafe` is used directly in this library. It relies on the well-vetted
@@ -12,12 +12,12 @@ of Unicode scalar values, which can then be processed for collation. The idea is
 to be tolerant of input that may not be entirely kosher UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
-**First**, I don't expect that it will win any awards for performance. My rough
-attempts at benchmarking suggest that this is on the order of 5–7x slower than
-`ucol` from [icu4c](https://github.com/unicode-org/icu). (On the other hand,
-that isn't as bad as one might imagine, considering the incredible degree of
-optimization achieved in the ICU libraries.) My initial priority was to pass the
-official
+**First**, I don't expect that it will win any awards for performance. My
+[rough attempts](https://github.com/theodore-s-beers/feruca-benchmarks) at
+benchmarking suggest that this is on the order of 4–6x slower than `ucol` from
+[icu4c](https://github.com/unicode-org/icu). (On the other hand, that isn't as
+bad as one might imagine, considering the incredible degree of optimization
+achieved in the ICU libraries.) My initial priority was to pass the official
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
 feruca also passes the conformance tests for the
 [CLDR](https://github.com/unicode-org/cldr) root collation order.
