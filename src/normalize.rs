@@ -1,6 +1,7 @@
-use crate::consts::{DECOMP, FCD, JAMO_LV};
 use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
+
+use crate::consts::{DECOMP, FCD, JAMO_LV};
 
 // Jamo-related consts; they live here for now
 const S_BASE: u16 = 0xAC00;

@@ -1,6 +1,7 @@
+use once_cell::sync::Lazy;
+
 use crate::consts::{DATA_MULT_CLDR, DATA_SING_CLDR};
 use crate::types::{MultisTable, SinglesTable};
-use once_cell::sync::Lazy;
 
 pub static MULT_AR: Lazy<MultisTable> = Lazy::new(|| {
     let mut mult: MultisTable = bincode::deserialize(DATA_MULT_CLDR).unwrap();

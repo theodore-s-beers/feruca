@@ -1,7 +1,8 @@
-use crate::types::{MultisTable, SinglesTable, Weights};
 use once_cell::sync::Lazy;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::HashSet;
+
+use crate::types::{MultisTable, SinglesTable, Weights};
 
 //
 // Const

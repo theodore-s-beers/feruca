@@ -1,11 +1,12 @@
+use tinyvec::ArrayVec;
+use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
+
 use crate::cea_utils::{
     ccc_sequence_ok, get_subset, get_table_multis, get_table_singles, handle_implicit_weights,
     handle_low_weights, push_weights, remove_pulled,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
-use tinyvec::ArrayVec;
-use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayVec<[u16; 4]>> {
     let mut cea: Vec<ArrayVec<[u16; 4]>> = Vec::new();

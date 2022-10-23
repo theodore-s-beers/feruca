@@ -1,11 +1,12 @@
+use once_cell::sync::Lazy;
+use tinyvec::{array_vec, ArrayVec};
+use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
+
 use crate::cea::generate_cea;
 use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
 use crate::tailor::{MULT_AR, SING_AR};
 use crate::types::{MultisTable, SinglesTable, Weights};
 use crate::{Collator, Locale, Tailoring};
-use once_cell::sync::Lazy;
-use tinyvec::{array_vec, ArrayVec};
-use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 pub fn ccc_sequence_ok(interest_cohort: &[u32]) -> bool {
     let mut max_ccc = 0;

@@ -1,7 +1,8 @@
+use std::cmp::Ordering;
+
 use crate::cea_utils::{get_implicit_a, get_table_singles, handle_shifted_weights};
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
-use std::cmp::Ordering;
 
 pub fn try_initial(a_chars: &[u32], b_chars: &[u32], coll: &Collator) -> Option<Ordering> {
     let a_first = a_chars[0];
