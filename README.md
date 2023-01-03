@@ -48,11 +48,10 @@ designed to be passed as a comparator to the standard library method `sort_by`
 (or `sort_unstable_by`). See "Example usage" below.
 
 For many people and use cases, UCA sorting will not work properly without being
-able to specify a certain locale. Again, however, it is worth emphasizing the
-usefulness of the CLDR root collation order on its own. When defining a
-`Collator`, you can set the default options (see below), which specify the use
-of the CLDR table with the "shifted" strategy. I think this is a good starting
-point.
+able to specify a locale. Again, however, it is worth emphasizing the usefulness
+of the CLDR root collation order on its own. When defining a `Collator`, you can
+set the default options (see below), which indicate the use of the CLDR table
+with the "shifted" strategy. I think this is a good starting point.
 
 \[0\]: There is also a variant form, `collate_no_tiebreak`, which will return
 `Ordering::Equal` for any two strings that produce the same UCA sort key. (The
