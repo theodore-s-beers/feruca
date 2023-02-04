@@ -1,22 +1,21 @@
-use tinyvec::ArrayVec;
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 use crate::cea_utils::{
-    ccc_sequence_ok, get_subset, get_table_multis, get_table_singles, handle_implicit_weights,
-    handle_low_weights, push_weights, remove_pulled,
+    ccc_sequence_ok, get_implicit_a, get_implicit_b, get_tables, handle_low_weights, push_weights,
+    remove_pulled,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
+use crate::types::Weights;
 use crate::{Collator, Tailoring};
 
-pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayVec<[u16; 4]>> {
-    let mut cea: Vec<ArrayVec<[u16; 4]>> = Vec::new();
+pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights> {
+    let mut cea: Vec<Weights> = Vec::new();
 
     let cldr = collator.tailoring != Tailoring::Ducet;
     let shifting = collator.shifting;
 
     let low = if cldr { &LOW_CLDR } else { &LOW };
-    let singles = get_table_singles(collator.tailoring);
-    let multis = get_table_multis(collator.tailoring);
+    let (singles, multis) = get_tables(collator.tailoring);
 
     let mut input_length = char_vals.len();
     let mut left: usize = 0;
@@ -34,9 +33,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
         // catches (most) ASCII characters present in not-completely-ASCII strings.
         //
         if left_val < 183 && left_val != 108 && left_val != 76 {
-            let weights = low[&left_val]; // Guaranteed to succeed
-
-            handle_low_weights(shifting, weights, &mut last_variable, &mut cea);
+            // Indexing into `low` is guaranteed to succeed
+            handle_low_weights(shifting, low[&left_val], &mut last_variable, &mut cea);
 
             // Increment and continue outer loop
             left += 1;
@@ -78,7 +76,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
             // then calculate implicit weights, push them, and move on. I used to think there were
             // multiple paths to the "implicit weights" case, but it seems not.
             //
-            handle_implicit_weights(left_val, shifting, &mut cea);
+            cea.push(get_implicit_a(left_val, shifting));
+            cea.push(get_implicit_b(left_val, shifting));
 
             // Increment and continue outer loop
             left += 1;
@@ -88,11 +87,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
         // Here we consider multi-code-point matches, if possible
 
         // Don't look past the end of the vec
-        let mut right = if left + lookahead > input_length {
-            input_length
-        } else {
-            left + lookahead
-        };
+        let mut right = input_length.min(left + lookahead);
 
         while right > left {
             // If right - left == 1 (which cannot be the case in the first iteration), attempts to
@@ -101,9 +96,9 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                 // If we found it, we do still need to check for discontiguous matches
                 if let Some(row) = singles.get(&left_val) {
                     // Determine how much further right to look
-                    let mut max_right = match right {
-                        r if r + 2 < input_length => r + 2,
-                        r if r + 1 < input_length => r + 1,
+                    let mut max_right = match input_length - right {
+                        3.. => right + 2,
+                        2 => right + 1,
                         _ => right, // Skip the loop below; there will be no discontiguous match
                     };
 
@@ -121,7 +116,11 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                         }
 
                         // Having made it this far, we can test a new subset, adding later char(s)
-                        let new_subset = get_subset(try_two, left_val, char_vals, max_right);
+                        let new_subset = if try_two {
+                            vec![left_val, char_vals[max_right - 1], char_vals[max_right]]
+                        } else {
+                            vec![left_val, char_vals[max_right]]
+                        };
 
                         //
                         // OUTCOME 3
@@ -184,44 +183,37 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: &Collator) -> Vec<ArrayV
                 // If we found it, we may need to check for a discontiguous match.
                 // But that's only if we matched on a set of two code points; and we'll only skip
                 // over one to find a possible third.
-                let mut try_discont = subset.len() == 2 && (right + 1 < input_length);
+                let try_discont = subset.len() == 2 && (right + 1 < input_length);
 
-                while try_discont {
+                if try_discont {
                     // Need to make sure the sequence of CCCs is kosher
                     let ccc_a = get_ccc(char_vals[right]) as u8;
                     let ccc_b = get_ccc(char_vals[right + 1]) as u8;
 
-                    if ccc_a == 0 || ccc_a >= ccc_b {
-                        // Bail -- no discontiguous match
-                        try_discont = false;
-                        continue;
+                    if ccc_a > 0 && ccc_b > ccc_a {
+                        // Having made it this far, we can test a new subset, adding the later char.
+                        // Again, this only happens if we found a match of two code points and want
+                        // to add a third; so we can be oddly specific.
+                        let new_subset = vec![subset[0], subset[1], char_vals[right + 1]];
+
+                        //
+                        // OUTCOME 5
+                        //
+                        // We checked for multiple code points; found something; went on to check
+                        // for a discontiguous match; and found one. For a complicated case, this is
+                        // a good path. Push the weights...
+                        //
+                        if let Some(new_row) = multis.get(&new_subset) {
+                            push_weights(new_row, shifting, &mut last_variable, &mut cea);
+
+                            // Remove the pulled char
+                            remove_pulled(char_vals, right + 1, &mut input_length, false);
+
+                            // Increment and continue outer loop
+                            left += right - left;
+                            continue 'outer;
+                        }
                     }
-
-                    // Having made it this far, we can test a new subset, adding the later char.
-                    // Again, this only happens if we found a match of two code points and want to
-                    // add a third; so we can be oddly specific.
-                    let new_subset = ArrayVec::from([subset[0], subset[1], char_vals[right + 1]]);
-
-                    //
-                    // OUTCOME 5
-                    //
-                    // We checked for multiple code points; found something; went on to check for a
-                    // discontiguous match; and found one. For a complicated case, this is a good
-                    // path. Push the weights...
-                    //
-                    if let Some(new_row) = multis.get(&new_subset) {
-                        push_weights(new_row, shifting, &mut last_variable, &mut cea);
-
-                        // Remove the pulled char
-                        remove_pulled(char_vals, right + 1, &mut input_length, false);
-
-                        // Increment and continue outer loop
-                        left += right - left;
-                        continue 'outer;
-                    }
-
-                    // The loop will not run again -- no discontiguous match
-                    try_discont = false;
                 }
 
                 //

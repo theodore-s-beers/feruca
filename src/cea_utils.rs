@@ -1,12 +1,10 @@
 use once_cell::sync::Lazy;
-use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
-use crate::cea::generate_cea;
 use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
 use crate::tailor::{MULT_AR, SING_AR};
 use crate::types::{MultisTable, SinglesTable, Weights};
-use crate::{Collator, Locale, Tailoring};
+use crate::{Locale, Tailoring};
 
 pub fn ccc_sequence_ok(interest_cohort: &[u32]) -> bool {
     let mut max_ccc = 0;
@@ -24,19 +22,7 @@ pub fn ccc_sequence_ok(interest_cohort: &[u32]) -> bool {
     true
 }
 
-pub fn get_cea(word: &mut Vec<u32>, collator: &mut Collator) -> Vec<ArrayVec<[u16; 4]>> {
-    if let Some(hit) = collator.get_cache(word) {
-        return hit.clone();
-    }
-
-    let orig = word.clone();
-
-    let cea = generate_cea(word, collator);
-    collator.put_cache(orig, cea.clone());
-    cea
-}
-
-pub fn get_implicit_a(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
+pub fn get_implicit_a(cp: u32, shifting: bool) -> Weights {
     let aaaa = if INCLUDED_UNASSIGNED.contains(&cp) {
         64_448 + (cp >> 15)
     } else {
@@ -54,14 +40,26 @@ pub fn get_implicit_a(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
 
     #[allow(clippy::cast_possible_truncation)]
     if shifting {
-        // Add an arbitrary fourth weight if shifting
-        ArrayVec::from([aaaa as u16, 32, 2, 65_535])
+        // Add an arbitrary high fourth weight if shifting
+        Weights {
+            variable: false,
+            primary: aaaa as u16,
+            secondary: 32,
+            tertiary: 2,
+            quaternary: 65_535,
+        }
     } else {
-        array_vec!([u16; 4] => aaaa as u16, 32, 2)
+        Weights {
+            variable: false,
+            primary: aaaa as u16,
+            secondary: 32,
+            tertiary: 2,
+            quaternary: 0,
+        }
     }
 }
 
-pub fn get_implicit_b(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
+pub fn get_implicit_b(cp: u32, shifting: bool) -> Weights {
     let mut bbbb = if INCLUDED_UNASSIGNED.contains(&cp) {
         cp & 32_767
     } else {
@@ -78,76 +76,77 @@ pub fn get_implicit_b(cp: u32, shifting: bool) -> ArrayVec<[u16; 4]> {
 
     #[allow(clippy::cast_possible_truncation)]
     if shifting {
-        // Add an arbitrary fourth weight if shifting
-        ArrayVec::from([bbbb as u16, 0, 0, 65_535])
+        // Add an arbitrary high fourth weight if shifting
+        Weights {
+            variable: false,
+            primary: bbbb as u16,
+            secondary: 0,
+            tertiary: 0,
+            quaternary: 65_535,
+        }
     } else {
-        array_vec!([u16; 4] => bbbb as u16, 0, 0)
+        Weights {
+            variable: false,
+            primary: bbbb as u16,
+            secondary: 0,
+            tertiary: 0,
+            quaternary: 0,
+        }
     }
 }
 
-pub fn get_subset(
-    try_two: bool,
-    left_val: u32,
-    char_vals: &[u32],
-    max_right: usize,
-) -> ArrayVec<[u32; 3]> {
-    if try_two {
-        ArrayVec::from([left_val, char_vals[max_right - 1], char_vals[max_right]])
-    } else {
-        array_vec!([u32; 3] => left_val, char_vals[max_right])
-    }
-}
-
-pub fn get_table_multis(tailoring: Tailoring) -> &'static Lazy<MultisTable> {
+pub fn get_tables(
+    tailoring: Tailoring,
+) -> (&'static Lazy<SinglesTable>, &'static Lazy<MultisTable>) {
     match tailoring {
-        Tailoring::Cldr(Locale::ArabicScript) => &MULT_AR,
-        Tailoring::Cldr(Locale::Root) => &MULT_CLDR,
-        Tailoring::Ducet => &MULT,
+        Tailoring::Cldr(Locale::ArabicScript) => (&SING_AR, &MULT_AR),
+        Tailoring::Cldr(Locale::Root) => (&SING_CLDR, &MULT_CLDR),
+        Tailoring::Ducet => (&SING, &MULT),
     }
-}
-
-pub fn get_table_singles(tailoring: Tailoring) -> &'static Lazy<SinglesTable> {
-    match tailoring {
-        Tailoring::Cldr(Locale::ArabicScript) => &SING_AR,
-        Tailoring::Cldr(Locale::Root) => &SING_CLDR,
-        Tailoring::Ducet => &SING,
-    }
-}
-
-pub fn handle_implicit_weights(left_val: u32, shifting: bool, cea: &mut Vec<ArrayVec<[u16; 4]>>) {
-    let first_weights = get_implicit_a(left_val, shifting);
-    cea.push(first_weights);
-
-    let second_weights = get_implicit_b(left_val, shifting);
-    cea.push(second_weights);
 }
 
 pub fn handle_low_weights(
     shifting: bool,
     weights: Weights,
     last_variable: &mut bool,
-    cea: &mut Vec<ArrayVec<[u16; 4]>>,
+    cea: &mut Vec<Weights>,
 ) {
     if shifting {
-        let weight_vals = handle_shifted_weights(weights, last_variable);
-        cea.push(weight_vals);
+        cea.push(handle_shifted_weights(weights, last_variable));
     } else {
-        let weight_vals = array_vec!(
-            [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-        );
-        cea.push(weight_vals);
+        cea.push(weights);
     }
 }
 
-pub fn handle_shifted_weights(weights: Weights, last_variable: &mut bool) -> ArrayVec<[u16; 4]> {
+pub fn handle_shifted_weights(weights: Weights, last_variable: &mut bool) -> Weights {
     if weights.variable {
         *last_variable = true;
-        ArrayVec::from([0, 0, 0, weights.primary])
+
+        Weights {
+            variable: weights.variable,
+            primary: 0,
+            secondary: 0,
+            tertiary: 0,
+            quaternary: weights.primary,
+        }
     } else if weights.primary == 0 && (weights.tertiary == 0 || *last_variable) {
-        ArrayVec::from([0, 0, 0, 0])
+        Weights {
+            variable: weights.variable,
+            primary: 0,
+            secondary: 0,
+            tertiary: 0,
+            quaternary: 0,
+        }
     } else {
         *last_variable = false;
-        ArrayVec::from([weights.primary, weights.secondary, weights.tertiary, 65_535])
+
+        Weights {
+            variable: weights.variable,
+            primary: weights.primary,
+            secondary: weights.secondary,
+            tertiary: weights.tertiary,
+            quaternary: 65_535,
+        }
     }
 }
 
@@ -155,17 +154,13 @@ pub fn push_weights(
     row: &Vec<Weights>,
     shifting: bool,
     last_variable: &mut bool,
-    cea: &mut Vec<ArrayVec<[u16; 4]>>,
+    cea: &mut Vec<Weights>,
 ) {
     for weights in row {
         if shifting {
-            let weight_vals = handle_shifted_weights(*weights, last_variable);
-            cea.push(weight_vals);
+            cea.push(handle_shifted_weights(*weights, last_variable));
         } else {
-            let weight_vals = array_vec!(
-                [u16; 4] => weights.primary, weights.secondary, weights.tertiary
-            );
-            cea.push(weight_vals);
+            cea.push(*weights);
         }
     }
 }
@@ -173,6 +168,7 @@ pub fn push_weights(
 pub fn remove_pulled(char_vals: &mut Vec<u32>, i: usize, input_length: &mut usize, try_two: bool) {
     char_vals.remove(i);
     *input_length -= 1;
+
     if try_two {
         char_vals.remove(i - 1);
         *input_length -= 1;

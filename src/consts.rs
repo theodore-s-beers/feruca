@@ -32,10 +32,7 @@ pub const NEED_TWO: [u32; 59] = [
 
 // I think a hash set may perform better than an array, given the size (~400). But it could always
 // be changed.
-//
-// I did go for u16 for this -- same with the jamo-related consts in the `normalize` module. That
-// means casting the code point to u16. I wonder if it would be better to keep everything in u32.
-pub static JAMO_LV: Lazy<HashSet<u16>> = Lazy::new(|| {
+pub static JAMO_LV: Lazy<HashSet<u32>> = Lazy::new(|| {
     HashSet::from([
         44_032, 44_060, 44_088, 44_116, 44_144, 44_172, 44_200, 44_228, 44_256, 44_284, 44_312,
         44_340, 44_368, 44_396, 44_424, 44_452, 44_480, 44_508, 44_536, 44_564, 44_592, 44_620,
@@ -121,14 +118,14 @@ pub static LOW_CLDR: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
 });
 
 // Map a single code point to its collation weights (CLDR)
-pub const DATA_SING_CLDR: &[u8; 668_097] = include_bytes!("bincode/singles_cldr");
+pub const DATA_SING_CLDR: &[u8; 744_959] = include_bytes!("bincode/singles_cldr");
 pub static SING_CLDR: Lazy<SinglesTable> = Lazy::new(|| {
     let decoded: SinglesTable = bincode::deserialize(DATA_SING_CLDR).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
-pub const DATA_MULT_CLDR: &[u8; 35_724] = include_bytes!("bincode/multis_cldr");
+pub const DATA_MULT_CLDR: &[u8; 39_412] = include_bytes!("bincode/multis_cldr");
 pub static MULT_CLDR: Lazy<MultisTable> = Lazy::new(|| {
     let decoded: MultisTable = bincode::deserialize(DATA_MULT_CLDR).unwrap();
     decoded

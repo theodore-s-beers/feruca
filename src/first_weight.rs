@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 
-use crate::cea_utils::{get_implicit_a, get_table_singles, handle_shifted_weights};
+use crate::cea_utils::{get_implicit_a, get_tables, handle_shifted_weights};
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
 
-pub fn try_initial(a_chars: &[u32], b_chars: &[u32], coll: &Collator) -> Option<Ordering> {
+pub fn try_initial(a_chars: &[u32], b_chars: &[u32], coll: Collator) -> Option<Ordering> {
     let a_first = a_chars[0];
     let b_first = b_chars[0];
 
@@ -33,7 +33,7 @@ fn safe_chars(a: u32, b: u32) -> bool {
         && !NEED_THREE.contains(&b)
 }
 
-fn get_first_primary(val: u32, coll: &Collator) -> u16 {
+fn get_first_primary(val: u32, coll: Collator) -> u16 {
     let cldr = coll.tailoring != Tailoring::Ducet;
     let shifting = coll.shifting;
 
@@ -44,20 +44,20 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
         let weights = low[&val]; // Guaranteed to succeed
 
         if shifting {
-            let weight_vals = handle_shifted_weights(weights, &mut false);
-            return weight_vals[0];
+            let weights_shifted = handle_shifted_weights(weights, &mut false);
+            return weights_shifted.primary;
         }
 
         return weights.primary;
     }
 
     // Or look in the big table
-    let singles = get_table_singles(coll.tailoring);
+    let (singles, _) = get_tables(coll.tailoring);
 
     if let Some(row) = singles.get(&val) {
         if shifting {
-            let weight_vals = handle_shifted_weights(row[0], &mut false);
-            return weight_vals[0];
+            let weights_shifted = handle_shifted_weights(row[0], &mut false);
+            return weights_shifted.primary;
         }
 
         return row[0].primary;
@@ -65,5 +65,5 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
 
     // If all else failed, calculate implicit weights
     let first_weights = get_implicit_a(val, shifting);
-    first_weights[0]
+    first_weights.primary
 }

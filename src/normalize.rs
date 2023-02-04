@@ -1,15 +1,14 @@
-use tinyvec::{array_vec, ArrayVec};
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 use crate::consts::{DECOMP, FCD, JAMO_LV};
 
 // Jamo-related consts; they live here for now
-const S_BASE: u16 = 0xAC00;
-const L_BASE: u16 = 0x1100;
-const V_BASE: u16 = 0x1161;
-const T_BASE: u16 = 0x11A7;
-const T_COUNT: u16 = 28;
-const N_COUNT: u16 = 588;
+const S_BASE: u32 = 0xAC00;
+const L_BASE: u32 = 0x1100;
+const V_BASE: u32 = 0x1161;
+const T_BASE: u32 = 0x11A7;
+const T_COUNT: u32 = 28;
+const N_COUNT: u32 = 588;
 
 pub fn make_nfd(input: &mut Vec<u32>) {
     if fcd(input) {
@@ -66,7 +65,7 @@ fn decompose(input: &mut Vec<u32>) {
 
         if (0xAC00..=0xD7A3).contains(&code_point) {
             #[allow(clippy::cast_possible_truncation)]
-            let rep = decompose_jamo(code_point as u16);
+            let rep = decompose_jamo(code_point);
             let n = rep.len();
             input.splice(i..=i, rep);
             i += n;
@@ -83,7 +82,7 @@ fn decompose(input: &mut Vec<u32>) {
     }
 }
 
-fn decompose_jamo(s: u16) -> ArrayVec<[u32; 3]> {
+fn decompose_jamo(s: u32) -> Vec<u32> {
     let s_index = s - S_BASE;
 
     let lv = JAMO_LV.contains(&s);
@@ -95,7 +94,7 @@ fn decompose_jamo(s: u16) -> ArrayVec<[u32; 3]> {
         let l_part = L_BASE + l_index;
         let v_part = V_BASE + v_index;
 
-        array_vec!([u32; 3] => u32::from(l_part), u32::from(v_part))
+        vec![l_part, v_part]
     } else {
         let t_index = s_index % T_COUNT;
 
@@ -103,7 +102,7 @@ fn decompose_jamo(s: u16) -> ArrayVec<[u32; 3]> {
         let v_part = V_BASE + v_index;
         let t_part = T_BASE + t_index;
 
-        ArrayVec::from([u32::from(l_part), u32::from(v_part), u32::from(t_part)])
+        vec![l_part, v_part, t_part]
     }
 }
 

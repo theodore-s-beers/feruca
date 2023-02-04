@@ -41,7 +41,7 @@ pub fn try_ascii(a: &[u32], b: &[u32]) -> Option<Ordering> {
         return backup;
     }
 
-    // This may be unreachable in practice, but whatever
+    // I believe this is unreachable in practice, but whatever
     Some(Ordering::Equal)
 }
 

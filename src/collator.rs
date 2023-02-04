@@ -1,10 +1,8 @@
 use bstr::{ByteSlice, B};
-use lru::LruCache;
 use std::cmp::Ordering;
-use tinyvec::ArrayVec;
 
 use crate::ascii::try_ascii;
-use crate::cea_utils::get_cea;
+use crate::cea::generate_cea;
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
 use crate::prefix::trim_prefix;
@@ -25,14 +23,13 @@ use crate::Tailoring;
 ///
 /// The default for `Collator` is to use the CLDR table with the `Root` locale, and the "shifted"
 /// approach. This is a good starting point for collation in many languages.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct Collator {
     /// The table of weights to be used: DUCET or CLDR (with a choice of locale for the latter)
     pub tailoring: Tailoring,
     /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
     /// purposes, `shifting` is either true (recommended) or false.
     pub shifting: bool,
-    cache: LruCache<Vec<u32>, Vec<ArrayVec<[u16; 4]>>>,
 }
 
 impl Default for Collator {
@@ -46,11 +43,10 @@ impl Collator {
     /// to call `Collator::default()`.
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn new(tailoring: Tailoring, shifting: bool) -> Self {
+    pub const fn new(tailoring: Tailoring, shifting: bool) -> Self {
         Self {
             tailoring,
             shifting,
-            cache: LruCache::new(std::num::NonZeroUsize::new(128).unwrap()),
         }
     }
 
@@ -75,7 +71,7 @@ impl Collator {
     /// Algorithm, this method will use byte-value comparison (i.e., the traditional, naïve way of
     /// sorting strings) as a tiebreaker. While this is probably appropriate in most cases, it can
     /// be avoided by using the `collate_no_tiebreak` method.
-    pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(&mut self, a: &T, b: &T) -> Ordering {
+    pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(self, a: &T, b: &T) -> Ordering {
         // Early out; equal is equal
         if a == b {
             return Ordering::Equal;
@@ -120,8 +116,8 @@ impl Collator {
         }
 
         // Otherwise we move forward with full collation element arrays
-        let a_cea = get_cea(&mut a_chars, self);
-        let b_cea = get_cea(&mut b_chars, self);
+        let a_cea = generate_cea(&mut a_chars, self);
+        let b_cea = generate_cea(&mut b_chars, self);
 
         // Sort keys are processed incrementally, until they yield a result
         let comparison = compare_incremental(&a_cea, &b_cea, self.shifting);
@@ -137,11 +133,7 @@ impl Collator {
     /// This is a variation on `collate`, to which it is almost identical. The difference is that,
     /// in the event that two strings are ordered equally per the Unicode Collation Algorithm, this
     /// method will not attempt to "break the tie" by using byte-value comparison.
-    pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(
-        &mut self,
-        a: &T,
-        b: &T,
-    ) -> Ordering {
+    pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(self, a: &T, b: &T) -> Ordering {
         if a == b {
             return Ordering::Equal;
         }
@@ -170,17 +162,9 @@ impl Collator {
             return o;
         }
 
-        let a_cea = get_cea(&mut a_chars, self);
-        let b_cea = get_cea(&mut b_chars, self);
+        let a_cea = generate_cea(&mut a_chars, self);
+        let b_cea = generate_cea(&mut b_chars, self);
 
         compare_incremental(&a_cea, &b_cea, self.shifting)
-    }
-
-    pub(crate) fn get_cache(&mut self, word: &[u32]) -> Option<&Vec<ArrayVec<[u16; 4]>>> {
-        self.cache.get(word)
-    }
-
-    pub(crate) fn put_cache(&mut self, word: Vec<u32>, cea: Vec<ArrayVec<[u16; 4]>>) {
-        self.cache.put(word, cea);
     }
 }

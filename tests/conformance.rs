@@ -1,7 +1,7 @@
 use feruca::{Collator, Tailoring};
 use std::cmp::Ordering;
 
-fn conformance(path: &str, mut collator: Collator) {
+fn conformance(path: &str, collator: Collator) {
     let test_data = std::fs::read_to_string(path).unwrap();
 
     let mut max_line = String::new();
