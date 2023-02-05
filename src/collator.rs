@@ -39,8 +39,8 @@ impl Default for Collator {
 }
 
 impl Collator {
-    /// Create a new `Collator` with the specified options. Please note that it is also possible
-    /// to call `Collator::default()`.
+    /// Create a new `Collator` with the specified options. Please note that it is also possible to
+    /// call `Collator::default()`.
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
     pub const fn new(tailoring: Tailoring, shifting: bool) -> Self {
@@ -108,9 +108,9 @@ impl Collator {
         }
 
         // One last chance for an early out: if the opening code points of the two Vecs are
-        // different, and neither requires checking for a multi-code-point sequence, then we can
-        // try comparing their first primary weights. If those are different, and both non-zero,
-        // it's decisive.
+        // different, and neither requires checking for a multi-code-point sequence, then we can try
+        // comparing their first primary weights. If those are different, and both non-zero, it's
+        // decisive.
         if let Some(o) = try_initial(&a_chars, &b_chars, self) {
             return o;
         }

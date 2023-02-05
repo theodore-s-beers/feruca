@@ -11,17 +11,14 @@ enum CollationLevel {
 }
 
 pub fn compare_incremental(a_cea: &[Weights], b_cea: &[Weights], shifting: bool) -> Ordering {
-    // Primary
     if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Primary) {
         return o;
     }
 
-    // Secondary
     if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Secondary) {
         return o;
     }
 
-    // Tertiary
     if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Tertiary) {
         return o;
     }
@@ -31,7 +28,6 @@ pub fn compare_incremental(a_cea: &[Weights], b_cea: &[Weights], shifting: bool)
         return Ordering::Equal;
     }
 
-    // Quaternary
     if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Quaternary) {
         return o;
     }

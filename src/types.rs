@@ -5,13 +5,13 @@ use serde::Deserialize;
 pub type SinglesTable = FxHashMap<u32, Vec<Weights>>;
 pub type MultisTable = FxHashMap<Vec<u32>, Vec<Weights>>;
 
-/// This enum provides for a choice of which collation tailoring (or table of character weights)
-/// to use. With the CLDR table, there is a further choice of locale. (The `Root` locale represents
-/// the table in its unmodified form.)
+/// This enum provides for a choice of which collation tailoring (or table of character weights) to
+/// use. With the CLDR table, there is a further choice of locale. (The `Root` locale represents the
+/// table in its unmodified form.)
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub enum Tailoring {
-    /// The table associated with the CLDR root collation order, and locale tailorings based
-    /// thereon (recommended)
+    /// The table associated with the CLDR root collation order, and locale tailorings based thereon
+    /// (recommended)
     Cldr(Locale),
     /// The default table for the Unicode Collation Algorithm
     Ducet,
@@ -23,13 +23,13 @@ impl Default for Tailoring {
     }
 }
 
-/// This enum provides for a choice of which locale to use with the CLDR table of character
-/// weights. The default, `Root`, represents the CLDR root collation order. At the moment, there
-/// is only one other choice: `ArabicScript`. But the list should grow over time.
+/// This enum provides for a choice of which locale to use with the CLDR table of character weights.
+/// The default, `Root`, represents the CLDR root collation order. At the moment, there is only one
+/// other choice: `ArabicScript`. But the list should grow over time.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub enum Locale {
-    /// This locale defines a tailoring in which the Arabic script sorts before the Latin script.
-    /// No more granular adjustments have been made.
+    /// This locale defines a tailoring in which the Arabic script sorts before the Latin script. No
+    /// more granular adjustments have been made.
     ArabicScript,
     /// The CLDR root collation order
     Root,
