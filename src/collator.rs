@@ -52,8 +52,8 @@ impl Collator {
 
     /// This is the primary method in the library. It accepts as arguments two string references or
     /// byte slices; compares them using the options chosen; and returns an `Ordering` value. This
-    /// is designed to be passed to the `sort_by` function in the standard library. Simple usage
-    /// might look like the following...
+    /// is designed to be passed to the `sort_by` (or `sort_unstable_by`) function in the standard
+    /// library. Simple usage might look like the following...
     ///
     /// ```
     /// use feruca::{Collator};
