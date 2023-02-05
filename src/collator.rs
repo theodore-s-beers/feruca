@@ -58,10 +58,10 @@ impl Collator {
     /// ```
     /// use feruca::{Collator};
     ///
-    /// let mut collator = Collator::default();
+    /// let collator = Collator::default();
     ///
     /// let mut names = ["Peng", "Peña", "Ernie", "Émile"];
-    /// names.sort_by(|a, b| collator.collate(a, b));
+    /// names.sort_unstable_by(|a, b| collator.collate(a, b));
     ///
     /// let expected = ["Émile", "Ernie", "Peña", "Peng"];
     /// assert_eq!(names, expected);

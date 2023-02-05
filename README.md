@@ -75,11 +75,10 @@ fn main() {
     ];
 
     let mut naive = uca;
+    naive.sort_unstable();
 
-    let mut collator = Collator::default();
-    uca.sort_by(|a, b| collator.collate(a, b));
-
-    naive.sort();
+    let collator = Collator::default();
+    uca.sort_unstable_by(|a, b| collator.collate(a, b));
 
     for item in uca {
         println!("{}", item);
@@ -93,7 +92,7 @@ fn main() {
     // چنگیز
     // صدام
 
-    // An empty line (in case you run this verbatim)
+    // Empty line for clarity
     println!();
 
     for item in naive {
