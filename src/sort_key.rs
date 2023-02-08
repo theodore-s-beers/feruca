@@ -48,7 +48,7 @@ fn compare_at_lvl(a_cea: &[Weights], b_cea: &[Weights], lvl: CollationLevel) -> 
             CollationLevel::Primary => row.primary,
             CollationLevel::Secondary => row.secondary,
             CollationLevel::Tertiary => row.tertiary,
-            CollationLevel::Quaternary => row.quaternary,
+            CollationLevel::Quaternary => row.quaternary.unwrap_or_default(),
         })
         .filter(|x| *x != 0);
 
@@ -58,7 +58,7 @@ fn compare_at_lvl(a_cea: &[Weights], b_cea: &[Weights], lvl: CollationLevel) -> 
             CollationLevel::Primary => row.primary,
             CollationLevel::Secondary => row.secondary,
             CollationLevel::Tertiary => row.tertiary,
-            CollationLevel::Quaternary => row.quaternary,
+            CollationLevel::Quaternary => row.quaternary.unwrap_or_default(),
         })
         .filter(|x| *x != 0);
 

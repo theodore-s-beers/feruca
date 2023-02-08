@@ -118,14 +118,14 @@ pub static LOW_CLDR: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
 });
 
 // Map a single code point to its collation weights (CLDR)
-pub const DATA_SING_CLDR: &[u8; 744_959] = include_bytes!("bincode/singles_cldr");
+pub const DATA_SING_CLDR: &[u8; 706_528] = include_bytes!("bincode/singles_cldr");
 pub static SING_CLDR: Lazy<SinglesTable> = Lazy::new(|| {
     let decoded: SinglesTable = bincode::deserialize(DATA_SING_CLDR).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
-pub const DATA_MULT_CLDR: &[u8; 39_412] = include_bytes!("bincode/multis_cldr");
+pub const DATA_MULT_CLDR: &[u8; 37_568] = include_bytes!("bincode/multis_cldr");
 pub static MULT_CLDR: Lazy<MultisTable> = Lazy::new(|| {
     let decoded: MultisTable = bincode::deserialize(DATA_MULT_CLDR).unwrap();
     decoded

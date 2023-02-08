@@ -46,7 +46,7 @@ pub fn get_implicit_a(cp: u32, shifting: bool) -> Weights {
             primary: aaaa as u16,
             secondary: 32,
             tertiary: 2,
-            quaternary: 65_535,
+            quaternary: Some(65_535),
         }
     } else {
         Weights {
@@ -54,7 +54,7 @@ pub fn get_implicit_a(cp: u32, shifting: bool) -> Weights {
             primary: aaaa as u16,
             secondary: 32,
             tertiary: 2,
-            quaternary: 0,
+            quaternary: None,
         }
     }
 }
@@ -82,7 +82,7 @@ pub fn get_implicit_b(cp: u32, shifting: bool) -> Weights {
             primary: bbbb as u16,
             secondary: 0,
             tertiary: 0,
-            quaternary: 65_535,
+            quaternary: Some(65_535),
         }
     } else {
         Weights {
@@ -90,7 +90,7 @@ pub fn get_implicit_b(cp: u32, shifting: bool) -> Weights {
             primary: bbbb as u16,
             secondary: 0,
             tertiary: 0,
-            quaternary: 0,
+            quaternary: None,
         }
     }
 }
@@ -123,29 +123,29 @@ pub fn handle_shifted_weights(weights: Weights, last_variable: &mut bool) -> Wei
         *last_variable = true;
 
         Weights {
-            variable: weights.variable,
+            variable: true,
             primary: 0,
             secondary: 0,
             tertiary: 0,
-            quaternary: weights.primary,
+            quaternary: Some(weights.primary), // This is always non-zero
         }
     } else if weights.primary == 0 && (weights.tertiary == 0 || *last_variable) {
         Weights {
-            variable: weights.variable,
+            variable: false,
             primary: 0,
             secondary: 0,
             tertiary: 0,
-            quaternary: 0,
+            quaternary: None,
         }
     } else {
         *last_variable = false;
 
         Weights {
-            variable: weights.variable,
+            variable: false,
             primary: weights.primary,
             secondary: weights.secondary,
             tertiary: weights.tertiary,
-            quaternary: 65_535,
+            quaternary: Some(65_535),
         }
     }
 }
