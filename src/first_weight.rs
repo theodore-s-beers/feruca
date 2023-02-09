@@ -48,7 +48,7 @@ fn get_first_primary(val: u32, coll: Collator) -> u16 {
             return weights_shifted.primary;
         }
 
-        let (primary, _, _) = unpack_weights(weights.values);
+        let (_, primary, _, _) = unpack_weights(weights);
         return primary;
     }
 
@@ -61,7 +61,7 @@ fn get_first_primary(val: u32, coll: Collator) -> u16 {
             return weights_shifted.primary;
         }
 
-        let (primary, _, _) = unpack_weights(row[0].values);
+        let (_, primary, _, _) = unpack_weights(row[0]);
         return primary;
     }
 

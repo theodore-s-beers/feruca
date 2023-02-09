@@ -3,7 +3,7 @@ use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_
 
 use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
 use crate::tailor::{MULT_AR, SING_AR};
-use crate::types::{MultisTable, PackedWeights, SinglesTable, Weights};
+use crate::types::{MultisTable, SinglesTable, Weights};
 use crate::{Locale, Tailoring};
 
 pub fn ccc_sequence_ok(test_range: &[u32]) -> bool {
@@ -105,17 +105,17 @@ pub fn get_tables(
 
 pub fn handle_low_weights(
     shifting: bool,
-    weights: PackedWeights,
+    weights: u32,
     last_variable: &mut bool,
     cea: &mut Vec<Weights>,
 ) {
     if shifting {
         cea.push(handle_shifted_weights(weights, last_variable));
     } else {
-        let (primary, secondary, tertiary) = unpack_weights(weights.values);
+        let (variable, primary, secondary, tertiary) = unpack_weights(weights);
 
         cea.push(Weights {
-            variable: weights.variable,
+            variable,
             primary,
             secondary,
             tertiary,
@@ -124,14 +124,14 @@ pub fn handle_low_weights(
     }
 }
 
-pub fn handle_shifted_weights(weights: PackedWeights, last_variable: &mut bool) -> Weights {
-    let (primary, secondary, tertiary) = unpack_weights(weights.values);
+pub fn handle_shifted_weights(weights: u32, last_variable: &mut bool) -> Weights {
+    let (variable, primary, secondary, tertiary) = unpack_weights(weights);
 
-    if weights.variable {
+    if variable {
         *last_variable = true;
 
         Weights {
-            variable: true,
+            variable,
             primary: 0,
             secondary: 0,
             tertiary: 0,
@@ -139,8 +139,8 @@ pub fn handle_shifted_weights(weights: PackedWeights, last_variable: &mut bool) 
         }
     } else if primary == 0 && (tertiary == 0 || *last_variable) {
         Weights {
-            variable: false,
-            primary: 0,
+            variable,
+            primary,
             secondary: 0,
             tertiary: 0,
             quaternary: None,
@@ -149,7 +149,7 @@ pub fn handle_shifted_weights(weights: PackedWeights, last_variable: &mut bool) 
         *last_variable = false;
 
         Weights {
-            variable: false,
+            variable,
             primary,
             secondary,
             tertiary,
@@ -159,7 +159,7 @@ pub fn handle_shifted_weights(weights: PackedWeights, last_variable: &mut bool) 
 }
 
 pub fn push_weights(
-    row: &Vec<PackedWeights>,
+    row: &Vec<u32>,
     shifting: bool,
     last_variable: &mut bool,
     cea: &mut Vec<Weights>,
@@ -168,10 +168,10 @@ pub fn push_weights(
         if shifting {
             cea.push(handle_shifted_weights(*weights, last_variable));
         } else {
-            let (primary, secondary, tertiary) = unpack_weights(weights.values);
+            let (variable, primary, secondary, tertiary) = unpack_weights(*weights);
 
             cea.push(Weights {
-                variable: weights.variable,
+                variable,
                 primary,
                 secondary,
                 tertiary,
@@ -191,11 +191,13 @@ pub fn remove_pulled(char_vals: &mut Vec<u32>, i: usize, input_length: &mut usiz
     }
 }
 
-pub const fn unpack_weights(packed: u32) -> (u16, u16, u16) {
+pub const fn unpack_weights(packed: u32) -> (bool, u16, u16, u16) {
     let primary = (packed >> 16) as u16;
-    let lower = (packed & 0xFFFF) as u16;
-    let secondary = lower & 0b11_1111_1111;
-    let tertiary = lower >> 10;
 
-    (primary, secondary, tertiary)
+    let lower = (packed & 0xFFFF) as u16;
+    let variable = lower >> 15 == 1;
+    let secondary = lower & 0b1_1111_1111;
+    let tertiary = (lower >> 9) & 0b11_1111;
+
+    (variable, primary, secondary, tertiary)
 }

@@ -1,9 +1,8 @@
 use rustc_hash::FxHashMap;
-use serde::Deserialize;
 
 // Aliases for annoying types
-pub type SinglesTable = FxHashMap<u32, Vec<PackedWeights>>;
-pub type MultisTable = FxHashMap<Vec<u32>, Vec<PackedWeights>>;
+pub type SinglesTable = FxHashMap<u32, Vec<u32>>;
+pub type MultisTable = FxHashMap<Vec<u32>, Vec<u32>>;
 
 /// This enum provides for a choice of which collation tailoring (or table of character weights) to
 /// use. With the CLDR table, there is a further choice of locale. (The `Root` locale represents the
@@ -48,10 +47,4 @@ pub struct Weights {
     pub secondary: u16,
     pub tertiary: u16,
     pub quaternary: Option<u16>,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Default, Deserialize)]
-pub struct PackedWeights {
-    pub variable: bool,
-    pub values: u32,
 }
