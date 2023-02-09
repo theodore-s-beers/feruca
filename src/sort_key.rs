@@ -63,7 +63,7 @@ fn compare_at_lvl(a_cea: &[Weights], b_cea: &[Weights], lvl: CollationLevel) -> 
         .filter(|x| *x != 0);
 
     loop {
-        // Advance each iterator; the default value is 0
+        // Advance each iterator; default value of 0 indicates exhaustion
         let a_weight = a_filter.next().unwrap_or_default();
         let b_weight = b_filter.next().unwrap_or_default();
 
@@ -79,6 +79,6 @@ fn compare_at_lvl(a_cea: &[Weights], b_cea: &[Weights], lvl: CollationLevel) -> 
             return None;
         }
 
-        // Else the loop continues
+        // Otherwise the loop continues
     }
 }

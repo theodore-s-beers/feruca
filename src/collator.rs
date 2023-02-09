@@ -42,7 +42,6 @@ impl Collator {
     /// Create a new `Collator` with the specified options. Please note that it is also possible to
     /// call `Collator::default()`.
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
     pub const fn new(tailoring: Tailoring, shifting: bool) -> Self {
         Self {
             tailoring,

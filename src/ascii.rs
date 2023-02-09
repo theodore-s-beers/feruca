@@ -21,7 +21,9 @@ pub fn try_ascii(a: &[u32], b: &[u32]) -> Option<Ordering> {
         // This means the characters differ only in case (since they weren't equal before folding)
         if a_folded == b_folded {
             if backup.is_none() {
-                // Set backup as the comparison of the original characters, in reverse order
+                // The backup value will be set only once, i.e., at the first case difference. We
+                // compare the characters in reverse order here because ASCII has uppercase letters
+                // before lowercase, but we need the opposite for Unicode collation.
                 backup = Some(b[i].cmp(&a[i]));
             }
 
@@ -36,13 +38,8 @@ pub fn try_ascii(a: &[u32], b: &[u32]) -> Option<Ordering> {
         return Some(a_len.cmp(&b_len));
     }
 
-    // This would mean we found a case difference, but no other (incl. length); return it
-    if backup.is_some() {
-        return backup;
-    }
-
-    // I believe this is unreachable in practice, but whatever
-    Some(Ordering::Equal)
+    // Reaching this means we found a case difference, but no other (incl. length); return it
+    backup
 }
 
 fn ascii_alphanumeric(c: u32) -> bool {
