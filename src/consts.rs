@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::HashSet;
 
-use crate::types::{MultisTable, SinglesTable, Weights};
+use crate::types::{MultisTable, PackedWeights, SinglesTable};
 
 //
 // Const
@@ -90,9 +90,9 @@ pub static FCD: Lazy<FxHashMap<u32, u16>> = Lazy::new(|| {
 });
 
 // Map a low code point to its collation weights (DUCET)
-pub static LOW: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
+pub static LOW: Lazy<FxHashMap<u32, PackedWeights>> = Lazy::new(|| {
     let data = include_bytes!("bincode/low");
-    let decoded: FxHashMap<u32, Weights> = bincode::deserialize(data).unwrap();
+    let decoded: FxHashMap<u32, PackedWeights> = bincode::deserialize(data).unwrap();
     decoded
 });
 
@@ -111,21 +111,21 @@ pub static MULT: Lazy<MultisTable> = Lazy::new(|| {
 });
 
 // Map a low code point to its collation weights (CLDR)
-pub static LOW_CLDR: Lazy<FxHashMap<u32, Weights>> = Lazy::new(|| {
+pub static LOW_CLDR: Lazy<FxHashMap<u32, PackedWeights>> = Lazy::new(|| {
     let data = include_bytes!("bincode/low_cldr");
-    let decoded: FxHashMap<u32, Weights> = bincode::deserialize(data).unwrap();
+    let decoded: FxHashMap<u32, PackedWeights> = bincode::deserialize(data).unwrap();
     decoded
 });
 
 // Map a single code point to its collation weights (CLDR)
-pub const DATA_SING_CLDR: &[u8; 706_528] = include_bytes!("bincode/singles_cldr");
+pub const DATA_SING_CLDR: &[u8; 591_235] = include_bytes!("bincode/singles_cldr");
 pub static SING_CLDR: Lazy<SinglesTable> = Lazy::new(|| {
     let decoded: SinglesTable = bincode::deserialize(DATA_SING_CLDR).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
-pub const DATA_MULT_CLDR: &[u8; 37_568] = include_bytes!("bincode/multis_cldr");
+pub const DATA_MULT_CLDR: &[u8; 32_036] = include_bytes!("bincode/multis_cldr");
 pub static MULT_CLDR: Lazy<MultisTable> = Lazy::new(|| {
     let decoded: MultisTable = bincode::deserialize(DATA_MULT_CLDR).unwrap();
     decoded

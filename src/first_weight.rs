@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::cea_utils::{get_implicit_a, get_tables, handle_shifted_weights};
+use crate::cea_utils::{get_implicit_a, get_tables, handle_shifted_weights, unpack_weights};
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
 
@@ -48,7 +48,8 @@ fn get_first_primary(val: u32, coll: Collator) -> u16 {
             return weights_shifted.primary;
         }
 
-        return weights.primary;
+        let (primary, _, _) = unpack_weights(weights.values);
+        return primary;
     }
 
     // Or look in the big table
@@ -60,7 +61,8 @@ fn get_first_primary(val: u32, coll: Collator) -> u16 {
             return weights_shifted.primary;
         }
 
-        return row[0].primary;
+        let (primary, _, _) = unpack_weights(row[0].values);
+        return primary;
     }
 
     // If all else failed, calculate implicit weights
