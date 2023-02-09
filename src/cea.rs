@@ -1,3 +1,5 @@
+#![allow(clippy::similar_names)]
+
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 use crate::cea_utils::{
@@ -26,7 +28,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
         let left_val = char_vals[left];
 
         //
-        // OUTCOME 0
+        // OUTCOME 1
         //
         // The code point was low, so we could draw from a small map that associates one u32 with
         // one Weights struct. Then push the weights, shifting if necessary. This is the path that
@@ -35,10 +37,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
         if left_val < 183 && left_val != 108 && left_val != 76 {
             // Indexing into `low` is guaranteed to succeed
             handle_low_weights(shifting, low[&left_val], &mut last_variable, &mut cea);
-
-            // Increment and continue outer loop
             left += 1;
-            continue;
+            continue; // To the next outer loop iteration...
         }
 
         // At this point, we aren't dealing with a low code point
@@ -56,21 +56,19 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
 
         if !check_multi {
             //
-            // OUTCOME 1
+            // OUTCOME 2
             //
             // We only had to check for a single code point, and found it, so we can push the
             // weights and continue. This is a relatively fast path.
             //
             if let Some(row) = singles.get(&left_val) {
                 push_weights(row, shifting, &mut last_variable, &mut cea);
-
-                // Increment and continue outer loop
                 left += 1;
-                continue;
+                continue; // To the next outer loop iteration...
             }
 
             //
-            // OUTCOME 2
+            // OUTCOME 3
             //
             // We checked for a single code point and didn't find it. That means it's unlisted. We
             // then calculate implicit weights, push them, and move on. I used to think there were
@@ -79,9 +77,8 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
             cea.push(get_implicit_a(left_val, shifting));
             cea.push(get_implicit_b(left_val, shifting));
 
-            // Increment and continue outer loop
             left += 1;
-            continue;
+            continue; // To the next outer loop iteration...
         }
 
         // Here we consider multi-code-point matches, if possible
@@ -90,99 +87,84 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
         let mut right = input_length.min(left + lookahead);
 
         while right > left {
-            // If right - left == 1 (which cannot be the case in the first iteration), attempts to
-            // find a slice have failed. So look for one code point, in the singles map
             if right - left == 1 {
+                // If right - left == 1 (which cannot be the case in the first iteration), attempts
+                // to find a multi-code-point match have failed. So we pull the value(s) for the
+                // first code point from the singles map. It's guaranteed to be there.
+                let row = &singles[&left_val];
+
                 // If we found it, we do still need to check for discontiguous matches
-                if let Some(row) = singles.get(&left_val) {
-                    // Determine how much further right to look
-                    let mut max_right = match input_length - right {
-                        3.. => right + 2,
-                        2 => right + 1,
-                        _ => right, // Skip the loop below; there will be no discontiguous match
-                    };
+                // Determine how much further right to look
+                let mut max_right = match input_length - right {
+                    3.. => right + 2,
+                    2 => right + 1,
+                    _ => right, // Skip the loop below; there will be no discontiguous match
+                };
 
-                    let mut try_two = (max_right - right == 2) && cldr;
+                let mut try_two = (max_right - right == 2) && cldr;
 
-                    'inner: while max_right > right {
-                        // Make sure the sequence of CCC values is kosher
-                        let interest_cohort = &char_vals[right..=max_right];
+                while max_right > right {
+                    // Make sure the sequence of CCC values is kosher
+                    let test_range = &char_vals[right..=max_right];
 
-                        if !ccc_sequence_ok(interest_cohort) {
-                            // Can also forget about try_two in this case
-                            try_two = false;
-                            max_right -= 1;
-                            continue 'inner;
-                        }
-
-                        // Having made it this far, we can test a new subset, adding later char(s)
-                        let new_subset = if try_two {
-                            vec![left_val, char_vals[max_right - 1], char_vals[max_right]]
-                        } else {
-                            vec![left_val, char_vals[max_right]]
-                        };
-
-                        //
-                        // OUTCOME 3
-                        //
-                        // We found a discontiguous match for one code point. This is a bad path,
-                        // since it implies that we: checked for multiple code points; didn't find
-                        // them; fell back to check for the initial code point; found it; checked
-                        // for discontiguous matches; and found one. Anyway, push the weights...
-                        //
-                        if let Some(new_row) = multis.get(&new_subset) {
-                            push_weights(new_row, shifting, &mut last_variable, &mut cea);
-
-                            // Remove the pulled char(s)
-                            remove_pulled(char_vals, max_right, &mut input_length, try_two);
-
-                            // Increment and continue outer loop
-                            left += 1;
-                            continue 'outer;
-                        }
-
-                        // If we tried for two, don't decrement max_right yet
-                        // Inner loop will re-run
-                        if try_two {
-                            try_two = false;
-                        } else {
-                            // Otherwise decrement max_right; inner loop may re-run, or finish
-                            max_right -= 1;
-                        }
+                    if !ccc_sequence_ok(test_range) {
+                        try_two = false; // Can forget about try_two in this case
+                        max_right -= 1;
+                        continue;
                     }
 
-                    //
-                    // OUTCOME 4
-                    //
-                    // We checked for multiple code points; failed to find them; fell back to check
-                    // for the initial code point; found it; checked for discontiguous matches; and
-                    // did not find any. This is a really bad path. Push the weights...
-                    //
-                    push_weights(row, shifting, &mut last_variable, &mut cea);
+                    // Having made it this far, we can test a new subset, adding later char(s)
+                    let new_subset = if try_two {
+                        vec![left_val, char_vals[max_right - 1], char_vals[max_right]]
+                    } else {
+                        vec![left_val, char_vals[max_right]]
+                    };
 
-                    // Increment and continue outer loop
-                    left += 1;
-                    continue 'outer;
+                    //
+                    // OUTCOME 6
+                    //
+                    // We found a discontiguous match after a single code point. This is a bad path,
+                    // since it implies that we: checked for a multi-code-point match; didn't find
+                    // one; fell back to the initial code point; checked for discontiguous matches;
+                    // and found something. Anyway, push the weights...
+                    //
+                    if let Some(new_row) = multis.get(&new_subset) {
+                        push_weights(new_row, shifting, &mut last_variable, &mut cea);
+
+                        // Remove the later char(s) used for the discontiguous match
+                        remove_pulled(char_vals, max_right, &mut input_length, try_two);
+
+                        left += 1;
+                        continue 'outer;
+                    }
+
+                    // If we tried for two, don't decrement max_right yet; inner loop will re-run
+                    if try_two {
+                        try_two = false;
+                    } else {
+                        max_right -= 1; // Otherwise decrement; inner loop *may* re-run
+                    }
                 }
 
-                // Reaching this point would imply that we looked for multiple code points; failed
-                // to find anything; fell back to search for the left code point; and didn't find
-                // that, either. So in theory, we would be dealing with an unlisted code point and
-                // proceeding to calculate implicit weights. But that's impossible, isn't it? If we
-                // started this path by checking for multiples, that means we had one of the code
-                // points in NEED_THREE or NEED_TWO -- all of which are listed in the tables. I
-                // think this is actually unreachable; and my testing bears that out.
-
-                // no-op
+                //
+                // OUTCOME 7
+                //
+                // We checked for a multi-code-point match; failed to find one; fell back to the
+                // initial code point; possibly checked for discontiguous matches; and, if so, did
+                // not find any. This can be the worst path. Push the weights...
+                //
+                push_weights(row, shifting, &mut last_variable, &mut cea);
+                left += 1;
+                continue 'outer;
             }
 
             // At this point, we're trying to find a slice; this comes "before" the section above
             let subset = &char_vals[left..right];
 
             if let Some(row) = multis.get(subset) {
-                // If we found it, we may need to check for a discontiguous match.
-                // But that's only if we matched on a set of two code points; and we'll only skip
-                // over one to find a possible third.
+                // If we found it, we may need to check for a discontiguous match. But that's only
+                // if we matched on a set of two code points; and we'll only skip over one to find a
+                // possible third.
                 let try_discont = subset.len() == 2 && (right + 1 < input_length);
 
                 if try_discont {
@@ -197,19 +179,18 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
                         let new_subset = vec![subset[0], subset[1], char_vals[right + 1]];
 
                         //
-                        // OUTCOME 5
+                        // OUTCOME 4
                         //
-                        // We checked for multiple code points; found something; went on to check
-                        // for a discontiguous match; and found one. For a complicated case, this is
-                        // a good path. Push the weights...
+                        // We checked for a multi-code-point match; found one; then checked for a
+                        // larger discontiguous match; and again found one. For a complicated case,
+                        // this is a good path. Push the weights...
                         //
                         if let Some(new_row) = multis.get(&new_subset) {
                             push_weights(new_row, shifting, &mut last_variable, &mut cea);
 
-                            // Remove the pulled char
+                            // Remove the later char used for the discontiguous match
                             remove_pulled(char_vals, right + 1, &mut input_length, false);
 
-                            // Increment and continue outer loop
                             left += right - left;
                             continue 'outer;
                         }
@@ -217,15 +198,13 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
                 }
 
                 //
-                // OUTCOME 6
+                // OUTCOME 5
                 //
-                // We checked for multiple code points; found something; checked for discontiguous
-                // matches; and did not find any. This is an ok path? Push the weights...
+                // We checked for a multi-code-point match; found one; then checked for a larger
+                // discontiguous match; and did not find any. An ok path? Push the weights...
                 //
                 push_weights(row, shifting, &mut last_variable, &mut cea);
-
-                // Increment and continue outer loop
-                left += right - left;
+                left += right - left; // NB, we increment here by a variable amount
                 continue 'outer;
             }
 
@@ -233,8 +212,7 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
             right -= 1;
         }
 
-        // This is another unreachable point. All possible cases for the outer loop have been
-        // handled. There's no need to increment.
+        // This point is unreachable. All cases for the outer loop have been handled.
     }
 
     // Return!

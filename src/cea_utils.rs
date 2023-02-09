@@ -6,10 +6,10 @@ use crate::tailor::{MULT_AR, SING_AR};
 use crate::types::{MultisTable, SinglesTable, Weights};
 use crate::{Locale, Tailoring};
 
-pub fn ccc_sequence_ok(interest_cohort: &[u32]) -> bool {
+pub fn ccc_sequence_ok(test_range: &[u32]) -> bool {
     let mut max_ccc = 0;
 
-    for elem in interest_cohort {
+    for elem in test_range {
         let ccc = get_ccc(*elem) as u8;
 
         if ccc == 0 || ccc <= max_ccc {
@@ -40,13 +40,12 @@ pub fn get_implicit_a(cp: u32, shifting: bool) -> Weights {
 
     #[allow(clippy::cast_possible_truncation)]
     if shifting {
-        // Add an arbitrary high fourth weight if shifting
         Weights {
             variable: false,
             primary: aaaa as u16,
             secondary: 32,
             tertiary: 2,
-            quaternary: Some(65_535),
+            quaternary: Some(65_535), // Arbitrary high fourth weight
         }
     } else {
         Weights {
@@ -76,13 +75,12 @@ pub fn get_implicit_b(cp: u32, shifting: bool) -> Weights {
 
     #[allow(clippy::cast_possible_truncation)]
     if shifting {
-        // Add an arbitrary high fourth weight if shifting
         Weights {
             variable: false,
             primary: bbbb as u16,
             secondary: 0,
             tertiary: 0,
-            quaternary: Some(65_535),
+            quaternary: Some(65_535), // Arbitrary high fourth weight
         }
     } else {
         Weights {
@@ -127,7 +125,7 @@ pub fn handle_shifted_weights(weights: Weights, last_variable: &mut bool) -> Wei
             primary: 0,
             secondary: 0,
             tertiary: 0,
-            quaternary: Some(weights.primary), // This is always non-zero
+            quaternary: Some(weights.primary), // This is apparently always non-zero
         }
     } else if weights.primary == 0 && (weights.tertiary == 0 || *last_variable) {
         Weights {
