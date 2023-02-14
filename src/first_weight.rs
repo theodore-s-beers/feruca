@@ -4,7 +4,7 @@ use crate::cea_utils::{get_implicit_a, get_tables, handle_shifted_weights, unpac
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
 
-pub fn try_initial(a_chars: &[u32], b_chars: &[u32], coll: Collator) -> Option<Ordering> {
+pub fn try_initial(coll: Collator, a_chars: &[u32], b_chars: &[u32]) -> Option<Ordering> {
     let a_first = a_chars[0];
     let b_first = b_chars[0];
 

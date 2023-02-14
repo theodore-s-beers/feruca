@@ -110,13 +110,13 @@ impl Collator {
         // different, and neither requires checking for a multi-code-point sequence, then we can try
         // comparing their first primary weights. If those are different, and both non-zero, it's
         // decisive.
-        if let Some(o) = try_initial(&a_chars, &b_chars, self) {
+        if let Some(o) = try_initial(self, &a_chars, &b_chars) {
             return o;
         }
 
         // Otherwise we move forward with full collation element arrays
-        let a_cea = generate_cea(&mut a_chars, self);
-        let b_cea = generate_cea(&mut b_chars, self);
+        let a_cea = generate_cea(self, &mut a_chars);
+        let b_cea = generate_cea(self, &mut b_chars);
 
         // Sort keys are processed incrementally, until they yield a result
         let comparison = compare_incremental(&a_cea, &b_cea, self.shifting);
@@ -157,12 +157,12 @@ impl Collator {
             return a_chars.cmp(&b_chars);
         }
 
-        if let Some(o) = try_initial(&a_chars, &b_chars, self) {
+        if let Some(o) = try_initial(self, &a_chars, &b_chars) {
             return o;
         }
 
-        let a_cea = generate_cea(&mut a_chars, self);
-        let b_cea = generate_cea(&mut b_chars, self);
+        let a_cea = generate_cea(self, &mut a_chars);
+        let b_cea = generate_cea(self, &mut b_chars);
 
         compare_incremental(&a_cea, &b_cea, self.shifting)
     }

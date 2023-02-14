@@ -10,8 +10,9 @@ use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::types::Weights;
 use crate::{Collator, Tailoring};
 
-pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights> {
-    let mut cea: Vec<Weights> = Vec::new();
+pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights> {
+    let mut input_length = char_vals.len();
+    let mut cea: Vec<Weights> = Vec::with_capacity(input_length * 2);
 
     let cldr = collator.tailoring != Tailoring::Ducet;
     let shifting = collator.shifting;
@@ -19,7 +20,6 @@ pub fn generate_cea(char_vals: &mut Vec<u32>, collator: Collator) -> Vec<Weights
     let low = if cldr { &LOW_CLDR } else { &LOW };
     let (singles, multis) = get_tables(collator.tailoring);
 
-    let mut input_length = char_vals.len();
     let mut left: usize = 0;
     let mut last_variable = false;
 
