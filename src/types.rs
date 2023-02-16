@@ -39,12 +39,3 @@ impl Default for Locale {
         Self::Root
     }
 }
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Default)]
-pub struct Weights {
-    pub variable: bool,
-    pub primary: u16,
-    pub secondary: u16,
-    pub tertiary: u16,
-    pub quaternary: Option<u16>,
-}

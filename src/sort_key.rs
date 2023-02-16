@@ -1,25 +1,21 @@
 use std::cmp::Ordering;
 
-use crate::types::Weights;
+use crate::cea_utils::unpack_weights;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
-enum CollationLevel {
-    Primary,
-    Secondary,
-    Tertiary,
-    Quaternary,
-}
-
-pub fn compare_incremental(a_cea: &[Weights], b_cea: &[Weights], shifting: bool) -> Ordering {
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Primary) {
+pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Ordering {
+    if shifting {
+        if let Some(o) = compare_primary_shifting(a_cea, b_cea) {
+            return o;
+        }
+    } else if let Some(o) = compare_primary(a_cea, b_cea) {
         return o;
     }
 
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Secondary) {
+    if let Some(o) = compare_secondary(a_cea, b_cea) {
         return o;
     }
 
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Tertiary) {
+    if let Some(o) = compare_tertiary(a_cea, b_cea) {
         return o;
     }
 
@@ -28,7 +24,7 @@ pub fn compare_incremental(a_cea: &[Weights], b_cea: &[Weights], shifting: bool)
         return Ordering::Equal;
     }
 
-    if let Some(o) = compare_at_lvl(a_cea, b_cea, CollationLevel::Quaternary) {
+    if let Some(o) = compare_quaternary(a_cea, b_cea) {
         return o;
     }
 
@@ -39,46 +35,137 @@ pub fn compare_incremental(a_cea: &[Weights], b_cea: &[Weights], shifting: bool)
     Ordering::Equal
 }
 
-fn compare_at_lvl(a_cea: &[Weights], b_cea: &[Weights], lvl: CollationLevel) -> Option<Ordering> {
-    // These iterators will try to find nonzero weights at the given level
-
+fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .map(|row| match lvl {
-            CollationLevel::Primary => row.primary,
-            CollationLevel::Secondary => row.secondary,
-            CollationLevel::Tertiary => row.tertiary,
-            CollationLevel::Quaternary => row.quaternary.unwrap_or_default(),
-        })
-        .filter(|x| *x != 0);
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(_, p, _, _)| *p != 0);
 
     let mut b_filter = b_cea
         .iter()
-        .map(|row| match lvl {
-            CollationLevel::Primary => row.primary,
-            CollationLevel::Secondary => row.secondary,
-            CollationLevel::Tertiary => row.tertiary,
-            CollationLevel::Quaternary => row.quaternary.unwrap_or_default(),
-        })
-        .filter(|x| *x != 0);
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(_, p, _, _)| *p != 0);
 
     loop {
-        // Advance each iterator; default value of 0 indicates exhaustion
-        let a_weight = a_filter.next().unwrap_or_default();
-        let b_weight = b_filter.next().unwrap_or_default();
+        let (_, a_p, _, _) = a_filter.next().unwrap_or_default();
+        let (_, b_p, _, _) = b_filter.next().unwrap_or_default();
 
-        // If the weights are non-equal, return the comparison
-        if a_weight != b_weight {
-            return Some(a_weight.cmp(&b_weight));
+        if a_p != b_p {
+            return Some(a_p.cmp(&b_p));
         }
 
-        // We know the weights are equal at this point. Just check if `a_weight` is 0. That means
-        // both are 0. And that only happens when both iterators are exhausted. This state will be
-        // reached eventually, ending the loop.
-        if a_weight == 0 {
+        if a_p == 0 {
             return None;
         }
+    }
+}
 
-        // Otherwise the loop continues
+fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
+    let mut a_filter = a_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(v, p, _, _)| !v && *p != 0);
+
+    let mut b_filter = b_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(v, p, _, _)| !v && *p != 0);
+
+    loop {
+        let (_, a_p, _, _) = a_filter.next().unwrap_or_default();
+        let (_, b_p, _, _) = b_filter.next().unwrap_or_default();
+
+        if a_p != b_p {
+            return Some(a_p.cmp(&b_p));
+        }
+
+        if a_p == 0 {
+            return None;
+        }
+    }
+}
+
+fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
+    let mut a_filter = a_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(_, _, s, _)| *s != 0);
+
+    let mut b_filter = b_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(_, _, s, _)| *s != 0);
+
+    loop {
+        let (_, _, a_s, _) = a_filter.next().unwrap_or_default();
+        let (_, _, b_s, _) = b_filter.next().unwrap_or_default();
+
+        if a_s != b_s {
+            return Some(a_s.cmp(&b_s));
+        }
+
+        if a_s == 0 {
+            return None;
+        }
+    }
+}
+
+fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
+    let mut a_filter = a_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(_, _, _, t)| *t != 0);
+
+    let mut b_filter = b_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(_, _, _, t)| *t != 0);
+
+    loop {
+        let (_, _, _, a_t) = a_filter.next().unwrap_or_default();
+        let (_, _, _, b_t) = b_filter.next().unwrap_or_default();
+
+        if a_t != b_t {
+            return Some(a_t.cmp(&b_t));
+        }
+
+        if a_t == 0 {
+            return None;
+        }
+    }
+}
+
+fn compare_quaternary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
+    let mut a_filter = a_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(v, _, s, _)| *v || *s != 0);
+
+    let mut b_filter = b_cea
+        .iter()
+        .filter(|w| **w != 0)
+        .map(|w| unpack_weights(*w))
+        .filter(|(v, _, s, _)| *v || *s != 0);
+
+    loop {
+        let (_, a_p, _, _) = a_filter.next().unwrap_or_default();
+        let (_, b_p, _, _) = b_filter.next().unwrap_or_default();
+
+        if a_p != b_p {
+            return Some(a_p.cmp(&b_p));
+        }
+
+        if a_p == 0 {
+            return None;
+        }
     }
 }

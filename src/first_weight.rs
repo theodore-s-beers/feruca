@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::cea_utils::{get_implicit_a, get_tables, handle_shifted_weights, unpack_weights};
+use crate::cea_utils::{get_tables, implicit_a, unpack_weights};
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::{Collator, Tailoring};
 
@@ -43,12 +43,12 @@ fn get_first_primary(val: u32, coll: Collator) -> u16 {
     if val < 183 && val != 108 && val != 76 {
         let weights = low[&val]; // Guaranteed to succeed
 
-        if shifting {
-            let weights_shifted = handle_shifted_weights(weights, &mut false);
-            return weights_shifted.primary;
+        let (variable, primary, _, _) = unpack_weights(weights);
+
+        if shifting && variable {
+            return 0;
         }
 
-        let (_, primary, _, _) = unpack_weights(weights);
         return primary;
     }
 
@@ -56,16 +56,17 @@ fn get_first_primary(val: u32, coll: Collator) -> u16 {
     let (singles, _) = get_tables(coll.tailoring);
 
     if let Some(row) = singles.get(&val) {
-        if shifting {
-            let weights_shifted = handle_shifted_weights(row[0], &mut false);
-            return weights_shifted.primary;
+        let (variable, primary, _, _) = unpack_weights(row[0]);
+
+        if shifting && variable {
+            return 0;
         }
 
-        let (_, primary, _, _) = unpack_weights(row[0]);
         return primary;
     }
 
     // If all else failed, calculate implicit weights
-    let first_weights = get_implicit_a(val, shifting);
-    first_weights.primary
+    let first_weights = implicit_a(val);
+    let (_, primary, _, _) = unpack_weights(first_weights);
+    primary
 }

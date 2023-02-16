@@ -3,16 +3,15 @@
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 use crate::cea_utils::{
-    ccc_sequence_ok, get_implicit_a, get_implicit_b, get_tables, handle_low_weights, push_weights,
+    ccc_sequence_ok, get_tables, handle_low_weights, implicit_a, implicit_b, push_weights,
     remove_pulled,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
-use crate::types::Weights;
 use crate::{Collator, Tailoring};
 
-pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights> {
+pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
     let mut input_length = char_vals.len();
-    let mut cea: Vec<Weights> = Vec::with_capacity(input_length * 2);
+    let mut cea: Vec<u32> = Vec::with_capacity(input_length * 2);
 
     let cldr = collator.tailoring != Tailoring::Ducet;
     let shifting = collator.shifting;
@@ -62,7 +61,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights
             // weights and continue. This is a relatively fast path.
             //
             if let Some(row) = singles.get(&left_val) {
-                push_weights(row, shifting, &mut last_variable, &mut cea);
+                push_weights(&mut cea, row, shifting, &mut last_variable);
                 left += 1;
                 continue; // To the next outer loop iteration...
             }
@@ -74,8 +73,8 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights
             // then calculate implicit weights, push them, and move on. I used to think there were
             // multiple paths to the "implicit weights" case, but it seems not.
             //
-            cea.push(get_implicit_a(left_val, shifting));
-            cea.push(get_implicit_b(left_val, shifting));
+            cea.push(implicit_a(left_val));
+            cea.push(implicit_b(left_val));
 
             left += 1;
             continue; // To the next outer loop iteration...
@@ -129,7 +128,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights
                     // and found something. Anyway, push the weights...
                     //
                     if let Some(new_row) = multis.get(&new_subset) {
-                        push_weights(new_row, shifting, &mut last_variable, &mut cea);
+                        push_weights(&mut cea, new_row, shifting, &mut last_variable);
 
                         // Remove the later char(s) used for the discontiguous match
                         remove_pulled(char_vals, max_right, &mut input_length, try_two);
@@ -153,7 +152,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights
                 // initial code point; possibly checked for discontiguous matches; and, if so, did
                 // not find any. This can be the worst path. Push the weights...
                 //
-                push_weights(row, shifting, &mut last_variable, &mut cea);
+                push_weights(&mut cea, row, shifting, &mut last_variable);
                 left += 1;
                 continue 'outer;
             }
@@ -186,7 +185,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights
                         // this is a good path. Push the weights...
                         //
                         if let Some(new_row) = multis.get(&new_subset) {
-                            push_weights(new_row, shifting, &mut last_variable, &mut cea);
+                            push_weights(&mut cea, new_row, shifting, &mut last_variable);
 
                             // Remove the later char used for the discontiguous match
                             remove_pulled(char_vals, right + 1, &mut input_length, false);
@@ -203,7 +202,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<Weights
                 // We checked for a multi-code-point match; found one; then checked for a larger
                 // discontiguous match; and did not find any. An ok path? Push the weights...
                 //
-                push_weights(row, shifting, &mut last_variable, &mut cea);
+                push_weights(&mut cea, row, shifting, &mut last_variable);
                 left += right - left; // NB, we increment here by a variable amount
                 continue 'outer;
             }
