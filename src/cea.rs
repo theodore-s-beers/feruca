@@ -35,7 +35,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
         //
         if left_val < 183 && left_val != 108 && left_val != 76 {
             // Indexing into `low` is guaranteed to succeed
-            handle_low_weights(shifting, low[&left_val], &mut last_variable, &mut cea);
+            handle_low_weights(&mut cea, low[&left_val], shifting, &mut last_variable);
             left += 1;
             continue; // To the next outer loop iteration...
         }

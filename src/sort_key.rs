@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::cea_utils::unpack_weights;
+use crate::weights::{primary, secondary, tertiary, variability};
 
 pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Ordering {
     if shifting {
@@ -36,21 +36,12 @@ pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Orde
 }
 
 fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
-        .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(_, p, _, _)| *p != 0);
-
-    let mut b_filter = b_cea
-        .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(_, p, _, _)| *p != 0);
+    let mut a_filter = a_cea.iter().map(|w| primary(*w)).filter(|p| *p != 0);
+    let mut b_filter = b_cea.iter().map(|w| primary(*w)).filter(|p| *p != 0);
 
     loop {
-        let (_, a_p, _, _) = a_filter.next().unwrap_or_default();
-        let (_, b_p, _, _) = b_filter.next().unwrap_or_default();
+        let a_p = a_filter.next().unwrap_or_default();
+        let b_p = b_filter.next().unwrap_or_default();
 
         if a_p != b_p {
             return Some(a_p.cmp(&b_p));
@@ -65,19 +56,19 @@ fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(v, p, _, _)| !v && *p != 0);
+        .filter(|w| !variability(**w))
+        .map(|w| primary(*w))
+        .filter(|p| *p != 0);
 
     let mut b_filter = b_cea
         .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(v, p, _, _)| !v && *p != 0);
+        .filter(|w| !variability(**w))
+        .map(|w| primary(*w))
+        .filter(|p| *p != 0);
 
     loop {
-        let (_, a_p, _, _) = a_filter.next().unwrap_or_default();
-        let (_, b_p, _, _) = b_filter.next().unwrap_or_default();
+        let a_p = a_filter.next().unwrap_or_default();
+        let b_p = b_filter.next().unwrap_or_default();
 
         if a_p != b_p {
             return Some(a_p.cmp(&b_p));
@@ -90,21 +81,12 @@ fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 }
 
 fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
-        .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(_, _, s, _)| *s != 0);
-
-    let mut b_filter = b_cea
-        .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(_, _, s, _)| *s != 0);
+    let mut a_filter = a_cea.iter().map(|w| secondary(*w)).filter(|s| *s != 0);
+    let mut b_filter = b_cea.iter().map(|w| secondary(*w)).filter(|s| *s != 0);
 
     loop {
-        let (_, _, a_s, _) = a_filter.next().unwrap_or_default();
-        let (_, _, b_s, _) = b_filter.next().unwrap_or_default();
+        let a_s = a_filter.next().unwrap_or_default();
+        let b_s = b_filter.next().unwrap_or_default();
 
         if a_s != b_s {
             return Some(a_s.cmp(&b_s));
@@ -117,21 +99,12 @@ fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 }
 
 fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
-        .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(_, _, _, t)| *t != 0);
-
-    let mut b_filter = b_cea
-        .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(_, _, _, t)| *t != 0);
+    let mut a_filter = a_cea.iter().map(|w| tertiary(*w)).filter(|t| *t != 0);
+    let mut b_filter = b_cea.iter().map(|w| tertiary(*w)).filter(|t| *t != 0);
 
     loop {
-        let (_, _, _, a_t) = a_filter.next().unwrap_or_default();
-        let (_, _, _, b_t) = b_filter.next().unwrap_or_default();
+        let a_t = a_filter.next().unwrap_or_default();
+        let b_t = b_filter.next().unwrap_or_default();
 
         if a_t != b_t {
             return Some(a_t.cmp(&b_t));
@@ -146,19 +119,17 @@ fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 fn compare_quaternary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(v, _, s, _)| *v || *s != 0);
+        .filter(|w| variability(**w) || secondary(**w) != 0)
+        .map(|w| primary(*w));
 
     let mut b_filter = b_cea
         .iter()
-        .filter(|w| **w != 0)
-        .map(|w| unpack_weights(*w))
-        .filter(|(v, _, s, _)| *v || *s != 0);
+        .filter(|w| variability(**w) || secondary(**w) != 0)
+        .map(|w| primary(*w));
 
     loop {
-        let (_, a_p, _, _) = a_filter.next().unwrap_or_default();
-        let (_, b_p, _, _) = b_filter.next().unwrap_or_default();
+        let a_p = a_filter.next().unwrap_or_default();
+        let b_p = b_filter.next().unwrap_or_default();
 
         if a_p != b_p {
             return Some(a_p.cmp(&b_p));

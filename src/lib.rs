@@ -24,3 +24,5 @@ mod tailor;
 
 mod types;
 pub use types::{Locale, Tailoring};
+
+mod weights;

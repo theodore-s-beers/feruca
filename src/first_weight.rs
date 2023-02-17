@@ -1,7 +1,8 @@
 use std::cmp::Ordering;
 
-use crate::cea_utils::{get_tables, implicit_a, unpack_weights};
+use crate::cea_utils::{get_tables, implicit_a};
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
+use crate::weights::{primary, variability};
 use crate::{Collator, Tailoring};
 
 pub fn try_initial(coll: Collator, a_chars: &[u32], b_chars: &[u32]) -> Option<Ordering> {
@@ -43,30 +44,25 @@ fn get_first_primary(val: u32, coll: Collator) -> u16 {
     if val < 183 && val != 108 && val != 76 {
         let weights = low[&val]; // Guaranteed to succeed
 
-        let (variable, primary, _, _) = unpack_weights(weights);
-
-        if shifting && variable {
+        if shifting && variability(weights) {
             return 0;
         }
 
-        return primary;
+        return primary(weights);
     }
 
     // Or look in the big table
     let (singles, _) = get_tables(coll.tailoring);
 
     if let Some(row) = singles.get(&val) {
-        let (variable, primary, _, _) = unpack_weights(row[0]);
-
-        if shifting && variable {
+        if shifting && variability(row[0]) {
             return 0;
         }
 
-        return primary;
+        return primary(row[0]);
     }
 
     // If all else failed, calculate implicit weights
     let first_weights = implicit_a(val);
-    let (_, primary, _, _) = unpack_weights(first_weights);
-    primary
+    primary(first_weights)
 }
