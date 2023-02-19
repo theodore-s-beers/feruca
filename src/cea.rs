@@ -3,28 +3,33 @@
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 use crate::cea_utils::{
-    ccc_sequence_ok, get_tables, handle_low_weights, implicit_a, implicit_b, push_weights,
-    remove_pulled,
+    ccc_sequence_ok, fill_weights, get_tables, grow_vec, handle_implicit_weights,
+    handle_low_weights, remove_pulled,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
-use crate::{Collator, Tailoring};
+use crate::Tailoring;
 
-pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
+pub fn generate_cea(
+    cea: &mut Vec<u32>,
+    char_vals: &mut Vec<u32>,
+    shifting: bool,
+    tailoring: Tailoring,
+) {
     let mut input_length = char_vals.len();
-    let mut cea: Vec<u32> = Vec::with_capacity(input_length * 2);
 
-    let cldr = collator.tailoring != Tailoring::Ducet;
-    let shifting = collator.shifting;
-
+    let cldr = tailoring != Tailoring::Ducet;
     let low = if cldr { &LOW_CLDR } else { &LOW };
-    let (singles, multis) = get_tables(collator.tailoring);
+    let (singles, multis) = get_tables(tailoring);
 
     let mut left: usize = 0;
+    let mut cea_idx: usize = 0;
     let mut last_variable = false;
 
     // We spend essentially the entire function in this loop
     'outer: while left < input_length {
         let left_val = char_vals[left];
+
+        grow_vec(cea, cea_idx);
 
         //
         // OUTCOME 1
@@ -34,8 +39,8 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
         // catches (most) ASCII characters present in not-completely-ASCII strings.
         //
         if left_val < 183 && left_val != 108 && left_val != 76 {
-            // Indexing into `low` is guaranteed to succeed
-            handle_low_weights(&mut cea, low[&left_val], shifting, &mut last_variable);
+            let weights = low[&left_val]; // Guaranteed to succeed
+            handle_low_weights(cea, weights, &mut cea_idx, shifting, &mut last_variable);
             left += 1;
             continue; // To the next outer loop iteration...
         }
@@ -61,7 +66,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
             // weights and continue. This is a relatively fast path.
             //
             if let Some(row) = singles.get(&left_val) {
-                push_weights(&mut cea, row, shifting, &mut last_variable);
+                fill_weights(cea, row, &mut cea_idx, shifting, &mut last_variable);
                 left += 1;
                 continue; // To the next outer loop iteration...
             }
@@ -73,8 +78,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
             // then calculate implicit weights, push them, and move on. I used to think there were
             // multiple paths to the "implicit weights" case, but it seems not.
             //
-            cea.push(implicit_a(left_val));
-            cea.push(implicit_b(left_val));
+            handle_implicit_weights(cea, left_val, &mut cea_idx);
 
             left += 1;
             continue; // To the next outer loop iteration...
@@ -128,7 +132,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
                     // and found something. Anyway, push the weights...
                     //
                     if let Some(new_row) = multis.get(&new_subset) {
-                        push_weights(&mut cea, new_row, shifting, &mut last_variable);
+                        fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                         // Remove the later char(s) used for the discontiguous match
                         remove_pulled(char_vals, max_right, &mut input_length, try_two);
@@ -152,7 +156,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
                 // initial code point; possibly checked for discontiguous matches; and, if so, did
                 // not find any. This can be the worst path. Push the weights...
                 //
-                push_weights(&mut cea, row, shifting, &mut last_variable);
+                fill_weights(cea, row, &mut cea_idx, shifting, &mut last_variable);
                 left += 1;
                 continue 'outer;
             }
@@ -185,7 +189,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
                         // this is a good path. Push the weights...
                         //
                         if let Some(new_row) = multis.get(&new_subset) {
-                            push_weights(&mut cea, new_row, shifting, &mut last_variable);
+                            fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                             // Remove the later char used for the discontiguous match
                             remove_pulled(char_vals, right + 1, &mut input_length, false);
@@ -202,7 +206,7 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
                 // We checked for a multi-code-point match; found one; then checked for a larger
                 // discontiguous match; and did not find any. An ok path? Push the weights...
                 //
-                push_weights(&mut cea, row, shifting, &mut last_variable);
+                fill_weights(cea, row, &mut cea_idx, shifting, &mut last_variable);
                 left += right - left; // NB, we increment here by a variable amount
                 continue 'outer;
             }
@@ -214,6 +218,6 @@ pub fn generate_cea(collator: Collator, char_vals: &mut Vec<u32>) -> Vec<u32> {
         // This point is unreachable. All cases for the outer loop have been handled.
     }
 
-    // Return!
-    cea
+    // Set a high value to indicate the end of the weights
+    cea[cea_idx] = std::u32::MAX;
 }

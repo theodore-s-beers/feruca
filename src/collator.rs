@@ -23,13 +23,15 @@ use crate::Tailoring;
 ///
 /// The default for `Collator` is to use the CLDR table with the `Root` locale, and the "shifted"
 /// approach. This is a good starting point for collation in many languages.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub struct Collator {
     /// The table of weights to be used: DUCET or CLDR (with a choice of locale for the latter)
     pub tailoring: Tailoring,
     /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
     /// purposes, `shifting` is either true (recommended) or false.
     pub shifting: bool,
+    a_vec: Vec<u32>,
+    b_vec: Vec<u32>,
 }
 
 impl Default for Collator {
@@ -42,10 +44,12 @@ impl Collator {
     /// Create a new `Collator` with the specified options. Please note that it is also possible to
     /// call `Collator::default()`.
     #[must_use]
-    pub const fn new(tailoring: Tailoring, shifting: bool) -> Self {
+    pub fn new(tailoring: Tailoring, shifting: bool) -> Self {
         Self {
             tailoring,
             shifting,
+            a_vec: vec![0; 32],
+            b_vec: vec![0; 32],
         }
     }
 
@@ -57,7 +61,7 @@ impl Collator {
     /// ```
     /// use feruca::{Collator};
     ///
-    /// let collator = Collator::default();
+    /// let mut collator = Collator::default();
     ///
     /// let mut names = ["Peng", "Peña", "Ernie", "Émile"];
     /// names.sort_unstable_by(|a, b| collator.collate(a, b));
@@ -70,7 +74,7 @@ impl Collator {
     /// Algorithm, this method will use byte-value comparison (i.e., the traditional, naïve way of
     /// sorting strings) as a tiebreaker. While this is probably appropriate in most cases, it can
     /// be avoided by using the `collate_no_tiebreak` method.
-    pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(self, a: &T, b: &T) -> Ordering {
+    pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(&mut self, a: &T, b: &T) -> Ordering {
         // Early out; equal is equal
         if a == b {
             return Ordering::Equal;
@@ -99,7 +103,8 @@ impl Collator {
         }
 
         // Check for a shared prefix that might be safe to trim
-        trim_prefix(&mut a_chars, &mut b_chars, self.shifting);
+        let shifting = self.shifting;
+        trim_prefix(&mut a_chars, &mut b_chars, shifting);
 
         // After prefix trimming, one of the Vecs may be empty (but not both!)
         if a_chars.is_empty() || b_chars.is_empty() {
@@ -115,11 +120,12 @@ impl Collator {
         }
 
         // Otherwise we move forward with full collation element arrays
-        let a_cea = generate_cea(self, &mut a_chars);
-        let b_cea = generate_cea(self, &mut b_chars);
+        let tailoring = self.tailoring;
+        generate_cea(&mut self.a_vec, &mut a_chars, shifting, tailoring);
+        generate_cea(&mut self.b_vec, &mut b_chars, shifting, tailoring);
 
         // Sort keys are processed incrementally, until they yield a result
-        let comparison = compare_incremental(&a_cea, &b_cea, self.shifting);
+        let comparison = compare_incremental(&self.a_vec, &self.b_vec, shifting);
 
         if comparison == Ordering::Equal {
             // Tiebreaker
@@ -132,7 +138,11 @@ impl Collator {
     /// This is a variation on `collate`, to which it is almost identical. The difference is that,
     /// in the event that two strings are ordered equally per the Unicode Collation Algorithm, this
     /// method will not attempt to "break the tie" by using byte-value comparison.
-    pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(self, a: &T, b: &T) -> Ordering {
+    pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(
+        &mut self,
+        a: &T,
+        b: &T,
+    ) -> Ordering {
         if a == b {
             return Ordering::Equal;
         }
@@ -151,7 +161,8 @@ impl Collator {
             return Ordering::Equal;
         }
 
-        trim_prefix(&mut a_chars, &mut b_chars, self.shifting);
+        let shifting = self.shifting;
+        trim_prefix(&mut a_chars, &mut b_chars, shifting);
 
         if a_chars.is_empty() || b_chars.is_empty() {
             return a_chars.cmp(&b_chars);
@@ -161,9 +172,10 @@ impl Collator {
             return o;
         }
 
-        let a_cea = generate_cea(self, &mut a_chars);
-        let b_cea = generate_cea(self, &mut b_chars);
+        let tailoring = self.tailoring;
+        generate_cea(&mut self.a_vec, &mut a_chars, shifting, tailoring);
+        generate_cea(&mut self.b_vec, &mut b_chars, shifting, tailoring);
 
-        compare_incremental(&a_cea, &b_cea, self.shifting)
+        compare_incremental(&self.a_vec, &self.b_vec, shifting)
     }
 }

@@ -5,7 +5,7 @@ use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 use crate::weights::{primary, variability};
 use crate::{Collator, Tailoring};
 
-pub fn try_initial(coll: Collator, a_chars: &[u32], b_chars: &[u32]) -> Option<Ordering> {
+pub fn try_initial(coll: &Collator, a_chars: &[u32], b_chars: &[u32]) -> Option<Ordering> {
     let a_first = a_chars[0];
     let b_first = b_chars[0];
 
@@ -34,7 +34,7 @@ fn safe_chars(a: u32, b: u32) -> bool {
         && !NEED_THREE.contains(&b)
 }
 
-fn get_first_primary(val: u32, coll: Collator) -> u16 {
+fn get_first_primary(val: u32, coll: &Collator) -> u16 {
     let cldr = coll.tailoring != Tailoring::Ducet;
     let shifting = coll.shifting;
 

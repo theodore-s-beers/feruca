@@ -23,6 +23,26 @@ pub fn ccc_sequence_ok(test_range: &[u32]) -> bool {
     true
 }
 
+pub fn fill_weights(
+    cea: &mut [u32],
+    row: &Vec<u32>,
+    i: &mut usize,
+    shifting: bool,
+    last_variable: &mut bool,
+) {
+    if shifting {
+        for weights in row {
+            cea[*i] = shift_weights(*weights, last_variable);
+            *i += 1;
+        }
+    } else {
+        for weights in row {
+            cea[*i] = *weights;
+            *i += 1;
+        }
+    }
+}
+
 pub fn get_tables(
     tailoring: Tailoring,
 ) -> (&'static Lazy<SinglesTable>, &'static Lazy<MultisTable>) {
@@ -33,17 +53,36 @@ pub fn get_tables(
     }
 }
 
+pub fn grow_vec(cea: &mut Vec<u32>, i: usize) {
+    let l = cea.len();
+
+    if l - i < 10 {
+        cea.resize(l + 32, 0);
+    }
+}
+
+pub fn handle_implicit_weights(cea: &mut [u32], cp: u32, i: &mut usize) {
+    cea[*i] = implicit_a(cp);
+    *i += 1;
+
+    cea[*i] = implicit_b(cp);
+    *i += 1;
+}
+
 pub fn handle_low_weights(
-    cea: &mut Vec<u32>,
+    cea: &mut [u32],
     weights: u32,
+    i: &mut usize,
     shifting: bool,
     last_variable: &mut bool,
 ) {
     if shifting {
-        cea.push(shift_weights(weights, last_variable));
+        cea[*i] = shift_weights(weights, last_variable);
     } else {
-        cea.push(weights);
+        cea[*i] = weights;
     }
+
+    *i += 1;
 }
 
 pub fn implicit_a(cp: u32) -> u32 {
@@ -66,7 +105,7 @@ pub fn implicit_a(cp: u32) -> u32 {
     pack_weights(false, aaaa as u16, 32, 2)
 }
 
-pub fn implicit_b(cp: u32) -> u32 {
+fn implicit_b(cp: u32) -> u32 {
     let mut bbbb = if INCLUDED_UNASSIGNED.contains(&cp) {
         cp & 32_767
     } else {
@@ -83,18 +122,6 @@ pub fn implicit_b(cp: u32) -> u32 {
 
     #[allow(clippy::cast_possible_truncation)]
     pack_weights(false, bbbb as u16, 0, 0)
-}
-
-pub fn push_weights(cea: &mut Vec<u32>, row: &Vec<u32>, shifting: bool, last_variable: &mut bool) {
-    if shifting {
-        for weights in row {
-            cea.push(shift_weights(*weights, last_variable));
-        }
-    } else {
-        for weights in row {
-            cea.push(*weights);
-        }
-    }
 }
 
 pub fn remove_pulled(char_vals: &mut Vec<u32>, i: usize, input_length: &mut usize, try_two: bool) {

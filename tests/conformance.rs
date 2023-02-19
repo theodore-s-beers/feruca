@@ -1,7 +1,7 @@
 use feruca::{Collator, Tailoring};
 use std::cmp::Ordering;
 
-fn conformance(path: &str, collator: Collator) {
+fn conformance(path: &str, collator: &mut Collator) {
     let test_data = std::fs::read_to_string(path).unwrap();
 
     let mut max_line = String::new();
@@ -38,27 +38,27 @@ fn conformance(path: &str, collator: Collator) {
 #[test]
 fn ducet_non_ignorable() {
     let path = "test-data/15/CollationTest_NON_IGNORABLE_SHORT.txt";
-    let collator = Collator::new(Tailoring::Ducet, false);
-    conformance(path, collator);
+    let mut collator = Collator::new(Tailoring::Ducet, false);
+    conformance(path, &mut collator);
 }
 
 #[test]
 fn ducet_shifted() {
     let path = "test-data/15/CollationTest_SHIFTED_SHORT.txt";
-    let collator = Collator::new(Tailoring::Ducet, true);
-    conformance(path, collator);
+    let mut collator = Collator::new(Tailoring::Ducet, true);
+    conformance(path, &mut collator);
 }
 
 #[test]
 fn cldr_non_ignorable() {
     let path = "test-data/15/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt";
-    let collator = Collator::new(Tailoring::default(), false);
-    conformance(path, collator);
+    let mut collator = Collator::new(Tailoring::default(), false);
+    conformance(path, &mut collator);
 }
 
 #[test]
 fn cldr_shifted() {
     let path = "test-data/15/CollationTest_CLDR_SHIFTED_SHORT.txt";
-    let collator = Collator::default();
-    conformance(path, collator);
+    let mut collator = Collator::default();
+    conformance(path, &mut collator);
 }
