@@ -4,9 +4,10 @@
 //! bare-bones API, this implementation conforms to the standard and allows for the use of the CLDR
 //! root collation order; so it may indeed be useful, even in this early stage of development.
 
+#![forbid(unsafe_code)]
+#![deny(missing_docs)]
 #![warn(clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::module_name_repetitions)]
-#![deny(missing_docs)]
 
 mod ascii;
 mod cea;
