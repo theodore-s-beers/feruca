@@ -5,19 +5,23 @@ feruca is a basic implementation of the
 current with Unicode **version 15.0**. The name of the library is a portmanteau
 of Ferris 🦀 and UCA.
 
-No `unsafe` is used directly in this library. It relies on the well-vetted
-[bstr](https://github.com/BurntSushi/bstr) to accept input (in the form of
-either `&str` or `&[u8]`), to perform UTF-8 validation, and to generate a list
-of Unicode scalar values, which can then be processed for collation. The idea is
-to be tolerant of input that may not be entirely kosher UTF-8.
+No `unsafe` is used directly in this library: `#![forbid(unsafe_code)]`. It
+relies on the well-vetted [bstr](https://github.com/BurntSushi/bstr) to accept
+input (in the form of either `&str` or `&[u8]`), to perform UTF-8 validation,
+and to generate a list of Unicode scalar values, which can then be processed for
+collation. The idea is to be tolerant of input that may not be entirely kosher
+UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
 **First**, I don't expect that it will win any awards for performance. My
 [rough attempts](https://github.com/theodore-s-beers/feruca-benchmarks) at
-benchmarking suggest that this is on the order of 4–6x slower than `ucol` from
+benchmarking suggest that this is on the order of 5x slower than `ucol` from
 [icu4c](https://github.com/unicode-org/icu). (On the other hand, that isn't as
 bad as one might imagine, considering the incredible degree of optimization
-achieved in the ICU libraries.) My initial priority was to pass the official
+achieved in the ICU C libraries. And I have found that the performance of the
+new [icu4x](https://github.com/unicode-org/icu4x) collator, also implemented in
+Rust, is quite similar to that of feruca.) My initial priority was to pass the
+official
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
 feruca also passes the conformance tests for the
 [CLDR](https://github.com/unicode-org/cldr) root collation order.
@@ -77,7 +81,7 @@ fn main() {
     let mut naive = uca;
     naive.sort_unstable();
 
-    let collator = Collator::default();
+    let mut collator = Collator::default();
     uca.sort_unstable_by(|a, b| collator.collate(a, b));
 
     for item in uca {
