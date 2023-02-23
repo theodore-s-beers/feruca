@@ -30,8 +30,8 @@ pub struct Collator {
     /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
     /// purposes, `shifting` is either true (recommended) or false.
     pub shifting: bool,
-    a_vec: Vec<u32>,
-    b_vec: Vec<u32>,
+    a_cea: Vec<u32>,
+    b_cea: Vec<u32>,
 }
 
 impl Default for Collator {
@@ -48,8 +48,8 @@ impl Collator {
         Self {
             tailoring,
             shifting,
-            a_vec: vec![0; 32],
-            b_vec: vec![0; 32],
+            a_cea: vec![0; 32],
+            b_cea: vec![0; 32],
         }
     }
 
@@ -121,11 +121,11 @@ impl Collator {
 
         // Otherwise we move forward with full collation element arrays
         let tailoring = self.tailoring;
-        generate_cea(&mut self.a_vec, &mut a_chars, shifting, tailoring);
-        generate_cea(&mut self.b_vec, &mut b_chars, shifting, tailoring);
+        generate_cea(&mut self.a_cea, &mut a_chars, shifting, tailoring);
+        generate_cea(&mut self.b_cea, &mut b_chars, shifting, tailoring);
 
         // Sort keys are processed incrementally, until they yield a result
-        let comparison = compare_incremental(&self.a_vec, &self.b_vec, shifting);
+        let comparison = compare_incremental(&self.a_cea, &self.b_cea, shifting);
 
         if comparison == Ordering::Equal {
             // Tiebreaker
@@ -173,9 +173,9 @@ impl Collator {
         }
 
         let tailoring = self.tailoring;
-        generate_cea(&mut self.a_vec, &mut a_chars, shifting, tailoring);
-        generate_cea(&mut self.b_vec, &mut b_chars, shifting, tailoring);
+        generate_cea(&mut self.a_cea, &mut a_chars, shifting, tailoring);
+        generate_cea(&mut self.b_cea, &mut b_chars, shifting, tailoring);
 
-        compare_incremental(&self.a_vec, &self.b_vec, shifting)
+        compare_incremental(&self.a_cea, &self.b_cea, shifting)
     }
 }

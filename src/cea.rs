@@ -35,8 +35,8 @@ pub fn generate_cea(
         // OUTCOME 1
         //
         // The code point was low, so we could draw from a small map that associates one u32 with
-        // one Weights struct. Then push the weights, shifting if necessary. This is the path that
-        // catches (most) ASCII characters present in not-completely-ASCII strings.
+        // one set of weights. Then we fill in the weights, shifting if necessary. This is the path
+        // that catches (most) ASCII characters present in not-completely-ASCII strings.
         //
         if left_val < 183 && left_val != 108 && left_val != 76 {
             let weights = low[&left_val]; // Guaranteed to succeed
@@ -62,7 +62,7 @@ pub fn generate_cea(
             //
             // OUTCOME 2
             //
-            // We only had to check for a single code point, and found it, so we can push the
+            // We only had to check for a single code point, and found it, so we can fill in the
             // weights and continue. This is a relatively fast path.
             //
             if let Some(row) = singles.get(&left_val) {
@@ -129,7 +129,7 @@ pub fn generate_cea(
                     // We found a discontiguous match after a single code point. This is a bad path,
                     // since it implies that we: checked for a multi-code-point match; didn't find
                     // one; fell back to the initial code point; checked for discontiguous matches;
-                    // and found something. Anyway, push the weights...
+                    // and found something. Anyway, fill in the weights...
                     //
                     if let Some(new_row) = multis.get(&new_subset) {
                         fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
@@ -154,7 +154,7 @@ pub fn generate_cea(
                 //
                 // We checked for a multi-code-point match; failed to find one; fell back to the
                 // initial code point; possibly checked for discontiguous matches; and, if so, did
-                // not find any. This can be the worst path. Push the weights...
+                // not find any. This can be the worst path. Fill in the weights...
                 //
                 fill_weights(cea, row, &mut cea_idx, shifting, &mut last_variable);
                 left += 1;
@@ -186,7 +186,7 @@ pub fn generate_cea(
                         //
                         // We checked for a multi-code-point match; found one; then checked for a
                         // larger discontiguous match; and again found one. For a complicated case,
-                        // this is a good path. Push the weights...
+                        // this is a good path. Fill in the weights...
                         //
                         if let Some(new_row) = multis.get(&new_subset) {
                             fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
@@ -204,7 +204,7 @@ pub fn generate_cea(
                 // OUTCOME 5
                 //
                 // We checked for a multi-code-point match; found one; then checked for a larger
-                // discontiguous match; and did not find any. An ok path? Push the weights...
+                // discontiguous match; and did not find any. An ok path? Fill in the weights...
                 //
                 fill_weights(cea, row, &mut cea_idx, shifting, &mut last_variable);
                 left += right - left; // NB, we increment here by a variable amount
@@ -216,6 +216,7 @@ pub fn generate_cea(
         }
 
         // This point is unreachable. All cases for the outer loop have been handled.
+        unreachable!();
     }
 
     // Set a high value to indicate the end of the weights
