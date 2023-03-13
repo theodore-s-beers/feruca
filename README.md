@@ -15,12 +15,12 @@ UTF-8.
 In describing feruca as a "basic implementation," I have a few things in mind.
 **First**, I don't expect that it will win any awards for performance. My
 [rough attempts](https://github.com/theodore-s-beers/feruca-benchmarks) at
-benchmarking suggest that this is on the order of 5x slower than `ucol` from
+benchmarking suggest that this is on the order of 3x slower than `ucol` from
 [icu4c](https://github.com/unicode-org/icu). (On the other hand, that isn't as
 bad as one might imagine, considering the incredible degree of optimization
 achieved in the ICU C libraries. And I have found that the performance of the
 new [icu4x](https://github.com/unicode-org/icu4x) collator, also implemented in
-Rust, is quite similar to that of feruca.) My initial priority was to pass the
+Rust, does not yet match that of feruca.) My initial priority was to pass the
 official
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
 feruca also passes the conformance tests for the
