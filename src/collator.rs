@@ -1,7 +1,7 @@
 use bstr::{ByteSlice, B};
 use std::cmp::Ordering;
 
-use crate::ascii::try_ascii;
+use crate::ascii::fill_and_check;
 use crate::cea::generate_cea;
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
@@ -80,13 +80,17 @@ impl Collator {
             return Ordering::Equal;
         }
 
-        // Turn both into Vecs of u32 code points, while validating UTF-8
-        let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
-        let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
+        // Validate UTF-8 and make an iterator for u32 code points
+        let mut a_iter = B(a).chars().map(|c| c as u32);
+        let mut b_iter = B(b).chars().map(|c| c as u32);
 
-        // If we can get a decisive result from comparing alphanumeric ASCII characters in the two
-        // strings, return that
-        if let Some(o) = try_ascii(&a_chars, &b_chars) {
+        // Set up Vecs for code points
+        let mut a_chars: Vec<u32> = Vec::new();
+        let mut b_chars: Vec<u32> = Vec::new();
+
+        // While iterating through input strings and filling code point Vecs, try to get a result by
+        // comparing ASCII characters. This can avoid a lot of computation.
+        if let Some(o) = fill_and_check(&mut a_iter, &mut b_iter, &mut a_chars, &mut b_chars) {
             return o;
         }
 
@@ -147,10 +151,13 @@ impl Collator {
             return Ordering::Equal;
         }
 
-        let mut a_chars: Vec<u32> = B(a).chars().map(|c| c as u32).collect();
-        let mut b_chars: Vec<u32> = B(b).chars().map(|c| c as u32).collect();
+        let mut a_iter = B(a).chars().map(|c| c as u32);
+        let mut b_iter = B(b).chars().map(|c| c as u32);
 
-        if let Some(o) = try_ascii(&a_chars, &b_chars) {
+        let mut a_chars: Vec<u32> = Vec::new();
+        let mut b_chars: Vec<u32> = Vec::new();
+
+        if let Some(o) = fill_and_check(&mut a_iter, &mut b_iter, &mut a_chars, &mut b_chars) {
             return o;
         }
 
