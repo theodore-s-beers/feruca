@@ -26,7 +26,7 @@ fn conformance(path: &str, collator: &mut Collator) {
             test_string.push(char::from_u32(val).unwrap());
         }
 
-        let comparison = collator.collate_no_tiebreak(&test_string, &max_line);
+        let comparison = collator.collate(&test_string, &max_line);
         if comparison == Ordering::Less {
             panic!();
         }
@@ -38,27 +38,27 @@ fn conformance(path: &str, collator: &mut Collator) {
 #[test]
 fn ducet_non_ignorable() {
     let path = "test-data/15/CollationTest_NON_IGNORABLE_SHORT.txt";
-    let mut collator = Collator::new(Tailoring::Ducet, false);
+    let mut collator = Collator::new(Tailoring::Ducet, false, false);
     conformance(path, &mut collator);
 }
 
 #[test]
 fn ducet_shifted() {
     let path = "test-data/15/CollationTest_SHIFTED_SHORT.txt";
-    let mut collator = Collator::new(Tailoring::Ducet, true);
+    let mut collator = Collator::new(Tailoring::Ducet, true, false);
     conformance(path, &mut collator);
 }
 
 #[test]
 fn cldr_non_ignorable() {
     let path = "test-data/15/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt";
-    let mut collator = Collator::new(Tailoring::default(), false);
+    let mut collator = Collator::new(Tailoring::default(), false, false);
     conformance(path, &mut collator);
 }
 
 #[test]
 fn cldr_shifted() {
     let path = "test-data/15/CollationTest_CLDR_SHIFTED_SHORT.txt";
-    let mut collator = Collator::default();
+    let mut collator = Collator::new(Tailoring::default(), true, false);
     conformance(path, &mut collator);
 }

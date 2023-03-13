@@ -6,7 +6,7 @@ fn arabic_script() {
     let persian = "ی";
     let latin = "a";
 
-    let mut collator = Collator::new(Tailoring::Cldr(Locale::ArabicScript), true);
+    let mut collator = Collator::new(Tailoring::Cldr(Locale::ArabicScript), true, true);
     let comp = collator.collate(persian, latin);
     assert_eq!(comp, Ordering::Less);
 }

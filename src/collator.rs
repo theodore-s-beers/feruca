@@ -10,8 +10,8 @@ use crate::sort_key::compare_incremental;
 use crate::Tailoring;
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
-/// used in collation. The method `collate` or `collate_no_tiebreak` will then compare two string
-/// references (or byte slices) according to the selected options, and return an `Ordering` value.
+/// used in collation. The method `collate` will then compare two string references (or byte slices)
+/// according to the selected options, and return an `Ordering` value.
 ///
 /// You can choose between two tables of character weights: DUCET and CLDR. With the CLDR table,
 /// there is a further choice of locale tailoring. The `Root` locale represents the table in its
@@ -19,10 +19,12 @@ use crate::Tailoring;
 /// they sort before the Latin script. Further locales will be added over time.
 ///
 /// You can also choose between two approaches to the handling of variable-weight characters:
-/// "non-ignorable" and "shifted."
+/// "non-ignorable" and "shifted." Finally, you can select whether to use byte-value comparison as a
+/// tiebreaker when two strings produce identical Unicode Collation Algorithm sort keys.
 ///
-/// The default for `Collator` is to use the CLDR table with the `Root` locale, and the "shifted"
-/// approach. This is a good starting point for collation in many languages.
+/// The default for `Collator` is to use the CLDR table with the `Root` locale; to use the "shifted"
+/// approach for variable-weight characters; and to break ties with byte-value comparison. This
+/// should be a good starting point for collation in many languages.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
 pub struct Collator {
     /// The table of weights to be used: DUCET or CLDR (with a choice of locale for the latter)
@@ -30,13 +32,16 @@ pub struct Collator {
     /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
     /// purposes, `shifting` is either true (recommended) or false.
     pub shifting: bool,
+    /// Whether to use byte-value comparison as a tiebreaker when two strings produce identical
+    /// Unicode Collation Algorithm sort keys
+    pub tiebreak: bool,
     a_cea: Vec<u32>,
     b_cea: Vec<u32>,
 }
 
 impl Default for Collator {
     fn default() -> Self {
-        Self::new(Tailoring::default(), true)
+        Self::new(Tailoring::default(), true, true)
     }
 }
 
@@ -44,10 +49,11 @@ impl Collator {
     /// Create a new `Collator` with the specified options. Please note that it is also possible to
     /// call `Collator::default()`.
     #[must_use]
-    pub fn new(tailoring: Tailoring, shifting: bool) -> Self {
+    pub fn new(tailoring: Tailoring, shifting: bool, tiebreak: bool) -> Self {
         Self {
             tailoring,
             shifting,
+            tiebreak,
             a_cea: vec![0; 32],
             b_cea: vec![0; 32],
         }
@@ -99,11 +105,13 @@ impl Collator {
         make_nfd(&mut b_chars);
 
         // I think it's worth offering an out here, too, in case two strings decompose to the same.
-        // If we went forward and generated sort keys, they would be equal, and we would end up at
-        // the tiebreaker, anyway.
+        // If we went forward and generated sort keys, they would be equal, anyway.
         if a_chars == b_chars {
-            // Tiebreaker
-            return a.cmp(b);
+            if self.tiebreak {
+                return a.cmp(b);
+            }
+
+            return Ordering::Equal;
         }
 
         // Check for a shared prefix that might be safe to trim
@@ -131,58 +139,10 @@ impl Collator {
         // Sort keys are processed incrementally, until they yield a result
         let comparison = compare_incremental(&self.a_cea, &self.b_cea, shifting);
 
-        if comparison == Ordering::Equal {
-            // Tiebreaker
+        if comparison == Ordering::Equal && self.tiebreak {
             return a.cmp(b);
         }
 
         comparison
-    }
-
-    /// This is a variation on `collate`, to which it is almost identical. The difference is that,
-    /// in the event that two strings are ordered equally per the Unicode Collation Algorithm, this
-    /// method will not attempt to "break the tie" by using byte-value comparison.
-    pub fn collate_no_tiebreak<T: AsRef<[u8]> + Eq + Ord + ?Sized>(
-        &mut self,
-        a: &T,
-        b: &T,
-    ) -> Ordering {
-        if a == b {
-            return Ordering::Equal;
-        }
-
-        let mut a_iter = B(a).chars().map(|c| c as u32);
-        let mut b_iter = B(b).chars().map(|c| c as u32);
-
-        let mut a_chars: Vec<u32> = Vec::new();
-        let mut b_chars: Vec<u32> = Vec::new();
-
-        if let Some(o) = fill_and_check(&mut a_iter, &mut b_iter, &mut a_chars, &mut b_chars) {
-            return o;
-        }
-
-        make_nfd(&mut a_chars);
-        make_nfd(&mut b_chars);
-
-        if a_chars == b_chars {
-            return Ordering::Equal;
-        }
-
-        let shifting = self.shifting;
-        trim_prefix(&mut a_chars, &mut b_chars, shifting);
-
-        if a_chars.is_empty() || b_chars.is_empty() {
-            return a_chars.cmp(&b_chars);
-        }
-
-        if let Some(o) = try_initial(self, &a_chars, &b_chars) {
-            return o;
-        }
-
-        let tailoring = self.tailoring;
-        generate_cea(&mut self.a_cea, &mut a_chars, shifting, tailoring);
-        generate_cea(&mut self.b_cea, &mut b_chars, shifting, tailoring);
-
-        compare_incremental(&self.a_cea, &self.b_cea, shifting)
     }
 }

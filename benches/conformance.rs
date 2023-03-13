@@ -27,7 +27,7 @@ fn conformance(path: &str, collator: &mut Collator) {
             test_string.push(char::from_u32(val).unwrap());
         }
 
-        let comparison = collator.collate_no_tiebreak(&test_string, &max_line);
+        let comparison = collator.collate(&test_string, &max_line);
         if comparison == Ordering::Less {
             panic!();
         }
@@ -41,7 +41,7 @@ fn ducet_ni(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/15/CollationTest_NON_IGNORABLE_SHORT.txt",
-                &mut Collator::new(Tailoring::Ducet, false),
+                &mut Collator::new(Tailoring::Ducet, false, false),
             )
         })
     });
@@ -52,7 +52,7 @@ fn ducet_shifted(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/15/CollationTest_SHIFTED_SHORT.txt",
-                &mut Collator::new(Tailoring::Ducet, true),
+                &mut Collator::new(Tailoring::Ducet, true, false),
             )
         })
     });
@@ -63,7 +63,7 @@ fn cldr_ni(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/15/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt",
-                &mut Collator::new(Tailoring::default(), false),
+                &mut Collator::new(Tailoring::default(), false, false),
             )
         })
     });
