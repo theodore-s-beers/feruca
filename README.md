@@ -43,11 +43,12 @@ interested in hearing them.)
 
 Apart from locale tailoring, you can choose between the "non-ignorable" and
 "shifted" strategies for handling variable-weight characters—with the latter
-being the default.
+being the default. There is also an option to use byte-value comparison as a
+"tiebreaker" in cases where two strings produce identical UCA sort keys.
 
 **Third**, this library has effectively just one public method, `collate`,
-belonging to a struct, `Collator`, which sets a few options. `collate` accepts
-two string references or byte slices, and returns an `Ordering` value. It is
+belonging to a struct, `Collator`, which sets the options. `collate` accepts two
+string references or byte slices, and returns an `Ordering` value. It is
 designed to be passed as a comparator to the standard library method `sort_by`
 (or `sort_unstable_by`). See "Example usage" below.
 
