@@ -29,8 +29,8 @@ use crate::Tailoring;
 pub struct Collator {
     /// The table of weights to be used: DUCET or CLDR (with a choice of locale for the latter)
     pub tailoring: Tailoring,
-    /// The approach to handling variable-weight characters ("non-ignorable" or "shifted"). For our
-    /// purposes, `shifting` is either true (recommended) or false.
+    /// The approach to handling variable-weight characters: "non-ignorable" (i.e., `false`) or
+    /// "shifted" (i.e., `true`)
     pub shifting: bool,
     /// Whether to use byte-value comparison as a tiebreaker when two strings produce identical
     /// Unicode Collation Algorithm sort keys
@@ -46,8 +46,8 @@ impl Default for Collator {
 }
 
 impl Collator {
-    /// Create a new `Collator` with the specified options. Please note that it is also possible to
-    /// call `Collator::default()`.
+    /// Create a new `Collator` with the specified options. NB: it is also possible to call
+    /// `Collator::default()`.
     #[must_use]
     pub fn new(tailoring: Tailoring, shifting: bool, tiebreak: bool) -> Self {
         Self {
