@@ -45,7 +45,7 @@ Apart from locale tailoring, you can choose between the "non-ignorable" and
 "shifted" strategies for handling variable-weight characters—with the latter
 being the default.
 
-**Third**, this library has effectively\[0\] just one public method, `collate`,
+**Third**, this library has effectively just one public method, `collate`,
 belonging to a struct, `Collator`, which sets a few options. `collate` accepts
 two string references or byte slices, and returns an `Ordering` value. It is
 designed to be passed as a comparator to the standard library method `sort_by`
@@ -56,10 +56,6 @@ able to specify a locale. Again, however, it is worth emphasizing the usefulness
 of the CLDR root collation order on its own. When defining a `Collator`, you can
 set the default options (see below), which indicate the use of the CLDR table
 with the "shifted" strategy. I think this is a good starting point.
-
-\[0\]: There is also a variant form, `collate_no_tiebreak`, which will return
-`Ordering::Equal` for any two strings that produce the same UCA sort key. (The
-normal version will fall back on byte-value comparison in such cases.)
 
 ## Example usage
 
