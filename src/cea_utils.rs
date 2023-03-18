@@ -87,17 +87,17 @@ pub fn handle_low_weights(
 
 pub fn implicit_a(cp: u32) -> u32 {
     let aaaa = if INCLUDED_UNASSIGNED.contains(&cp) {
-        64_448 + (cp >> 15)
+        0xFBC0 + (cp >> 15)
     } else {
         match cp {
-            13_312..=19_903 | 131_072..=173_791 | 173_824..=191_471 | 196_608..=205_743 => {
-                64_384 + (cp >> 15)
+            0x3400..=0x4DBF | 0x20000..=0x2A6DF | 0x2A700..=0x2EBEF | 0x30000..=0x323AF => {
+                0xFB80 + (cp >> 15)
             } // CJK2
-            19_968..=40_959 | 63_744..=64_255 => 64_320 + (cp >> 15), // CJK1
-            94_208..=101_119 | 101_632..=101_775 => 64_256,           // Tangut
-            101_120..=101_631 => 64_258,                              // Khitan
-            110_960..=111_359 => 64_257,                              // Nushu
-            _ => 64_448 + (cp >> 15),                                 // unass.
+            0x4E00..=0x9FFF | 0xF900..=0xFAFF => 0xFB40 + (cp >> 15), // CJK1
+            0x17000..=0x18AFF | 0x18D00..=0x18D8F => 0xFB00,          // Tangut
+            0x18B00..=0x18CFF => 0xFB02,                              // Khitan
+            0x1B170..=0x1B2FF => 0xFB01,                              // Nushu
+            _ => 0xFBC0 + (cp >> 15),                                 // unass.
         }
     };
 
@@ -105,20 +105,20 @@ pub fn implicit_a(cp: u32) -> u32 {
     pack_weights(false, aaaa as u16, 32, 2)
 }
 
-fn implicit_b(cp: u32) -> u32 {
+pub fn implicit_b(cp: u32) -> u32 {
     let mut bbbb = if INCLUDED_UNASSIGNED.contains(&cp) {
-        cp & 32_767
+        cp & 0x7FFF
     } else {
         match cp {
-            94_208..=101_119 | 101_632..=101_775 => cp - 94_208, // Tangut
-            101_120..=101_631 => cp - 101_120,                   // Khitan
-            110_960..=111_359 => cp - 110_960,                   // Nushu
-            _ => cp & 32_767,                                    // CJK1, CJK2, unass.
+            0x17000..=0x18AFF | 0x18D00..=0x18D8F => cp - 0x17000, // Tangut
+            0x18B00..=0x18CFF => cp - 0x18B00,                     // Khitan
+            0x1B170..=0x1B2FF => cp - 0x1B170,                     // Nushu
+            _ => cp & 0x7FFF,                                      // CJK1, CJK2, unass.
         }
     };
 
     // BBBB always gets bitwise ORed with this value
-    bbbb |= 32_768;
+    bbbb |= 0x8000;
 
     #[allow(clippy::cast_possible_truncation)]
     pack_weights(false, bbbb as u16, 0, 0)

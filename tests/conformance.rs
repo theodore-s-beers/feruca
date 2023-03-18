@@ -19,7 +19,7 @@ fn conformance(path: &str, collator: &mut Collator) {
 
             // Skip lines containing surrogate code points; they would all be replaced with U+FFFD.
             // Conformant implementations are explicitly allowed to do this.
-            if val > 55_295 && val < 57_344 {
+            if val > 0xD7FF && val < 0xE000 {
                 continue 'outer;
             }
 
