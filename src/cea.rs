@@ -38,7 +38,7 @@ pub fn generate_cea(
         // one set of weights. Then we fill in the weights, shifting if necessary. This is the path
         // that catches (most) ASCII characters present in not-completely-ASCII strings.
         //
-        if left_val < 183 && left_val != 108 && left_val != 76 {
+        if left_val < 0x00B7 && left_val != 0x006C && left_val != 0x004C {
             let weights = low[&left_val]; // Guaranteed to succeed
             handle_low_weights(cea, weights, &mut cea_idx, shifting, &mut last_variable);
             left += 1;

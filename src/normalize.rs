@@ -26,12 +26,12 @@ fn fcd(input: &[u32]) -> bool {
     let mut prev_trail_cc: u8 = 0;
 
     for c in input {
-        if *c < 192 {
+        if *c < 0x00C0 {
             prev_trail_cc = 0;
             continue;
         }
 
-        if *c == 3_969 || (44_032..=55_203).contains(c) {
+        if *c == 0x0F81 || (0xAC00..=0xD7A3).contains(c) {
             return false;
         }
 
@@ -58,7 +58,7 @@ fn decompose(input: &mut Vec<u32>) {
     while i < input.len() {
         let code_point = input[i];
 
-        if code_point < 192 {
+        if code_point < 0x00C0 {
             i += 1;
             continue;
         }
