@@ -25,17 +25,12 @@ impl Default for Tailoring {
 /// This enum provides for a choice of which locale to use with the CLDR table of character weights.
 /// The default, `Root`, represents the CLDR root collation order. At the moment, there is only one
 /// other choice: `ArabicScript`. But the list should grow over time.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Default)]
 pub enum Locale {
     /// This locale defines a tailoring in which the Arabic script sorts before the Latin script. No
     /// more granular adjustments have been made.
     ArabicScript,
     /// The CLDR root collation order
+    #[default]
     Root,
-}
-
-impl Default for Locale {
-    fn default() -> Self {
-        Self::Root
-    }
 }
