@@ -74,7 +74,7 @@ fn cldr_shifted(c: &mut Criterion) {
         b.iter(|| {
             conformance(
                 "test-data/15/CollationTest_CLDR_SHIFTED_SHORT.txt",
-                &mut Collator::default(),
+                &mut Collator::new(Tailoring::default(), true, false),
             )
         })
     });
