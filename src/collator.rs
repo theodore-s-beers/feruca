@@ -81,7 +81,7 @@ impl Collator {
             return Ordering::Equal;
         }
 
-        // Validate UTF-8 and make an iterator for u32 code points
+        // Validate UTF-8 and make iterators for u32 code points
         let mut a_iter = B(a).chars().map(|c| c as u32);
         let mut b_iter = B(b).chars().map(|c| c as u32);
 

@@ -149,14 +149,16 @@ fn compare_quaternary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
         .take_while(|x| **x < std::u32::MAX)
-        .filter(|w| variability(**w) || secondary(**w) != 0)
-        .map(|w| primary(*w));
+        .filter(|w| variability(**w) || tertiary(**w) != 0)
+        .map(|w| primary(*w))
+        .filter(|q| *q != 0);
 
     let mut b_filter = b_cea
         .iter()
         .take_while(|x| **x < std::u32::MAX)
-        .filter(|w| variability(**w) || secondary(**w) != 0)
-        .map(|w| primary(*w));
+        .filter(|w| variability(**w) || tertiary(**w) != 0)
+        .map(|w| primary(*w))
+        .filter(|q| *q != 0);
 
     loop {
         let a_p = a_filter.next().unwrap_or_default();
