@@ -36,19 +36,17 @@ pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Orde
 }
 
 fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter =
-        a_cea
-            .iter()
-            .take_while(|x| **x < std::u32::MAX)
-            .map(|w| primary(*w))
-            .filter(|p| *p != 0);
+    let mut a_filter = a_cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| primary(*w))
+        .filter(|p| *p != 0);
 
-    let mut b_filter =
-        b_cea
-            .iter()
-            .take_while(|x| **x < std::u32::MAX)
-            .map(|w| primary(*w))
-            .filter(|p| *p != 0);
+    let mut b_filter = b_cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| primary(*w))
+        .filter(|p| *p != 0);
 
     loop {
         let a_p = a_filter.next().unwrap_or_default();
@@ -94,19 +92,17 @@ fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 }
 
 fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter =
-        a_cea
-            .iter()
-            .take_while(|x| **x < std::u32::MAX)
-            .map(|w| secondary(*w))
-            .filter(|s| *s != 0);
+    let mut a_filter = a_cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| secondary(*w))
+        .filter(|s| *s != 0);
 
-    let mut b_filter =
-        b_cea
-            .iter()
-            .take_while(|x| **x < std::u32::MAX)
-            .map(|w| secondary(*w))
-            .filter(|s| *s != 0);
+    let mut b_filter = b_cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| secondary(*w))
+        .filter(|s| *s != 0);
 
     loop {
         let a_s = a_filter.next().unwrap_or_default();
@@ -123,19 +119,17 @@ fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 }
 
 fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter =
-        a_cea
-            .iter()
-            .take_while(|x| **x < std::u32::MAX)
-            .map(|w| tertiary(*w))
-            .filter(|t| *t != 0);
+    let mut a_filter = a_cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| tertiary(*w))
+        .filter(|t| *t != 0);
 
-    let mut b_filter =
-        b_cea
-            .iter()
-            .take_while(|x| **x < std::u32::MAX)
-            .map(|w| tertiary(*w))
-            .filter(|t| *t != 0);
+    let mut b_filter = b_cea
+        .iter()
+        .take_while(|x| **x < std::u32::MAX)
+        .map(|w| tertiary(*w))
+        .filter(|t| *t != 0);
 
     loop {
         let a_t = a_filter.next().unwrap_or_default();
