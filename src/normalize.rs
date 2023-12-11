@@ -108,7 +108,7 @@ fn decompose_jamo(s: u32) -> Vec<u32> {
     }
 }
 
-fn reorder(input: &mut Vec<u32>) {
+fn reorder(input: &mut [u32]) {
     let mut n = input.len();
 
     while n > 1 {
