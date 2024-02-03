@@ -35,6 +35,8 @@ pub struct Collator {
     /// Whether to use byte-value comparison as a tiebreaker when two strings produce identical
     /// Unicode Collation Algorithm sort keys
     pub tiebreak: bool,
+    a_chars: Vec<u32>,
+    b_chars: Vec<u32>,
     a_cea: Vec<u32>,
     b_cea: Vec<u32>,
 }
@@ -54,6 +56,8 @@ impl Collator {
             tailoring,
             shifting,
             tiebreak,
+            a_chars: vec![0; 32],
+            b_chars: vec![0; 32],
             a_cea: vec![0; 32],
             b_cea: vec![0; 32],
         }
@@ -86,22 +90,22 @@ impl Collator {
         let mut b_iter = B(b).chars().map(|c| c as u32);
 
         // Set up Vecs for code points
-        let mut a_chars: Vec<u32> = Vec::new();
-        let mut b_chars: Vec<u32> = Vec::new();
+        self.a_chars.clear();
+        self.b_chars.clear();
 
         // While iterating through input strings and filling code point Vecs, try to get a result by
         // comparing ASCII characters. This can avoid a lot of computation.
-        if let Some(o) = fill_and_check(&mut a_iter, &mut b_iter, &mut a_chars, &mut b_chars) {
+        if let Some(o) = fill_and_check(&mut a_iter, &mut b_iter, &mut self.a_chars, &mut self.b_chars) {
             return o;
         }
 
         // Normalize to NFD
-        make_nfd(&mut a_chars);
-        make_nfd(&mut b_chars);
+        make_nfd(&mut self.a_chars);
+        make_nfd(&mut self.b_chars);
 
         // I think it's worth offering an out here, too, in case two strings decompose to the same.
         // If we went forward and generated sort keys, they would be equal, anyway.
-        if a_chars == b_chars {
+        if self.a_chars == self.b_chars {
             if self.tiebreak {
                 return a.cmp(b);
             }
@@ -111,25 +115,25 @@ impl Collator {
 
         // Check for a shared prefix that might be safe to trim
         let shifting = self.shifting;
-        trim_prefix(&mut a_chars, &mut b_chars, shifting);
+        trim_prefix(&mut self.a_chars, &mut self.b_chars, shifting);
 
         // After prefix trimming, one of the Vecs may be empty (but not both!)
-        if a_chars.is_empty() || b_chars.is_empty() {
-            return a_chars.cmp(&b_chars);
+        if self.a_chars.is_empty() || self.b_chars.is_empty() {
+            return self.a_chars.cmp(&self.b_chars);
         }
 
         // One last chance for an early out: if the opening code points of the two Vecs are
         // different, and neither requires checking for a multi-code-point sequence, then we can try
         // comparing their first primary weights. If those are different, and both non-zero, it's
         // decisive.
-        if let Some(o) = try_initial(self, &a_chars, &b_chars) {
+        if let Some(o) = try_initial(self, &self.a_chars, &self.b_chars) {
             return o;
         }
 
         // Otherwise we move forward with full collation element arrays
         let tailoring = self.tailoring;
-        generate_cea(&mut self.a_cea, &mut a_chars, shifting, tailoring);
-        generate_cea(&mut self.b_cea, &mut b_chars, shifting, tailoring);
+        generate_cea(&mut self.a_cea, &mut self.a_chars, shifting, tailoring);
+        generate_cea(&mut self.b_cea, &mut self.b_chars, shifting, tailoring);
 
         // Sort keys are processed incrementally, until they yield a result
         let comparison = compare_incremental(&self.a_cea, &self.b_cea, shifting);
