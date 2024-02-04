@@ -57,7 +57,7 @@ pub fn grow_vec(cea: &mut Vec<u32>, i: usize) {
     let l = cea.len();
 
     if l - i < 10 {
-        cea.resize(l + 32, 0);
+        cea.resize(l * 2, 0);
     }
 }
 
