@@ -95,7 +95,12 @@ impl Collator {
 
         // While iterating through input strings and filling code point Vecs, try to get a result by
         // comparing ASCII characters. This can avoid a lot of computation.
-        if let Some(o) = fill_and_check(&mut a_iter, &mut b_iter, &mut self.a_chars, &mut self.b_chars) {
+        if let Some(o) = fill_and_check(
+            &mut a_iter,
+            &mut b_iter,
+            &mut self.a_chars,
+            &mut self.b_chars,
+        ) {
             return o;
         }
 
