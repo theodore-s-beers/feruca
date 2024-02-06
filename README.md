@@ -2,8 +2,8 @@
 
 feruca is a basic implementation of the
 [Unicode Collation Algorithm](https://unicode.org/reports/tr10/) in Rust. It's
-current with Unicode **version 15.0**. The name of the library is a portmanteau
-of Ferris 🦀 and UCA.
+current with **Unicode version 15.1** (and, correspondingly, **CLDR version
+44**; see below). The name of the library is a portmanteau of Ferris 🦀 and UCA.
 
 No `unsafe` is used directly in this library: `#![forbid(unsafe_code)]`. It
 relies on the well-vetted [bstr](https://github.com/BurntSushi/bstr) to accept
@@ -13,18 +13,20 @@ collation. The idea is to be tolerant of input that may not be entirely kosher
 UTF-8.
 
 In describing feruca as a "basic implementation," I have a few things in mind.
-**First**, I don't expect that it will win any awards for performance. My
-[rough attempts](https://github.com/theodore-s-beers/feruca-benchmarks) at
-benchmarking suggest that this is on the order of 3x slower than `ucol` from
-[icu4c](https://github.com/unicode-org/icu). (On the other hand, that isn't as
-bad as one might imagine, considering the incredible degree of optimization
-achieved in the ICU C libraries. And I have found that the performance of the
-new [icu4x](https://github.com/unicode-org/icu4x) collator, also implemented in
-Rust, does not yet match that of feruca.) My initial priority was to pass the
-official
-[conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html).
-feruca also passes the conformance tests for the
-[CLDR](https://github.com/unicode-org/cldr) root collation order.
+**First**, the performance of the library could probably still be
+improved—especially in comparison to the official C implementation, `ucol` from
+[icu4c](https://github.com/unicode-org/icu), which is incredibly optimized. I no
+longer run benchmarks against that implementation, but feruca was always slower,
+and my guess is that it still is (though perhaps not severely). What I _do_
+currently [benchmark](https://github.com/theodore-s-beers/feruca-benchmarks)
+against is the newer first-party implementation belonging to the
+[icu4x](https://github.com/unicode-org/icu4x) project, which is also written in
+Rust. feruca performs **up to 3–4x faster** than the icu4x collator—while having
+a much smaller feature set. My priority as a solo dev was to produce a
+relatively bare-bones implementation that passes the official UCA
+[conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html),
+as well as the tests for the "root collation order" of the
+[Common Locale Data Repository](https://github.com/unicode-org/cldr) (CLDR).
 
 **Second**, support for tailoring is minimal (so far). You can choose between
 two tables of character weights: the Default Unicode Collation Element Table
@@ -53,7 +55,7 @@ designed to be passed as a comparator to the standard library method `sort_by`
 (or `sort_unstable_by`). See "Example usage" below.
 
 For many people and use cases, UCA sorting will not work properly without being
-able to specify a locale. Again, however, it is worth emphasizing the usefulness
+able to specify a locale! Again, however, it is worth emphasizing the usefulness
 of the CLDR root collation order on its own. When defining a `Collator`, you can
 set the default options (see below), which indicate the use of the CLDR table
 with the "shifted" strategy. I think this is a good starting point.
@@ -82,7 +84,7 @@ fn main() {
     uca.sort_unstable_by(|a, b| collator.collate(a, b));
 
     for item in uca {
-        println!("{}", item);
+        println!("{item}");
     }
     // Éloi
     // Elrond
@@ -93,11 +95,10 @@ fn main() {
     // چنگیز
     // صدام
 
-    // Empty line for clarity
-    println!();
+    println!(); // Empty line for clarity
 
     for item in naive {
-        println!("{}", item);
+        println!("{item}");
     }
     // Elrond
     // Melissa
