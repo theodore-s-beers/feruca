@@ -69,6 +69,6 @@ pub fn fill_and_check(
 
 fn ascii_alphanumeric(c: u32) -> bool {
     (0x0030..=0x007A).contains(&c)
-        && !(0x003A..=0x0040).contains(&c)
-        && !(0x005B..=0x0060).contains(&c)
+        && !(0x003A..=0x0040).contains(&c) // Punctuation and symbols
+        && !(0x005B..=0x0060).contains(&c) // More symbols
 }

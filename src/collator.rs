@@ -89,7 +89,7 @@ impl Collator {
         let mut a_iter = B(a).chars().map(|c| c as u32);
         let mut b_iter = B(b).chars().map(|c| c as u32);
 
-        // Set up Vecs for code points
+        // Clear code point Vecs
         self.a_chars.clear();
         self.b_chars.clear();
 
