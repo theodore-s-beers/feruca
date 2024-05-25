@@ -220,5 +220,5 @@ pub fn generate_cea(
     }
 
     // Set a high value to indicate the end of the weights
-    cea[cea_idx] = std::u32::MAX;
+    cea[cea_idx] = u32::MAX;
 }

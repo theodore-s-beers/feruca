@@ -38,13 +38,13 @@ pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Orde
 fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
 
     let mut b_filter = b_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
 
@@ -65,14 +65,14 @@ fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .filter(|w| !variability(**w))
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
 
     let mut b_filter = b_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .filter(|w| !variability(**w))
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
@@ -94,13 +94,13 @@ fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .map(|w| secondary(*w))
         .filter(|s| *s != 0);
 
     let mut b_filter = b_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .map(|w| secondary(*w))
         .filter(|s| *s != 0);
 
@@ -121,13 +121,13 @@ fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .map(|w| tertiary(*w))
         .filter(|t| *t != 0);
 
     let mut b_filter = b_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .map(|w| tertiary(*w))
         .filter(|t| *t != 0);
 
@@ -148,14 +148,14 @@ fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
 fn compare_quaternary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
     let mut a_filter = a_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .filter(|w| variability(**w) || tertiary(**w) != 0)
         .map(|w| primary(*w))
         .filter(|q| *q != 0);
 
     let mut b_filter = b_cea
         .iter()
-        .take_while(|x| **x < std::u32::MAX)
+        .take_while(|x| **x < u32::MAX)
         .filter(|w| variability(**w) || tertiary(**w) != 0)
         .map(|w| primary(*w))
         .filter(|q| *q != 0);
