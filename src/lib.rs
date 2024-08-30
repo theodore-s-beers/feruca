@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 #![warn(clippy::pedantic, clippy::nursery, clippy::cargo)]
-#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::module_name_repetitions, clippy::too_long_first_doc_paragraph)]
 
 mod ascii;
 mod cea;
