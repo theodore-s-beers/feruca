@@ -30,7 +30,7 @@ as well as the tests for the "root collation order" of the
 
 **Second**, support for tailoring is minimal (so far). You can choose between
 two tables of character weights: the Default Unicode Collation Element Table
-(DUCET), or the CLDR variation thereof. The CLDR table then becomes the starting
+(DUCET), or the CLDR variant thereof. The CLDR table then becomes the starting
 point for actual collation tailoring based on language/locale. I have added only
 one tailoring, intended for use with Arabic-script languages. It shifts letters
 in the Arabic script so that they sort before the Latin script. This is enough
