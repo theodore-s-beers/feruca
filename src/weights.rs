@@ -2,7 +2,7 @@ pub const fn pack_weights(variable: bool, primary: u16, secondary: u16, tertiary
     let upper = (primary as u32) << 16;
 
     let v_int = variable as u16;
-    let lower = (v_int << 15 | tertiary << 9) | secondary;
+    let lower = (v_int << 15) | (tertiary << 9) | secondary;
 
     upper | (lower as u32)
 }
