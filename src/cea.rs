@@ -2,12 +2,12 @@
 
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
+use crate::Tailoring;
 use crate::cea_utils::{
     ccc_sequence_ok, fill_weights, get_tables, grow_vec, handle_implicit_weights,
     handle_low_weights, remove_pulled,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
-use crate::Tailoring;
 
 pub fn generate_cea(
     cea: &mut Vec<u32>,

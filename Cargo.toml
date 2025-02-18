@@ -1,7 +1,7 @@
 [package]
 name = "feruca"
 version = "0.10.1"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 authors = ["Theo Beers <theo.beers@drexel.edu>"]
 repository = "https://github.com/theodore-s-beers/feruca"
@@ -13,8 +13,7 @@ exclude = ["/test-data"]
 [dependencies]
 bincode = "1.3.3"
 bstr = "1.11.3"
-once_cell = "1.20.2"
-rustc-hash = "2.1.0"
+rustc-hash = "2.1.1"
 unicode-canonical-combining-class = "1.0.0"
 
 [dev-dependencies]

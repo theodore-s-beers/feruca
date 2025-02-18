@@ -15,7 +15,7 @@ pub const fn secondary(weights: u32) -> u16 {
     ((weights & 0xFFFF) & 0b1_1111_1111) as u16
 }
 
-pub fn shift_weights(weights: u32, last_variable: &mut bool) -> u32 {
+pub const fn shift_weights(weights: u32, last_variable: &mut bool) -> u32 {
     let (variable, primary, _, tertiary) = unpack_weights(weights);
 
     if variable {

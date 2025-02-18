@@ -1,13 +1,13 @@
-use bstr::{ByteSlice, B};
+use bstr::{B, ByteSlice};
 use std::cmp::Ordering;
 
+use crate::Tailoring;
 use crate::ascii::fill_and_check;
 use crate::cea::generate_cea;
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
 use crate::prefix::trim_prefix;
 use crate::sort_key::compare_incremental;
-use crate::Tailoring;
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
 /// used in collation. The method `collate` will then compare two string references (or byte slices)

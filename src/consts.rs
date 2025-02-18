@@ -1,6 +1,6 @@
-use once_cell::sync::Lazy;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::HashSet;
+use std::sync::LazyLock;
 
 use crate::types::{MultisTable, SinglesTable};
 
@@ -14,16 +14,18 @@ pub const INCLUDED_UNASSIGNED: [u32; 4] = [0x2B73A, 0x2B81E, 0x2CEA2, 0x2EBE1];
 
 // Code points that can start three-code-point sequences in the collation tables. These values don't
 // "need" to be u32, but that's what they'll be compared against.
-pub const NEED_THREE: [u32; 4] = [0x0CC6, 0x0DD9, 0x0FB2, 0x0FB3];
+pub const NEED_THREE: [u32; 6] = [0x0CC6, 0x0DD9, 0x0FB2, 0x0FB3, 0x1611E, 0x16D63];
 
 // Code points that can start two-code-point sequences in the collation tables. This used to include
 // duplicate values from NEED_THREE, but that's unnecessary.
-pub const NEED_TWO: [u32; 59] = [
+pub const NEED_TWO: [u32; 71] = [
     0x004C, 0x006C, 0x0418, 0x0438, 0x0627, 0x0648, 0x064A, 0x09C7, 0x0B47, 0x0B92, 0x0BC6, 0x0BC7,
     0x0C46, 0x0CBF, 0x0CCA, 0x0D46, 0x0D47, 0x0DDC, 0x0E40, 0x0E41, 0x0E42, 0x0E43, 0x0E44, 0x0E4D,
     0x0EC0, 0x0EC1, 0x0EC2, 0x0EC3, 0x0EC4, 0x0ECD, 0x0F71, 0x1025, 0x19B5, 0x19B6, 0x19B7, 0x19BA,
     0x1B05, 0x1B07, 0x1B09, 0x1B0B, 0x1B0D, 0x1B11, 0x1B3A, 0x1B3C, 0x1B3E, 0x1B3F, 0x1B42, 0xAAB5,
-    0xAAB6, 0xAAB9, 0xAABB, 0xAABC, 0x11131, 0x11132, 0x11347, 0x114B9, 0x115B8, 0x115B9, 0x11935,
+    0xAAB6, 0xAAB9, 0xAABB, 0xAABC, 0x105D2, 0x105DA, 0x11131, 0x11132, 0x11347, 0x11382, 0x11384,
+    0x1138B, 0x11390, 0x113C2, 0x114B9, 0x115B8, 0x115B9, 0x11935, 0x16121, 0x16122, 0x16129,
+    0x16D67, 0x16D69,
 ];
 
 //
@@ -32,7 +34,7 @@ pub const NEED_TWO: [u32; 59] = [
 
 // I think a hash set may perform better than an array, given the size (~400). But it could always
 // be changed.
-pub static JAMO_LV: Lazy<HashSet<u32>> = Lazy::new(|| {
+pub static JAMO_LV: LazyLock<HashSet<u32>> = LazyLock::new(|| {
     HashSet::from([
         0xAC00, 0xAC1C, 0xAC38, 0xAC54, 0xAC70, 0xAC8C, 0xACA8, 0xACC4, 0xACE0, 0xACFC, 0xAD18,
         0xAD34, 0xAD50, 0xAD6C, 0xAD88, 0xADA4, 0xADC0, 0xADDC, 0xADF8, 0xAE14, 0xAE30, 0xAE4C,
@@ -75,65 +77,65 @@ pub static JAMO_LV: Lazy<HashSet<u32>> = Lazy::new(|| {
 });
 
 // Map a code point to its canonical decomposition (if any)
-const DECOMP_DATA: &[u8; 38_364] = include_bytes!("bincode/decomp");
-pub static DECOMP: Lazy<SinglesTable> = Lazy::new(|| {
+const DECOMP_DATA: &[u8; 38_780] = include_bytes!("bincode/decomp");
+pub static DECOMP: LazyLock<SinglesTable> = LazyLock::new(|| {
     let decoded: SinglesTable = bincode::deserialize(DECOMP_DATA).unwrap();
     decoded
 });
 
 // Map a code point to the first and last CCCs (two u8s packed into a u16) of its canonical
 // decomposition (if any)
-const FCD_DATA: &[u8; 12_374] = include_bytes!("bincode/fcd");
-pub static FCD: Lazy<FxHashMap<u32, u16>> = Lazy::new(|| {
+const FCD_DATA: &[u8; 12_494] = include_bytes!("bincode/fcd");
+pub static FCD: LazyLock<FxHashMap<u32, u16>> = LazyLock::new(|| {
     let decoded: FxHashMap<u32, u16> = bincode::deserialize(FCD_DATA).unwrap();
     decoded
 });
 
 // Map a low code point to its collation weights (DUCET)
 const LOW_DATA: &[u8; 1_456] = include_bytes!("bincode/low");
-pub static LOW: Lazy<FxHashMap<u32, u32>> = Lazy::new(|| {
+pub static LOW: LazyLock<FxHashMap<u32, u32>> = LazyLock::new(|| {
     let decoded: FxHashMap<u32, u32> = bincode::deserialize(LOW_DATA).unwrap();
     decoded
 });
 
 // Map a single code point to its collation weights (DUCET)
-const SING_DATA: &[u8; 553_020] = include_bytes!("bincode/singles");
-pub static SING: Lazy<SinglesTable> = Lazy::new(|| {
+const SING_DATA: &[u8; 635_964] = include_bytes!("bincode/singles");
+pub static SING: LazyLock<SinglesTable> = LazyLock::new(|| {
     let decoded: SinglesTable = bincode::deserialize(SING_DATA).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (DUCET)
-const MULT_DATA: &[u8; 29_856] = include_bytes!("bincode/multis");
-pub static MULT: Lazy<MultisTable> = Lazy::new(|| {
+const MULT_DATA: &[u8; 30_572] = include_bytes!("bincode/multis");
+pub static MULT: LazyLock<MultisTable> = LazyLock::new(|| {
     let decoded: MultisTable = bincode::deserialize(MULT_DATA).unwrap();
     decoded
 });
 
 // Map a low code point to its collation weights (CLDR)
 const LOW_CLDR_DATA: &[u8; 1_456] = include_bytes!("bincode/low_cldr");
-pub static LOW_CLDR: Lazy<FxHashMap<u32, u32>> = Lazy::new(|| {
+pub static LOW_CLDR: LazyLock<FxHashMap<u32, u32>> = LazyLock::new(|| {
     let decoded: FxHashMap<u32, u32> = bincode::deserialize(LOW_CLDR_DATA).unwrap();
     decoded
 });
 
 // Map a single code point to its collation weights (CLDR)
-pub const SING_CLDR_DATA: &[u8; 552_948] = include_bytes!("bincode/singles_cldr");
-pub static SING_CLDR: Lazy<SinglesTable> = Lazy::new(|| {
+pub const SING_CLDR_DATA: &[u8; 635_908] = include_bytes!("bincode/singles_cldr");
+pub static SING_CLDR: LazyLock<SinglesTable> = LazyLock::new(|| {
     let decoded: SinglesTable = bincode::deserialize(SING_CLDR_DATA).unwrap();
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
-pub const MULT_CLDR_DATA: &[u8; 30_192] = include_bytes!("bincode/multis_cldr");
-pub static MULT_CLDR: Lazy<MultisTable> = Lazy::new(|| {
+pub const MULT_CLDR_DATA: &[u8; 30_908] = include_bytes!("bincode/multis_cldr");
+pub static MULT_CLDR: LazyLock<MultisTable> = LazyLock::new(|| {
     let decoded: MultisTable = bincode::deserialize(MULT_CLDR_DATA).unwrap();
     decoded
 });
 
 // A hash set of code points that have either a variable weight, or a primary weight of zero
-const VARIABLE_DATA: &[u8; 44_488] = include_bytes!("bincode/variable");
-pub static VARIABLE: Lazy<FxHashSet<u32>> = Lazy::new(|| {
+const VARIABLE_DATA: &[u8; 45_436] = include_bytes!("bincode/variable");
+pub static VARIABLE: LazyLock<FxHashSet<u32>> = LazyLock::new(|| {
     let decoded: FxHashSet<u32> = bincode::deserialize(VARIABLE_DATA).unwrap();
     decoded
 });

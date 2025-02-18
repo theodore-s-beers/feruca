@@ -1,4 +1,4 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
@@ -45,7 +45,10 @@ pub fn fill_weights(
 
 pub fn get_tables(
     tailoring: Tailoring,
-) -> (&'static Lazy<SinglesTable>, &'static Lazy<MultisTable>) {
+) -> (
+    &'static LazyLock<SinglesTable>,
+    &'static LazyLock<MultisTable>,
+) {
     match tailoring {
         Tailoring::Cldr(Locale::ArabicScript) => (&SING_AR, &MULT_AR),
         Tailoring::Cldr(Locale::Root) => (&SING_CLDR, &MULT_CLDR),
