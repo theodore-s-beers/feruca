@@ -3,7 +3,9 @@ name: Test UCA conformance
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,7 +15,12 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Use nightly Rust
+        run: |
+          rustup update nightly
+          rustup default nightly
       - name: Build
         run: cargo build --release --verbose
       - name: Run tests
