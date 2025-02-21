@@ -20,3 +20,21 @@ pub static MULT_AR: LazyLock<MultisTable> = LazyLock::new(|| {
     mult.extend(extension);
     mult
 });
+
+const SING_AR_I_DATA: &[u8; 14_188] = include_bytes!("bincode/tailoring/arabic_interleaved_sing");
+pub static SING_AR_I: LazyLock<SinglesTable> = LazyLock::new(|| {
+    let mut sing: SinglesTable = bincode::deserialize(SING_CLDR_DATA).unwrap();
+    let extension: SinglesTable = bincode::deserialize(SING_AR_I_DATA).unwrap();
+
+    sing.extend(extension);
+    sing
+});
+
+const MULT_AR_I_DATA: &[u8; 92] = include_bytes!("bincode/tailoring/arabic_interleaved_multi");
+pub static MULT_AR_I: LazyLock<MultisTable> = LazyLock::new(|| {
+    let mut mult: MultisTable = bincode::deserialize(MULT_CLDR_DATA).unwrap();
+    let extension: MultisTable = bincode::deserialize(MULT_AR_I_DATA).unwrap();
+
+    mult.extend(extension);
+    mult
+});

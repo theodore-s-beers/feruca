@@ -20,3 +20,13 @@ fn capitalization() {
     let comp = collator.collate(a, b);
     assert_eq!(comp, Ordering::Less);
 }
+
+#[test]
+fn arabic_interleaved() {
+    let a = "أحمد";
+    let b = "Bob";
+
+    let mut collator = Collator::new(Tailoring::Cldr(Locale::ArabicInterleaved), true, true);
+    let comp = collator.collate(a, b);
+    assert_eq!(comp, Ordering::Less);
+}

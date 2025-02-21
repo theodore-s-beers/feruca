@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
-use crate::tailor::{MULT_AR, SING_AR};
+use crate::tailor::{MULT_AR, MULT_AR_I, SING_AR, SING_AR_I};
 use crate::types::{MultisTable, SinglesTable};
 use crate::weights::{pack_weights, shift_weights};
 use crate::{Locale, Tailoring};
@@ -51,6 +51,7 @@ pub fn get_tables(
 ) {
     match tailoring {
         Tailoring::Cldr(Locale::ArabicScript) => (&SING_AR, &MULT_AR),
+        Tailoring::Cldr(Locale::ArabicInterleaved) => (&SING_AR_I, &MULT_AR_I),
         Tailoring::Cldr(Locale::Root) => (&SING_CLDR, &MULT_CLDR),
         Tailoring::Ducet => (&SING, &MULT),
     }

@@ -30,6 +30,9 @@ pub enum Locale {
     /// This locale defines a tailoring in which the Arabic script sorts before the Latin script. No
     /// more granular adjustments have been made.
     ArabicScript,
+    /// This locale defines a tailoring in which Arabic-script characters are interleaved with
+    /// Latin-script characters, so that alif sorts between A and B, bā’ between B and C, etc.
+    ArabicInterleaved,
     /// The CLDR root collation order
     #[default]
     Root,
