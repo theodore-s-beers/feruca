@@ -23,15 +23,15 @@ impl Default for Tailoring {
 }
 
 /// This enum provides for a choice of which locale to use with the CLDR table of character weights.
-/// The default, `Root`, represents the CLDR root collation order. At the moment, there is only one
-/// other choice: `ArabicScript`. But the list should grow over time.
+/// The default, `Root`, represents the CLDR root collation order. At the moment, there are only two
+/// other choices: `ArabicScript` and `ArabicInterleaved`. But the list should grow over time.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Default)]
 pub enum Locale {
     /// This locale defines a tailoring in which the Arabic script sorts before the Latin script. No
     /// more granular adjustments have been made.
     ArabicScript,
     /// This locale defines a tailoring in which Arabic-script characters are interleaved with
-    /// Latin-script characters, so that alif sorts between A and B, bā’ between B and C, etc.
+    /// Latin-script characters, so that _alif_ sorts between A and B, _bā’_ between B and C, etc.
     ArabicInterleaved,
     /// The CLDR root collation order
     #[default]

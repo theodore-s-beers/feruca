@@ -16,7 +16,9 @@ use crate::sort_key::compare_incremental;
 /// You can choose between two tables of character weights: DUCET and CLDR. With the CLDR table,
 /// there is a further choice of locale tailoring. The `Root` locale represents the table in its
 /// unmodified form. The `ArabicScript` locale shifts the weights of Arabic-script letters so that
-/// they sort before the Latin script. Further locales will be added over time.
+/// they sort before the Latin script; and the `ArabicInterleaved` locale mixes the two scripts, so
+/// that, e.g., _alif_ sorts between A and B, and _bā’_ between B and C. Further locales will be
+/// added over time.
 ///
 /// You can also choose between two approaches to the handling of variable-weight characters:
 /// "non-ignorable" and "shifted." Finally, you can select whether to use byte-value comparison as a
@@ -69,7 +71,7 @@ impl Collator {
     /// library. Simple usage might look like the following...
     ///
     /// ```
-    /// use feruca::{Collator};
+    /// use feruca::Collator;
     ///
     /// let mut collator = Collator::default();
     ///
