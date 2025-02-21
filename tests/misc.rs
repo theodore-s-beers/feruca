@@ -23,10 +23,11 @@ fn capitalization() {
 
 #[test]
 fn arabic_interleaved() {
-    let a = "أحمد";
-    let b = "Bob";
+    let mut names = vec!["Bob", "Alice", "أحمد"];
+    let expected = vec!["Alice", "أحمد", "Bob"];
 
     let mut collator = Collator::new(Tailoring::Cldr(Locale::ArabicInterleaved), true, true);
-    let comp = collator.collate(a, b);
-    assert_eq!(comp, Ordering::Less);
+    names.sort_unstable_by(|a, b| collator.collate(a, b));
+
+    assert_eq!(names, expected);
 }
