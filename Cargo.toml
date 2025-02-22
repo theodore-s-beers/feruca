@@ -1,6 +1,6 @@
 [package]
 name = "feruca"
-version = "0.10.1"
+version = "0.11.0"
 edition = "2024"
 license = "MIT"
 authors = ["Theo Beers <theo.beers@drexel.edu>"]
