@@ -21,7 +21,7 @@ pub static MULT_AR: LazyLock<MultisTable> = LazyLock::new(|| {
     mult
 });
 
-const SING_AR_I_DATA: &[u8; 14_188] = include_bytes!("bincode/tailoring/arabic_interleaved_sing");
+const SING_AR_I_DATA: &[u8; 14_652] = include_bytes!("bincode/tailoring/arabic_interleaved_sing");
 pub static SING_AR_I: LazyLock<SinglesTable> = LazyLock::new(|| {
     let mut sing: SinglesTable = bincode::deserialize(SING_CLDR_DATA).unwrap();
     let extension: SinglesTable = bincode::deserialize(SING_AR_I_DATA).unwrap();
