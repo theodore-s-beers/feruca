@@ -25,20 +25,20 @@ fn fcd(input: &[u32]) -> bool {
 
     let mut prev_trail_cc: u8 = 0;
 
-    for c in input {
-        if *c < 0x00C0 {
+    for &c in input {
+        if c < 0x00C0 {
             prev_trail_cc = 0;
             continue;
         }
 
-        if *c == 0x0F81 || (0xAC00..=0xD7A3).contains(c) {
+        if c == 0x0F81 || (0xAC00..=0xD7A3).contains(&c) {
             return false;
         }
 
-        if let Some(vals) = FCD.get(c) {
+        if let Some(vals) = FCD.get(&c) {
             [curr_lead_cc, curr_trail_cc] = vals.to_be_bytes();
         } else {
-            curr_lead_cc = get_ccc(*c) as u8;
+            curr_lead_cc = get_ccc(c) as u8;
             curr_trail_cc = curr_lead_cc;
         }
 
@@ -113,19 +113,16 @@ fn reorder(input: &mut [u32]) {
 
     while n > 1 {
         let mut new_n = 0;
-
         let mut i = 1;
 
         while i < n {
             let ccc_b = get_ccc(input[i]) as u8;
-
             if ccc_b == 0 {
                 i += 2;
                 continue;
             }
 
             let ccc_a = get_ccc(input[i - 1]) as u8;
-
             if ccc_a == 0 || ccc_a <= ccc_b {
                 i += 1;
                 continue;
