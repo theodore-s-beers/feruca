@@ -81,7 +81,7 @@ impl Collator {
     /// let expected = ["Émile", "Ernie", "Peña", "Peng"];
     /// assert_eq!(names, expected);
     /// ```
-    pub fn collate<T: AsRef<[u8]> + Eq + Ord + ?Sized>(&mut self, a: &T, b: &T) -> Ordering {
+    pub fn collate<T: AsRef<[u8]> + Ord + ?Sized>(&mut self, a: &T, b: &T) -> Ordering {
         // Early out; equal is equal
         if a == b {
             return Ordering::Equal;
