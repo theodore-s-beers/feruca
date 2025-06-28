@@ -131,7 +131,7 @@ pub fn generate_cea(
                     // one; fell back to the initial code point; checked for discontiguous matches;
                     // and found something. Anyway, fill in the weights...
                     //
-                    if let Some(new_row) = multis.get(&new_subset) {
+                    if let Some(new_row) = multis.get(new_subset.as_slice()) {
                         fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                         // Remove the later char(s) used for the discontiguous match
@@ -188,7 +188,7 @@ pub fn generate_cea(
                         // larger discontiguous match; and again found one. For a complicated case,
                         // this is a good path. Fill in the weights...
                         //
-                        if let Some(new_row) = multis.get(&new_subset) {
+                        if let Some(new_row) = multis.get(new_subset.as_slice()) {
                             fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                             // Remove the later char used for the discontiguous match

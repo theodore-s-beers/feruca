@@ -25,7 +25,7 @@ pub fn ccc_sequence_ok(test_range: &[u32]) -> bool {
 
 pub fn fill_weights(
     cea: &mut [u32],
-    row: &Vec<u32>,
+    row: &[u32],
     i: &mut usize,
     shifting: bool,
     last_variable: &mut bool,
