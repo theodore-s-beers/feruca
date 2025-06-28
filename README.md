@@ -21,7 +21,7 @@ and my guess is that it still is (though not severely). What I _do_ currently
 [benchmark](https://github.com/theodore-s-beers/feruca-benchmarks) against is
 the newer first-party implementation belonging to the
 [icu4x](https://github.com/unicode-org/icu4x) project, which is also written in
-Rust. feruca performs **on the order of 4–5x faster** than the icu4x
+Rust. feruca performs **on the order of 2–4x faster** than the icu4x
 collator—while having a much smaller feature set. My priority as a solo dev was
 to produce a relatively bare-bones implementation that passes the official UCA
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html),
