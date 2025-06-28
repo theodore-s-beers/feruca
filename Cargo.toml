@@ -11,10 +11,9 @@ categories = ["algorithms", "internationalization", "text-processing"]
 exclude = ["/test-data/"]
 
 [dependencies]
-bincode = { version = "2.0.1", features = ["serde"] }
+bincode = "2.0.1"
 bstr = "1.12.0"
 rustc-hash = "2.1.1"
-serde = "1.0.219"
 unicode-canonical-combining-class = "1.0.0"
 
 [dev-dependencies]
