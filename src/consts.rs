@@ -1,4 +1,6 @@
+use bincode::serde::decode_from_slice;
 use rustc_hash::{FxHashMap, FxHashSet};
+
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
@@ -79,7 +81,7 @@ pub static JAMO_LV: LazyLock<HashSet<u32>> = LazyLock::new(|| {
 // Map a code point to its canonical decomposition (if any)
 const DECOMP_DATA: &[u8; 38_780] = include_bytes!("bincode/decomp");
 pub static DECOMP: LazyLock<SinglesTable> = LazyLock::new(|| {
-    let decoded: SinglesTable = bincode::deserialize(DECOMP_DATA).unwrap();
+    let decoded: SinglesTable = deserialize_bincode(DECOMP_DATA);
     decoded
 });
 
@@ -87,55 +89,65 @@ pub static DECOMP: LazyLock<SinglesTable> = LazyLock::new(|| {
 // decomposition (if any)
 const FCD_DATA: &[u8; 12_494] = include_bytes!("bincode/fcd");
 pub static FCD: LazyLock<FxHashMap<u32, u16>> = LazyLock::new(|| {
-    let decoded: FxHashMap<u32, u16> = bincode::deserialize(FCD_DATA).unwrap();
+    let decoded: FxHashMap<u32, u16> = deserialize_bincode(FCD_DATA);
     decoded
 });
 
 // Map a low code point to its collation weights (DUCET)
 const LOW_DATA: &[u8; 1_456] = include_bytes!("bincode/low");
 pub static LOW: LazyLock<FxHashMap<u32, u32>> = LazyLock::new(|| {
-    let decoded: FxHashMap<u32, u32> = bincode::deserialize(LOW_DATA).unwrap();
+    let decoded: FxHashMap<u32, u32> = deserialize_bincode(LOW_DATA);
     decoded
 });
 
 // Map a single code point to its collation weights (DUCET)
 const SING_DATA: &[u8; 635_964] = include_bytes!("bincode/singles");
 pub static SING: LazyLock<SinglesTable> = LazyLock::new(|| {
-    let decoded: SinglesTable = bincode::deserialize(SING_DATA).unwrap();
+    let decoded: SinglesTable = deserialize_bincode(SING_DATA);
     decoded
 });
 
 // Map a sequence of code points to its collation weights (DUCET)
 const MULT_DATA: &[u8; 30_572] = include_bytes!("bincode/multis");
 pub static MULT: LazyLock<MultisTable> = LazyLock::new(|| {
-    let decoded: MultisTable = bincode::deserialize(MULT_DATA).unwrap();
+    let decoded: MultisTable = deserialize_bincode(MULT_DATA);
     decoded
 });
 
 // Map a low code point to its collation weights (CLDR)
 const LOW_CLDR_DATA: &[u8; 1_456] = include_bytes!("bincode/low_cldr");
 pub static LOW_CLDR: LazyLock<FxHashMap<u32, u32>> = LazyLock::new(|| {
-    let decoded: FxHashMap<u32, u32> = bincode::deserialize(LOW_CLDR_DATA).unwrap();
+    let decoded: FxHashMap<u32, u32> = deserialize_bincode(LOW_CLDR_DATA);
     decoded
 });
 
 // Map a single code point to its collation weights (CLDR)
 pub const SING_CLDR_DATA: &[u8; 635_908] = include_bytes!("bincode/singles_cldr");
 pub static SING_CLDR: LazyLock<SinglesTable> = LazyLock::new(|| {
-    let decoded: SinglesTable = bincode::deserialize(SING_CLDR_DATA).unwrap();
+    let decoded: SinglesTable = deserialize_bincode(SING_CLDR_DATA);
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
 pub const MULT_CLDR_DATA: &[u8; 30_908] = include_bytes!("bincode/multis_cldr");
 pub static MULT_CLDR: LazyLock<MultisTable> = LazyLock::new(|| {
-    let decoded: MultisTable = bincode::deserialize(MULT_CLDR_DATA).unwrap();
+    let decoded: MultisTable = deserialize_bincode(MULT_CLDR_DATA);
     decoded
 });
 
 // A hash set of code points that have either a variable weight, or a primary weight of zero
 const VARIABLE_DATA: &[u8; 45_436] = include_bytes!("bincode/variable");
 pub static VARIABLE: LazyLock<FxHashSet<u32>> = LazyLock::new(|| {
-    let decoded: FxHashSet<u32> = bincode::deserialize(VARIABLE_DATA).unwrap();
+    let decoded: FxHashSet<u32> = deserialize_bincode(VARIABLE_DATA);
     decoded
 });
+
+//
+// Helper function
+//
+
+pub fn deserialize_bincode<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> T {
+    decode_from_slice(bytes, bincode::config::legacy())
+        .expect("Corrupt bincode")
+        .0
+}
