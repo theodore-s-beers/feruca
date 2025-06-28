@@ -11,7 +11,7 @@ use crate::types::{MultisTable, SinglesTable};
 //
 
 // Bincode configuration, to be used for all decode calls
-pub static BINCODE_CONF: config::Configuration = config::standard();
+pub const BINCODE_CONF: config::Configuration = config::standard();
 
 // Unassigned code points that are erroneously included in one of the ranges of code points used to
 // calculate implicit weights
