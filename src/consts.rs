@@ -10,6 +10,9 @@ use crate::types::{MultisTable, SinglesTable};
 // Const
 //
 
+// Bincode configuration, to be used for all decode calls
+pub static BINCODE_CONF: config::Configuration = config::standard();
+
 // Unassigned code points that are erroneously included in one of the ranges of code points used to
 // calculate implicit weights
 pub const INCLUDED_UNASSIGNED: [u32; 4] = [0x2B73A, 0x2B81E, 0x2CEA2, 0x2EBE1];
@@ -81,9 +84,7 @@ pub static JAMO_LV: LazyLock<HashSet<u32>> = LazyLock::new(|| {
 // Map a code point to its canonical decomposition (if any)
 const DECOMP_DATA: &[u8; 19_171] = include_bytes!("bincode/decomp");
 pub static DECOMP: LazyLock<SinglesTable> = LazyLock::new(|| {
-    let decoded: SinglesTable = decode_from_slice(DECOMP_DATA, config::standard())
-        .unwrap()
-        .0;
+    let decoded: SinglesTable = decode_from_slice(DECOMP_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
@@ -91,63 +92,55 @@ pub static DECOMP: LazyLock<SinglesTable> = LazyLock::new(|| {
 // decomposition (if any)
 const FCD_DATA: &[u8; 9_419] = include_bytes!("bincode/fcd");
 pub static FCD: LazyLock<FxHashMap<u32, u16>> = LazyLock::new(|| {
-    let decoded: FxHashMap<u32, u16> = decode_from_slice(FCD_DATA, config::standard()).unwrap().0;
+    let decoded: FxHashMap<u32, u16> = decode_from_slice(FCD_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
 // Map a low code point to its collation weights (DUCET)
 const LOW_DATA: &[u8; 847] = include_bytes!("bincode/low");
 pub static LOW: LazyLock<FxHashMap<u32, u32>> = LazyLock::new(|| {
-    let decoded: FxHashMap<u32, u32> = decode_from_slice(LOW_DATA, config::standard()).unwrap().0;
+    let decoded: FxHashMap<u32, u32> = decode_from_slice(LOW_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
 // Map a single code point to its collation weights (DUCET)
 const SING_DATA: &[u8; 406_107] = include_bytes!("bincode/singles");
 pub static SING: LazyLock<SinglesTable> = LazyLock::new(|| {
-    let decoded: SinglesTable = decode_from_slice(SING_DATA, config::standard()).unwrap().0;
+    let decoded: SinglesTable = decode_from_slice(SING_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
 // Map a sequence of code points to its collation weights (DUCET)
 const MULT_DATA: &[u8; 17_108] = include_bytes!("bincode/multis");
 pub static MULT: LazyLock<MultisTable> = LazyLock::new(|| {
-    let decoded: MultisTable = decode_from_slice(MULT_DATA, config::standard()).unwrap().0;
+    let decoded: MultisTable = decode_from_slice(MULT_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
 // Map a low code point to its collation weights (CLDR)
 const LOW_CLDR_DATA: &[u8; 847] = include_bytes!("bincode/low_cldr");
 pub static LOW_CLDR: LazyLock<FxHashMap<u32, u32>> = LazyLock::new(|| {
-    let decoded: FxHashMap<u32, u32> = decode_from_slice(LOW_CLDR_DATA, config::standard())
-        .unwrap()
-        .0;
+    let decoded: FxHashMap<u32, u32> = decode_from_slice(LOW_CLDR_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
 // Map a single code point to its collation weights (CLDR)
 pub const SING_CLDR_DATA: &[u8; 406_103] = include_bytes!("bincode/singles_cldr");
 pub static SING_CLDR: LazyLock<SinglesTable> = LazyLock::new(|| {
-    let decoded: SinglesTable = decode_from_slice(SING_CLDR_DATA, config::standard())
-        .unwrap()
-        .0;
+    let decoded: SinglesTable = decode_from_slice(SING_CLDR_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
 pub const MULT_CLDR_DATA: &[u8; 17_300] = include_bytes!("bincode/multis_cldr");
 pub static MULT_CLDR: LazyLock<MultisTable> = LazyLock::new(|| {
-    let decoded: MultisTable = decode_from_slice(MULT_CLDR_DATA, config::standard())
-        .unwrap()
-        .0;
+    let decoded: MultisTable = decode_from_slice(MULT_CLDR_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
 
 // A hash set of code points that have either a variable weight, or a primary weight of zero
 const VARIABLE_DATA: &[u8; 44_974] = include_bytes!("bincode/variable");
 pub static VARIABLE: LazyLock<FxHashSet<u32>> = LazyLock::new(|| {
-    let decoded: FxHashSet<u32> = decode_from_slice(VARIABLE_DATA, config::standard())
-        .unwrap()
-        .0;
+    let decoded: FxHashSet<u32> = decode_from_slice(VARIABLE_DATA, BINCODE_CONF).unwrap().0;
     decoded
 });
