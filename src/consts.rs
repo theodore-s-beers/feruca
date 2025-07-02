@@ -90,7 +90,7 @@ pub static DECOMP: LazyLock<SinglesTable> = LazyLock::new(|| {
 
 // Map a code point to the first and last CCCs (two u8s packed into a u16) of its canonical
 // decomposition (if any)
-const FCD_DATA: &[u8; 9_419] = include_bytes!("bincode/fcd");
+const FCD_DATA: &[u8; 3_939] = include_bytes!("bincode/fcd");
 pub static FCD: LazyLock<FxHashMap<u32, u16>> = LazyLock::new(|| {
     let decoded: FxHashMap<u32, u16> = decode_from_slice(FCD_DATA, BINCODE_CONF).unwrap().0;
     decoded
