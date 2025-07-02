@@ -20,9 +20,6 @@ pub fn make_nfd(input: &mut Vec<u32>) {
 }
 
 fn fcd(input: &[u32]) -> bool {
-    let mut curr_lead_cc: u8;
-    let mut curr_trail_cc: u8;
-
     let mut prev_trail_cc: u8 = 0;
 
     for &c in input {
@@ -35,18 +32,18 @@ fn fcd(input: &[u32]) -> bool {
             return false;
         }
 
-        if let Some(vals) = FCD.get(&c) {
-            [curr_lead_cc, curr_trail_cc] = vals.to_be_bytes();
+        let (lead_cc, trail_cc) = if let Some(&vals) = FCD.get(&c) {
+            vals.to_be_bytes().into()
         } else {
-            curr_lead_cc = get_ccc(c) as u8;
-            curr_trail_cc = curr_lead_cc;
-        }
+            let cc = get_ccc(c) as u8;
+            (cc, cc)
+        };
 
-        if curr_lead_cc != 0 && curr_lead_cc < prev_trail_cc {
+        if lead_cc != 0 && lead_cc < prev_trail_cc {
             return false;
         }
 
-        prev_trail_cc = curr_trail_cc;
+        prev_trail_cc = trail_cc;
     }
 
     true
