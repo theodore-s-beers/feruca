@@ -18,7 +18,7 @@ pub fn generate_cea(
     let mut input_length = char_vals.len();
 
     let cldr = tailoring != Tailoring::Ducet;
-    let low = if cldr { &LOW_CLDR } else { &LOW };
+    let low = if cldr { LOW_CLDR } else { LOW };
     let (singles, multis) = get_tables(tailoring);
 
     let mut left: usize = 0;
@@ -39,7 +39,7 @@ pub fn generate_cea(
         // that catches (most) ASCII characters present in not-completely-ASCII strings.
         //
         if left_val < 0x00B7 && left_val != 0x006C && left_val != 0x004C {
-            let weights = low[&left_val]; // Guaranteed to succeed
+            let weights = low[left_val as usize]; // Guaranteed to succeed
             handle_low_weights(cea, weights, &mut cea_idx, shifting, &mut last_variable);
             left += 1;
             continue; // To the next outer loop iteration...
