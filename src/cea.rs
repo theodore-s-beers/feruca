@@ -117,10 +117,10 @@ pub fn generate_cea(
                     }
 
                     // Having made it this far, we can test a new subset, adding later char(s)
-                    let new_subset = if try_two {
-                        vec![left_val, char_vals[max_right - 1], char_vals[max_right]]
+                    let new_subset: &[u32] = if try_two {
+                        &[left_val, char_vals[max_right - 1], char_vals[max_right]]
                     } else {
-                        vec![left_val, char_vals[max_right]]
+                        &[left_val, char_vals[max_right]]
                     };
 
                     //
@@ -131,7 +131,7 @@ pub fn generate_cea(
                     // one; fell back to the initial code point; checked for discontiguous matches;
                     // and found something. Anyway, fill in the weights...
                     //
-                    if let Some(new_row) = multis.get(&pack_code_points(&new_subset)) {
+                    if let Some(new_row) = multis.get(&pack_code_points(new_subset)) {
                         fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                         // Remove the later char(s) used for the discontiguous match
@@ -179,7 +179,7 @@ pub fn generate_cea(
                         // Having made it this far, we can test a new subset, adding the later char.
                         // Again, this only happens if we found a match of two code points and want
                         // to add a third; so we can be oddly specific.
-                        let new_subset = vec![subset[0], subset[1], char_vals[right + 1]];
+                        let new_subset = &[subset[0], subset[1], char_vals[right + 1]];
 
                         //
                         // OUTCOME 4
@@ -188,7 +188,7 @@ pub fn generate_cea(
                         // larger discontiguous match; and again found one. For a complicated case,
                         // this is a good path. Fill in the weights...
                         //
-                        if let Some(new_row) = multis.get(&pack_code_points(&new_subset)) {
+                        if let Some(new_row) = multis.get(&pack_code_points(new_subset)) {
                             fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                             // Remove the later char used for the discontiguous match
