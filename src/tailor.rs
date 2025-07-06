@@ -13,7 +13,7 @@ pub static SING_AR: LazyLock<SinglesTable> = LazyLock::new(|| {
     sing
 });
 
-const MULT_AR_DATA: &[u8; 66] = include_bytes!("bincode/tailoring/arabic_script_multi");
+const MULT_AR_DATA: &[u8; 56] = include_bytes!("bincode/tailoring/arabic_script_multi");
 pub static MULT_AR: LazyLock<MultisTable> = LazyLock::new(|| {
     let mut mult: MultisTable = decode_from_slice(MULT_CLDR_DATA, BINCODE_CONF).unwrap().0;
     let extension: MultisTable = decode_from_slice(MULT_AR_DATA, BINCODE_CONF).unwrap().0;
@@ -31,7 +31,7 @@ pub static SING_AR_I: LazyLock<SinglesTable> = LazyLock::new(|| {
     sing
 });
 
-const MULT_AR_I_DATA: &[u8; 40] = include_bytes!("bincode/tailoring/arabic_interleaved_multi");
+const MULT_AR_I_DATA: &[u8; 34] = include_bytes!("bincode/tailoring/arabic_interleaved_multi");
 pub static MULT_AR_I: LazyLock<MultisTable> = LazyLock::new(|| {
     let mut mult: MultisTable = decode_from_slice(MULT_CLDR_DATA, BINCODE_CONF).unwrap().0;
     let extension: MultisTable = decode_from_slice(MULT_AR_I_DATA, BINCODE_CONF).unwrap().0;

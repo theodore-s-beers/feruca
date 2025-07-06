@@ -128,6 +128,18 @@ pub fn implicit_b(cp: u32) -> u32 {
     pack_weights(false, bbbb as u16, 0, 0)
 }
 
+pub fn pack_code_points(code_points: &[u32]) -> u64 {
+    match code_points.len() {
+        2 => (u64::from(code_points[0]) << 21) | u64::from(code_points[1]),
+        3 => {
+            (u64::from(code_points[0]) << 42)
+                | (u64::from(code_points[1]) << 21)
+                | u64::from(code_points[2])
+        }
+        _ => unreachable!(),
+    }
+}
+
 pub fn remove_pulled(char_vals: &mut Vec<u32>, i: usize, input_length: &mut usize, try_two: bool) {
     char_vals.remove(i);
     *input_length -= 1;

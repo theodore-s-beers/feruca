@@ -5,7 +5,7 @@ use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_
 use crate::Tailoring;
 use crate::cea_utils::{
     ccc_sequence_ok, fill_weights, get_tables, grow_vec, handle_implicit_weights,
-    handle_low_weights, remove_pulled,
+    handle_low_weights, pack_code_points, remove_pulled,
 };
 use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
 
@@ -131,7 +131,7 @@ pub fn generate_cea(
                     // one; fell back to the initial code point; checked for discontiguous matches;
                     // and found something. Anyway, fill in the weights...
                     //
-                    if let Some(new_row) = multis.get(new_subset.as_slice()) {
+                    if let Some(new_row) = multis.get(&pack_code_points(&new_subset)) {
                         fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                         // Remove the later char(s) used for the discontiguous match
@@ -164,7 +164,7 @@ pub fn generate_cea(
             // At this point, we're trying to find a slice; this comes "before" the section above
             let subset = &char_vals[left..right];
 
-            if let Some(row) = multis.get(subset) {
+            if let Some(row) = multis.get(&pack_code_points(subset)) {
                 // If we found it, we may need to check for a discontiguous match. But that's only
                 // if we matched on a set of two code points; and we'll only skip over one to find a
                 // possible third.
@@ -188,7 +188,7 @@ pub fn generate_cea(
                         // larger discontiguous match; and again found one. For a complicated case,
                         // this is a good path. Fill in the weights...
                         //
-                        if let Some(new_row) = multis.get(new_subset.as_slice()) {
+                        if let Some(new_row) = multis.get(&pack_code_points(&new_subset)) {
                             fill_weights(cea, new_row, &mut cea_idx, shifting, &mut last_variable);
 
                             // Remove the later char used for the discontiguous match

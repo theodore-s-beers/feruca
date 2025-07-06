@@ -128,7 +128,7 @@ pub static SING: LazyLock<SinglesTable> = LazyLock::new(|| {
 });
 
 // Map a sequence of code points to its collation weights (DUCET)
-const MULT_DATA: &[u8; 17_108] = include_bytes!("bincode/multis");
+const MULT_DATA: &[u8; 18_836] = include_bytes!("bincode/multis");
 pub static MULT: LazyLock<MultisTable> = LazyLock::new(|| {
     let decoded: MultisTable = decode_from_slice(MULT_DATA, BINCODE_CONF).unwrap().0;
     decoded
@@ -165,7 +165,7 @@ pub static SING_CLDR: LazyLock<SinglesTable> = LazyLock::new(|| {
 });
 
 // Map a sequence of code points to its collation weights (CLDR)
-pub const MULT_CLDR_DATA: &[u8; 17_300] = include_bytes!("bincode/multis_cldr");
+pub const MULT_CLDR_DATA: &[u8; 19_036] = include_bytes!("bincode/multis_cldr");
 pub static MULT_CLDR: LazyLock<MultisTable> = LazyLock::new(|| {
     let decoded: MultisTable = decode_from_slice(MULT_CLDR_DATA, BINCODE_CONF).unwrap().0;
     decoded
