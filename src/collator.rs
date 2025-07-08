@@ -58,8 +58,8 @@ impl Collator {
             tailoring,
             shifting,
             tiebreak,
-            a_chars: vec![0; 32],
-            b_chars: vec![0; 32],
+            a_chars: Vec::new(),
+            b_chars: Vec::new(),
             a_cea: vec![0; 32],
             b_cea: vec![0; 32],
         }
