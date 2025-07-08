@@ -61,12 +61,10 @@ fn decompose(input: &mut Vec<u32>) {
         }
 
         if (0xAC00..=0xD7A3).contains(&code_point) {
-            let rep = decompose_jamo(code_point);
-            let n = rep.len();
+            let (len, arr) = decompose_jamo(code_point);
+            input.splice(i..=i, arr[..len].iter().copied());
 
-            input.splice(i..=i, rep);
-
-            i += n;
+            i += len;
             continue;
         }
 
@@ -81,7 +79,7 @@ fn decompose(input: &mut Vec<u32>) {
     }
 }
 
-fn decompose_jamo(s: u32) -> Vec<u32> {
+fn decompose_jamo(s: u32) -> (usize, [u32; 3]) {
     let s_index = s - S_BASE;
 
     let lv = JAMO_LV.contains(&s);
@@ -89,19 +87,16 @@ fn decompose_jamo(s: u32) -> Vec<u32> {
     let l_index = s_index / N_COUNT;
     let v_index = (s_index % N_COUNT) / T_COUNT;
 
-    if lv {
-        let l_part = L_BASE + l_index;
-        let v_part = V_BASE + v_index;
+    let l_part = L_BASE + l_index;
+    let v_part = V_BASE + v_index;
 
-        vec![l_part, v_part]
+    if lv {
+        (2, [l_part, v_part, 0])
     } else {
         let t_index = s_index % T_COUNT;
-
-        let l_part = L_BASE + l_index;
-        let v_part = V_BASE + v_index;
         let t_part = T_BASE + t_index;
 
-        vec![l_part, v_part, t_part]
+        (3, [l_part, v_part, t_part])
     }
 }
 
