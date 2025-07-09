@@ -2,6 +2,17 @@ use feruca::{Collator, Locale, Tailoring};
 use std::cmp::Ordering;
 
 #[test]
+fn arabic_interleaved() {
+    let mut names = vec!["Bob", "Alice", "أحمد"];
+    let expected = vec!["Alice", "أحمد", "Bob"];
+
+    let mut collator = Collator::new(Tailoring::Cldr(Locale::ArabicInterleaved), true, true);
+    names.sort_unstable_by(|a, b| collator.collate(a, b));
+
+    assert_eq!(names, expected);
+}
+
+#[test]
 fn arabic_script() {
     let persian = "ی";
     let latin = "a";
@@ -19,15 +30,4 @@ fn capitalization() {
     let mut collator = Collator::default();
     let comp = collator.collate(a, b);
     assert_eq!(comp, Ordering::Less);
-}
-
-#[test]
-fn arabic_interleaved() {
-    let mut names = vec!["Bob", "Alice", "أحمد"];
-    let expected = vec!["Alice", "أحمد", "Bob"];
-
-    let mut collator = Collator::new(Tailoring::Cldr(Locale::ArabicInterleaved), true, true);
-    names.sort_unstable_by(|a, b| collator.collate(a, b));
-
-    assert_eq!(names, expected);
 }
