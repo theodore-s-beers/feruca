@@ -31,3 +31,15 @@ fn capitalization() {
     let comp = collator.collate(a, b);
     assert_eq!(comp, Ordering::Less);
 }
+
+#[test]
+fn fdfa() {
+    // This will panic if the CEA length is not doubled early enough.
+    // U+FDFA has 18 sets of collation weights, more than any other code point.
+    let a = "llllllllllllllllllllllllllllllllllllllllllllllﷺ";
+    let b = "ā";
+
+    let mut collator = Collator::default();
+    let comp = collator.collate(a, b);
+    assert_eq!(comp, Ordering::Greater);
+}

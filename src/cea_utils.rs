@@ -60,7 +60,10 @@ pub fn get_tables(
 pub fn grow_vec(cea: &mut Vec<u32>, i: usize) {
     let l = cea.len();
 
-    if l - i < 10 {
+    // U+FDFA has 18 sets of collation weights!
+    // We also need one space for the sentinel value, so 19 would do it...
+    // But 20 is a nice round number.
+    if l - i < 20 {
         cea.resize(l * 2, 0);
     }
 }

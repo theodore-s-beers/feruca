@@ -60,8 +60,8 @@ impl Collator {
             tiebreak,
             a_chars: Vec::new(),
             b_chars: Vec::new(),
-            a_cea: vec![0; 32],
-            b_cea: vec![0; 32],
+            a_cea: vec![0; 64],
+            b_cea: vec![0; 64],
         }
     }
 
