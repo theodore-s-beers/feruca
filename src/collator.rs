@@ -124,15 +124,15 @@ impl Collator {
         let offset = find_prefix(&self.a_chars, &self.b_chars, self.shifting);
 
         // After prefix trimming, one of the Vecs may be empty (but not both!)
-        if self.a_chars.is_empty() || self.b_chars.is_empty() {
-            return self.a_chars.cmp(&self.b_chars);
+        if self.a_chars[offset..].is_empty() || self.b_chars[offset..].is_empty() {
+            return self.a_chars[offset..].cmp(&self.b_chars[offset..]);
         }
 
         // One last chance for an early out: if the opening code points of the two Vecs are
         // different, and neither requires checking for a multi-code-point sequence, then we can try
         // comparing their first primary weights. If those are different, and both non-zero, it's
         // decisive.
-        if let Some(o) = try_initial(self, &self.a_chars, &self.b_chars) {
+        if let Some(o) = try_initial(self, &self.a_chars[offset..], &self.b_chars[offset..]) {
             return o;
         }
 
