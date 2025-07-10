@@ -23,7 +23,7 @@ fn fcd(input: &[u32]) -> bool {
     let mut prev_trail_cc: u8 = 0;
 
     for &c in input {
-        if c < 0x00C0 {
+        if c < 0xC0 {
             prev_trail_cc = 0;
             continue;
         }
@@ -55,7 +55,7 @@ fn decompose(input: &mut Vec<u32>) {
     while i < input.len() {
         let code_point = input[i];
 
-        if code_point < 0x00C0 {
+        if code_point < 0xC0 {
             i += 1;
             continue;
         }

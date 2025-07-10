@@ -30,8 +30,8 @@ pub fn fill_and_check(
             continue; // Continue if we found identical ASCII characters
         }
 
-        let a_folded = if a > 0x005A { a - 0x20 } else { a };
-        let b_folded = if b > 0x005A { b - 0x20 } else { b };
+        let a_folded = if a > 0x5A { a - 0x20 } else { a };
+        let b_folded = if b > 0x5A { b - 0x20 } else { b };
 
         // This means the characters differ only in case (since they weren't equal before folding)
         if a_folded == b_folded {
@@ -68,7 +68,7 @@ pub fn fill_and_check(
 }
 
 fn ascii_alphanumeric(c: u32) -> bool {
-    (0x0030..=0x007A).contains(&c)
-        && !(0x003A..=0x0040).contains(&c) // Punctuation and symbols
-        && !(0x005B..=0x0060).contains(&c) // More symbols
+    (0x30..=0x7A).contains(&c)
+        && !(0x3A..=0x40).contains(&c) // Punctuation and symbols
+        && !(0x5B..=0x60).contains(&c) // More symbols
 }

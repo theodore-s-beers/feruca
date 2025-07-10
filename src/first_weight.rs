@@ -41,7 +41,7 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
     let low = if cldr { &LOW_CLDR } else { &LOW };
 
     // Fast path for low code points
-    if val < 0x00B7 && val != 0x006C && val != 0x004C {
+    if val < 0xB7 && val != 0x6C && val != 0x4C {
         let weights = low[val as usize]; // Guaranteed to succeed
 
         if shifting && variability(weights) {
