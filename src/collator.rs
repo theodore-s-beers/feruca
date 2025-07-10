@@ -6,7 +6,7 @@ use crate::ascii::fill_and_check;
 use crate::cea::generate_cea;
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
-use crate::prefix::trim_prefix;
+use crate::prefix::find_prefix;
 use crate::sort_key::compare_incremental;
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
@@ -120,9 +120,8 @@ impl Collator {
             return Ordering::Equal;
         }
 
-        // Check for a shared prefix that might be safe to trim
-        let shifting = self.shifting;
-        trim_prefix(&mut self.a_chars, &mut self.b_chars, shifting);
+        // Check for a shared prefix safe to trim; default offset is 0
+        let offset = find_prefix(&self.a_chars, &self.b_chars, self.shifting);
 
         // After prefix trimming, one of the Vecs may be empty (but not both!)
         if self.a_chars.is_empty() || self.b_chars.is_empty() {
@@ -138,12 +137,24 @@ impl Collator {
         }
 
         // Otherwise we move forward with full collation element arrays
-        let tailoring = self.tailoring;
-        generate_cea(&mut self.a_cea, &mut self.a_chars, shifting, tailoring);
-        generate_cea(&mut self.b_cea, &mut self.b_chars, shifting, tailoring);
+        generate_cea(
+            &mut self.a_cea,
+            &mut self.a_chars,
+            self.shifting,
+            self.tailoring,
+            offset,
+        );
+
+        generate_cea(
+            &mut self.b_cea,
+            &mut self.b_chars,
+            self.shifting,
+            self.tailoring,
+            offset,
+        );
 
         // Sort keys are processed incrementally, until they yield a result
-        let comparison = compare_incremental(&self.a_cea, &self.b_cea, shifting);
+        let comparison = compare_incremental(&self.a_cea, &self.b_cea, self.shifting);
 
         if comparison == Ordering::Equal && self.tiebreak {
             return a.cmp(b);

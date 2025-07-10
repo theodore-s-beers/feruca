@@ -14,6 +14,7 @@ pub fn generate_cea(
     char_vals: &mut Vec<u32>,
     shifting: bool,
     tailoring: Tailoring,
+    mut left: usize,
 ) {
     let mut input_length = char_vals.len();
 
@@ -21,7 +22,6 @@ pub fn generate_cea(
     let low = if cldr { LOW_CLDR } else { LOW };
     let (singles, multis) = get_tables(tailoring);
 
-    let mut left: usize = 0;
     let mut cea_idx: usize = 0;
     let mut last_variable = false;
 
