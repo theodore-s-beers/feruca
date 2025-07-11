@@ -5,16 +5,16 @@ fn conformance(path: &str, collator: &mut Collator) {
     let test_data = std::fs::read_to_string(path).unwrap();
 
     let mut max_line = String::new();
+    let mut test_string = String::new();
 
     'outer: for line in test_data.lines() {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
 
-        let hex_values: Vec<&str> = line.split(' ').collect();
-        let mut test_string = String::new();
+        test_string.clear();
 
-        for s in hex_values {
+        for s in line.split(' ') {
             let val = u32::from_str_radix(s, 16).unwrap();
 
             // Skip lines containing surrogate code points; they would all be replaced with U+FFFD.
@@ -31,7 +31,7 @@ fn conformance(path: &str, collator: &mut Collator) {
             panic!();
         }
 
-        max_line = test_string;
+        std::mem::swap(&mut max_line, &mut test_string);
     }
 }
 
