@@ -123,9 +123,9 @@ impl Collator {
         // Check for a shared prefix safe to trim; default offset is 0
         let offset = find_prefix(&self.a_chars, &self.b_chars, self.shifting);
 
-        // After prefix trimming, one of the Vecs may be empty (but not both!)
+        // Prefix trimming may reveal that one Vec is a prefix of the other
         if self.a_chars[offset..].is_empty() || self.b_chars[offset..].is_empty() {
-            return self.a_chars[offset..].cmp(&self.b_chars[offset..]);
+            return self.a_chars.len().cmp(&self.b_chars.len());
         }
 
         // One last chance for an early out: if the opening code points of the two Vecs are
