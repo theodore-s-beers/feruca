@@ -110,16 +110,6 @@ impl Collator {
         make_nfd(&mut self.a_chars);
         make_nfd(&mut self.b_chars);
 
-        // I think it's worth offering an out here, too, in case two strings decompose to the same.
-        // If we went forward and generated sort keys, they would be equal, anyway.
-        if self.a_chars == self.b_chars {
-            if self.tiebreak {
-                return a.cmp(b);
-            }
-
-            return Ordering::Equal;
-        }
-
         // Check for a shared prefix safe to trim; default offset is 0
         let offset = find_prefix(&self.a_chars, &self.b_chars, self.shifting);
 
