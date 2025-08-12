@@ -24,7 +24,8 @@ pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Orde
         return Ordering::Equal;
     }
 
-    if let Some(o) = compare_quaternary(a_cea, b_cea) {
+    // i.e., compare "quaternary" weights
+    if let Some(o) = compare_primary(a_cea, b_cea) {
         return o;
     }
 
@@ -140,33 +141,6 @@ fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
         }
 
         if a_t == 0 {
-            return None;
-        }
-    }
-}
-
-fn compare_quaternary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
-        .iter()
-        .take_while(|x| **x < u32::MAX)
-        .map(|w| primary(*w))
-        .filter(|q| *q != 0);
-
-    let mut b_filter = b_cea
-        .iter()
-        .take_while(|x| **x < u32::MAX)
-        .map(|w| primary(*w))
-        .filter(|q| *q != 0);
-
-    loop {
-        let a_p = a_filter.next().unwrap_or_default();
-        let b_p = b_filter.next().unwrap_or_default();
-
-        if a_p != b_p {
-            return Some(a_p.cmp(&b_p));
-        }
-
-        if a_p == 0 {
             return None;
         }
     }
