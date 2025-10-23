@@ -9,6 +9,7 @@ pub fn fill_and_check(
     let mut backup: Option<Ordering> = None;
     let mut bad = false;
 
+    #[allow(clippy::while_let_loop)]
     loop {
         let Some(a) = a_iter.next() else { break }; // Break if iterator exhausted
         a_chars.push(a);
