@@ -7,21 +7,23 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build and test
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
       - name: Use nightly Rust
-        run: |
-          rustup update nightly
-          rustup default nightly
-      - name: Build
-        run: cargo build --release --verbose
+        run: rustup default nightly
+
       - name: Run tests
-        run: cargo test --release --verbose
+        run: cargo test
