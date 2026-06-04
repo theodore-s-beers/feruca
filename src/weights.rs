@@ -16,7 +16,9 @@ pub const fn secondary(weights: u32) -> u16 {
 }
 
 pub const fn shift_weights(weights: u32, last_variable: &mut bool) -> u32 {
-    let (variable, primary, _, tertiary) = unpack_weights(weights);
+    let variable = variability(weights);
+    let primary = primary(weights);
+    let tertiary = tertiary(weights);
 
     if variable {
         *last_variable = true;
@@ -31,17 +33,6 @@ pub const fn shift_weights(weights: u32, last_variable: &mut bool) -> u32 {
 
 pub const fn tertiary(weights: u32) -> u16 {
     (((weights & 0xFFFF) >> 9) & 0b11_1111) as u16
-}
-
-pub const fn unpack_weights(packed: u32) -> (bool, u16, u16, u16) {
-    let primary = (packed >> 16) as u16;
-
-    let lower = (packed & 0xFFFF) as u16;
-    let variable = lower >> 15 == 1;
-    let secondary = lower & 0b1_1111_1111;
-    let tertiary = (lower >> 9) & 0b11_1111;
-
-    (variable, primary, secondary, tertiary)
 }
 
 pub const fn variability(weights: u32) -> bool {
