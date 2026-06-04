@@ -1,11 +1,7 @@
-use std::sync::LazyLock;
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
-use crate::consts::{INCLUDED_UNASSIGNED, MULT, MULT_CLDR, SING, SING_CLDR};
-use crate::tailor::{MULT_AR, MULT_AR_I, SING_AR, SING_AR_I};
-use crate::types::{MultisTable, SinglesTable};
+use crate::consts::INCLUDED_UNASSIGNED;
 use crate::weights::{pack_weights, shift_weights};
-use crate::{Locale, Tailoring};
 
 pub fn ccc_sequence_ok(test_range: &[u32]) -> bool {
     let mut max_ccc = 0;
@@ -40,20 +36,6 @@ pub fn fill_weights(
             cea[*i] = *weights;
             *i += 1;
         }
-    }
-}
-
-pub fn get_tables(
-    tailoring: Tailoring,
-) -> (
-    &'static LazyLock<SinglesTable>,
-    &'static LazyLock<MultisTable>,
-) {
-    match tailoring {
-        Tailoring::Cldr(Locale::ArabicScript) => (&SING_AR, &MULT_AR),
-        Tailoring::Cldr(Locale::ArabicInterleaved) => (&SING_AR_I, &MULT_AR_I),
-        Tailoring::Cldr(Locale::Root) => (&SING_CLDR, &MULT_CLDR),
-        Tailoring::Ducet => (&SING, &MULT),
     }
 }
 
@@ -129,18 +111,6 @@ pub fn implicit_b(cp: u32) -> u32 {
 
     #[allow(clippy::cast_possible_truncation)]
     pack_weights(false, bbbb as u16, 0, 0)
-}
-
-pub fn pack_code_points(code_points: &[u32]) -> u64 {
-    match code_points.len() {
-        2 => (u64::from(code_points[0]) << 21) | u64::from(code_points[1]),
-        3 => {
-            (u64::from(code_points[0]) << 42)
-                | (u64::from(code_points[1]) << 21)
-                | u64::from(code_points[2])
-        }
-        _ => unreachable!(),
-    }
 }
 
 pub fn remove_pulled(char_vals: &mut Vec<u32>, i: usize, input_length: &mut usize, try_two: bool) {

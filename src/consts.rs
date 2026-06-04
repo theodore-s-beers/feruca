@@ -1,5 +1,4 @@
-use crate::types::{MultisTable, SinglesTable};
-use rustc_hash::{FxHashMap, FxHashSet};
+use crate::tables::{CollationTable, DecompTable, FcdTable, VariableTable};
 use std::sync::LazyLock;
 
 //
@@ -10,41 +9,24 @@ use std::sync::LazyLock;
 // calculate implicit weights
 pub const INCLUDED_UNASSIGNED: [u32; 4] = [0x2B73A, 0x2B81E, 0x2CEA2, 0x2EBE1];
 
-// Code points that can start three-code-point sequences in the collation tables. These values don't
-// "need" to be u32, but that's what they'll be compared against.
-pub const NEED_THREE: [u32; 6] = [0x0CC6, 0x0DD9, 0x0FB2, 0x0FB3, 0x1611E, 0x16D63];
-
-// Code points that can start two-code-point sequences in the collation tables. This used to include
-// duplicate values from NEED_THREE, but that's unnecessary.
-pub const NEED_TWO: [u32; 71] = [
-    0x004C, 0x006C, 0x0418, 0x0438, 0x0627, 0x0648, 0x064A, 0x09C7, 0x0B47, 0x0B92, 0x0BC6, 0x0BC7,
-    0x0C46, 0x0CBF, 0x0CCA, 0x0D46, 0x0D47, 0x0DDC, 0x0E40, 0x0E41, 0x0E42, 0x0E43, 0x0E44, 0x0E4D,
-    0x0EC0, 0x0EC1, 0x0EC2, 0x0EC3, 0x0EC4, 0x0ECD, 0x0F71, 0x1025, 0x19B5, 0x19B6, 0x19B7, 0x19BA,
-    0x1B05, 0x1B07, 0x1B09, 0x1B0B, 0x1B0D, 0x1B11, 0x1B3A, 0x1B3C, 0x1B3E, 0x1B3F, 0x1B42, 0xAAB5,
-    0xAAB6, 0xAAB9, 0xAABB, 0xAABC, 0x105D2, 0x105DA, 0x11131, 0x11132, 0x11347, 0x11382, 0x11384,
-    0x1138B, 0x11390, 0x113C2, 0x114B9, 0x115B8, 0x115B9, 0x11935, 0x16121, 0x16122, 0x16129,
-    0x16D67, 0x16D69,
-];
-
 //
 // Static
 //
 
 // Map a code point to its canonical decomposition (if any)
-const DECOMP_DATA: &[u8] = include_bytes!("bincode/decomp");
-pub static DECOMP: LazyLock<SinglesTable> =
+const DECOMP_DATA: &[u8] = include_bytes!("data/decomp");
+pub static DECOMP: LazyLock<DecompTable> =
     LazyLock::new(|| postcard::from_bytes(DECOMP_DATA).unwrap());
 
 // Map a code point to the first and last CCCs (two u8s packed into a u16) of its canonical
 // decomposition (if any)
-const FCD_DATA: &[u8] = include_bytes!("bincode/fcd");
-pub static FCD: LazyLock<FxHashMap<u32, u16>> =
-    LazyLock::new(|| postcard::from_bytes(FCD_DATA).unwrap());
+const FCD_DATA: &[u8] = include_bytes!("data/fcd");
+pub static FCD: LazyLock<FcdTable> = LazyLock::new(|| postcard::from_bytes(FCD_DATA).unwrap());
 
 // Map a low code point to its collation weights (DUCET)
 // Code points are used to index into this array
 #[allow(clippy::unreadable_literal)]
-pub const LOW: [u32; 183] = [
+pub const LOW_DUCET: [u32; 183] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 33653792, 33719328, 33784864, 33850400, 33915936, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34178080, 40469536, 54166560, 63538208, 558433312,
     63603744, 63341600, 53969952, 54363168, 54428704, 62817312, 112493600, 36013088, 34440224,
@@ -64,14 +46,10 @@ pub const LOW: [u32; 183] = [
     562047008, 81888288, 657590304, 62489632,
 ];
 
-// Map a single code point to its collation weights (DUCET)
-const SING_DATA: &[u8] = include_bytes!("bincode/singles");
-pub static SING: LazyLock<SinglesTable> =
-    LazyLock::new(|| postcard::from_bytes(SING_DATA).unwrap());
-
-// Map a sequence of code points to its collation weights (DUCET)
-const MULT_DATA: &[u8] = include_bytes!("bincode/multis");
-pub static MULT: LazyLock<MultisTable> = LazyLock::new(|| postcard::from_bytes(MULT_DATA).unwrap());
+// Map non-low code points to their single-code-point weights and contraction metadata (DUCET)
+const DUCET_DATA: &[u8] = include_bytes!("data/ducet");
+pub static DUCET: LazyLock<CollationTable> =
+    LazyLock::new(|| postcard::from_bytes(DUCET_DATA).unwrap());
 
 // Map a low code point to its collation weights (CLDR)
 // Code points are used to index into this array
@@ -96,17 +74,12 @@ pub const LOW_CLDR: [u32; 183] = [
     562047008, 81855520, 724699168, 62489632,
 ];
 
-// Map a single code point to its collation weights (CLDR)
-pub const SING_CLDR_DATA: &[u8] = include_bytes!("bincode/singles_cldr");
-pub static SING_CLDR: LazyLock<SinglesTable> =
-    LazyLock::new(|| postcard::from_bytes(SING_CLDR_DATA).unwrap());
+// Map non-low code points to their single-code-point weights and contraction metadata (CLDR)
+const CLDR_ROOT_DATA: &[u8] = include_bytes!("data/cldr_root");
+pub static CLDR_ROOT: LazyLock<CollationTable> =
+    LazyLock::new(|| postcard::from_bytes(CLDR_ROOT_DATA).unwrap());
 
-// Map a sequence of code points to its collation weights (CLDR)
-pub const MULT_CLDR_DATA: &[u8] = include_bytes!("bincode/multis_cldr");
-pub static MULT_CLDR: LazyLock<MultisTable> =
-    LazyLock::new(|| postcard::from_bytes(MULT_CLDR_DATA).unwrap());
-
-// A hash set of code points that have either a variable weight, or a primary weight of zero
-const VARIABLE_DATA: &[u8] = include_bytes!("bincode/variable");
-pub static VARIABLE: LazyLock<FxHashSet<u32>> =
+// Code points that have either a variable weight, or a primary weight of zero
+const VARIABLE_DATA: &[u8] = include_bytes!("data/variable");
+pub static VARIABLE: LazyLock<VariableTable> =
     LazyLock::new(|| postcard::from_bytes(VARIABLE_DATA).unwrap());

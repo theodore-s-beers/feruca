@@ -21,7 +21,7 @@ and my guess is that it still is (though not severely). What I _do_ currently
 [benchmark](https://github.com/theodore-s-beers/feruca-benchmarks) against is
 the newer first-party implementation belonging to the
 [icu4x](https://github.com/unicode-org/icu4x) project, which is also written in
-Rust. feruca performs **on the order of 2–4x faster** than the icu4x
+Rust. feruca performs **on the order of 3–4x faster** than the icu4x
 collator—while having a much smaller feature set. My priority as a solo dev was
 to produce a relatively bare-bones implementation that passes the official UCA
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html),
@@ -64,7 +64,7 @@ with the "shifted" strategy. I think this is a good starting point.
 
 ## Example usage
 
-```rust
+```rs
 use feruca::Collator;
 
 fn main() {
@@ -126,13 +126,13 @@ handful of lines (out of hundreds of thousands) in the conformance tests need to
 be skipped. If you look at the `conformance` function in the tests module, you
 will see that any line containing a surrogate code point is passed over.
 
-## Bincode
+## Data files
 
-The binary files included with feruca represent hash tables of Unicode data.
-They are generated in a separate repository,
+The binary files in `src/data` contain generated Unicode collation and
+normalization tables. They're generated in a separate repository,
 [feruca-mapper](https://github.com/theodore-s-beers/feruca-mapper), and
-serialized using [bincode](https://docs.rs/bincode/). You can rebuild them
-yourself, if you prefer.
+serialized using [postcard](https://docs.rs/postcard/). You can rebuild them
+yourself if you prefer.
 
 ## Licensing
 

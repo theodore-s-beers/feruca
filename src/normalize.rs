@@ -32,12 +32,13 @@ fn fcd(input: &[u32]) -> bool {
             return false;
         }
 
-        let (lead_cc, trail_cc) = if let Some(&vals) = FCD.get(&c) {
-            vals.to_be_bytes().into()
-        } else {
-            let cc = get_ccc(c) as u8;
-            (cc, cc)
-        };
+        let (lead_cc, trail_cc) = FCD.get(c).map_or_else(
+            || {
+                let cc = get_ccc(c) as u8;
+                (cc, cc)
+            },
+            |vals| vals.to_be_bytes().into(),
+        );
 
         if lead_cc != 0 && lead_cc < prev_trail_cc {
             return false;
@@ -68,8 +69,8 @@ fn decompose(input: &mut Vec<u32>) {
             continue;
         }
 
-        if let Some(rep) = DECOMP.get(&code_point) {
-            input.splice(i..=i, rep.clone());
+        if let Some(rep) = DECOMP.get(code_point) {
+            input.splice(i..=i, rep.iter().copied());
 
             i += rep.len();
             continue;

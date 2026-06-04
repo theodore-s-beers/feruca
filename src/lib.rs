@@ -20,6 +20,7 @@ mod first_weight;
 mod normalize;
 mod prefix;
 mod sort_key;
+mod tables;
 mod tailor;
 
 mod types;

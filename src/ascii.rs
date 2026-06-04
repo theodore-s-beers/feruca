@@ -1,30 +1,42 @@
 use std::cmp::Ordering;
 
+pub enum AsciiResult {
+    Continue {
+        a_needs_nfd: bool,
+        b_needs_nfd: bool,
+    },
+    Done(Ordering),
+}
+
 pub fn fill_and_check(
     a_iter: &mut impl Iterator<Item = u32>,
     b_iter: &mut impl Iterator<Item = u32>,
     a_chars: &mut Vec<u32>,
     b_chars: &mut Vec<u32>,
-) -> Option<Ordering> {
+) -> AsciiResult {
     let mut backup: Option<Ordering> = None;
-    let mut bad = false;
+    let mut ascii_failed = false;
+    let mut a_needs_nfd = false;
+    let mut b_needs_nfd = false;
 
     #[allow(clippy::while_let_loop)]
     loop {
         let Some(a) = a_iter.next() else { break }; // Break if iterator exhausted
         a_chars.push(a);
+        a_needs_nfd |= a >= 0xC0;
 
         if !ascii_alphanumeric(a) {
-            bad = true;
-            break; // Break and set `bad` if non-ASCII character found
+            ascii_failed = true;
+            break; // Break and set `ascii_failed` if non-ASCII character found
         }
 
         let Some(b) = b_iter.next() else { break }; // Break if iterator exhausted
         b_chars.push(b);
+        b_needs_nfd |= b >= 0xC0;
 
         if !ascii_alphanumeric(b) {
-            bad = true;
-            break; // Break and set `bad` if non-ASCII character found
+            ascii_failed = true;
+            break; // Break and set `ascii_failed` if non-ASCII character found
         }
 
         if a == b {
@@ -47,25 +59,39 @@ pub fn fill_and_check(
         }
 
         // We found a difference between ASCII characters; return it
-        return Some(a_folded.cmp(&b_folded));
+        return AsciiResult::Done(a_folded.cmp(&b_folded));
     }
 
     // Finish filling code point Vecs
+    let a_tail_start = a_chars.len();
     a_chars.extend(a_iter);
-    b_chars.extend(b_iter);
+    a_needs_nfd |= a_chars[a_tail_start..].iter().any(|c| *c >= 0xC0);
 
-    if bad {
-        return None;
+    let b_tail_start = b_chars.len();
+    b_chars.extend(b_iter);
+    b_needs_nfd |= b_chars[b_tail_start..].iter().any(|c| *c >= 0xC0);
+
+    if ascii_failed {
+        return AsciiResult::Continue {
+            a_needs_nfd,
+            b_needs_nfd,
+        };
     }
 
     // If we found no non-ASCII characters, and one string is a prefix of the other, the longer
     // string wins.
     if a_chars.len() != b_chars.len() {
-        return Some(a_chars.len().cmp(&b_chars.len()));
+        return AsciiResult::Done(a_chars.len().cmp(&b_chars.len()));
     }
 
     // If we found an ASCII case difference, return it; otherwise this will be None
-    backup
+    backup.map_or(
+        AsciiResult::Continue {
+            a_needs_nfd,
+            b_needs_nfd,
+        },
+        AsciiResult::Done,
+    )
 }
 
 fn ascii_alphanumeric(c: u32) -> bool {

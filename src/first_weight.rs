@@ -1,24 +1,24 @@
 use std::cmp::Ordering;
 
-use crate::cea_utils::{get_tables, implicit_a};
-use crate::consts::{LOW, LOW_CLDR, NEED_THREE, NEED_TWO};
+use crate::cea_utils::implicit_a;
+use crate::collator::CollationContext;
+use crate::tables::CollationTable;
 use crate::weights::{primary, variability};
-use crate::{Collator, Tailoring};
 
-pub fn try_initial(coll: &Collator, a_chars: &[u32], b_chars: &[u32]) -> Option<Ordering> {
+pub fn try_initial(ctx: &CollationContext, a_chars: &[u32], b_chars: &[u32]) -> Option<Ordering> {
     let a_first = a_chars[0];
     let b_first = b_chars[0];
 
-    if !safe_chars(a_first, b_first) {
+    if !safe_chars(a_first, b_first, ctx.table) {
         return None;
     }
 
-    let a_first_primary = get_first_primary(a_first, coll);
+    let a_first_primary = get_first_primary(a_first, ctx);
     if a_first_primary == 0 {
         return None;
     }
 
-    let b_first_primary = get_first_primary(b_first, coll);
+    let b_first_primary = get_first_primary(b_first, ctx);
     if b_first_primary == 0 || b_first_primary == a_first_primary {
         return None;
     }
@@ -26,25 +26,16 @@ pub fn try_initial(coll: &Collator, a_chars: &[u32], b_chars: &[u32]) -> Option<
     Some(a_first_primary.cmp(&b_first_primary))
 }
 
-fn safe_chars(a: u32, b: u32) -> bool {
-    a != b
-        && !NEED_TWO.contains(&a)
-        && !NEED_TWO.contains(&b)
-        && !NEED_THREE.contains(&a)
-        && !NEED_THREE.contains(&b)
+fn safe_chars(a: u32, b: u32, table: &CollationTable) -> bool {
+    a != b && table.max_len(table.entry(a)) == 1 && table.max_len(table.entry(b)) == 1
 }
 
-fn get_first_primary(val: u32, coll: &Collator) -> u16 {
-    let cldr = coll.tailoring != Tailoring::Ducet;
-    let shifting = coll.shifting;
-
-    let low = if cldr { &LOW_CLDR } else { &LOW };
-
+fn get_first_primary(val: u32, ctx: &CollationContext) -> u16 {
     // Fast path for low code points
     if val < 0xB7 && val != 0x6C && val != 0x4C {
-        let weights = low[val as usize]; // Guaranteed to succeed
+        let weights = ctx.low[val as usize]; // Guaranteed to succeed
 
-        if shifting && variability(weights) {
+        if ctx.shifting && variability(weights) {
             return 0;
         }
 
@@ -52,10 +43,11 @@ fn get_first_primary(val: u32, coll: &Collator) -> u16 {
     }
 
     // Or look in the big table
-    let (singles, _) = get_tables(coll.tailoring);
+    let entry = ctx.table.entry(val);
 
-    if let Some(row) = singles.get(&val) {
-        if shifting && variability(row[0]) {
+    if !CollationTable::is_missing(entry) {
+        let row = ctx.table.simple_row(entry);
+        if ctx.shifting && variability(row[0]) {
             return 0;
         }
 

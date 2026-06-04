@@ -1,13 +1,16 @@
 use bstr::{B, ByteSlice};
 use std::cmp::Ordering;
 
-use crate::Tailoring;
-use crate::ascii::fill_and_check;
+use crate::ascii::{AsciiResult, fill_and_check};
 use crate::cea::generate_cea;
+use crate::consts::{CLDR_ROOT, DUCET, LOW_CLDR, LOW_DUCET};
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
 use crate::prefix::find_prefix;
 use crate::sort_key::compare_incremental;
+use crate::tables::CollationTable;
+use crate::tailor::{ARABIC_INTERLEAVED, ARABIC_SCRIPT};
+use crate::{Locale, Tailoring};
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
 /// used in collation. The method `collate` will then compare two string references (or byte slices)
@@ -97,59 +100,85 @@ impl Collator {
 
         // While iterating through input strings and filling code point Vecs, try to get a result by
         // comparing ASCII characters. This can avoid a lot of computation.
-        if let Some(o) = fill_and_check(
+        let (a_needs_nfd, b_needs_nfd) = match fill_and_check(
             &mut a_iter,
             &mut b_iter,
             &mut self.a_chars,
             &mut self.b_chars,
         ) {
-            return o;
+            AsciiResult::Done(o) => return o,
+            AsciiResult::Continue {
+                a_needs_nfd,
+                b_needs_nfd,
+            } => (a_needs_nfd, b_needs_nfd),
+        };
+
+        // Normalize to NFD if necessary
+        if a_needs_nfd {
+            make_nfd(&mut self.a_chars);
+        }
+        if b_needs_nfd {
+            make_nfd(&mut self.b_chars);
         }
 
-        // Normalize to NFD
-        make_nfd(&mut self.a_chars);
-        make_nfd(&mut self.b_chars);
+        // Define collation context for subsequent steps
+        let ctx = CollationContext::new(self.shifting, self.tailoring);
 
         // Check for a shared prefix safe to trim; default offset is 0
-        let offset = find_prefix(&self.a_chars, &self.b_chars, self.shifting);
+        let offset = find_prefix(&self.a_chars, &self.b_chars, &ctx);
 
         // Prefix trimming may reveal that one Vec is a prefix of the other
         if self.a_chars[offset..].is_empty() || self.b_chars[offset..].is_empty() {
             return self.a_chars.len().cmp(&self.b_chars.len());
         }
 
-        // One last chance for an early out: if the opening code points of the two Vecs are
-        // different, and neither requires checking for a multi-code-point sequence, then we can try
-        // comparing their first primary weights. If those are different, and both non-zero, it's
-        // decisive.
-        if let Some(o) = try_initial(self, &self.a_chars[offset..], &self.b_chars[offset..]) {
+        // One last early out: if the opening code points of the Vecs are different, and neither
+        // requires checking for a multi-code-point sequence, then we can try comparing their first
+        // primary weights. If those are different, and both non-zero, it's decisive.
+        if let Some(o) = try_initial(&ctx, &self.a_chars[offset..], &self.b_chars[offset..]) {
             return o;
         }
 
         // Otherwise we move forward with full collation element arrays
-        generate_cea(
-            &mut self.a_cea,
-            &mut self.a_chars,
-            self.shifting,
-            self.tailoring,
-            offset,
-        );
-
-        generate_cea(
-            &mut self.b_cea,
-            &mut self.b_chars,
-            self.shifting,
-            self.tailoring,
-            offset,
-        );
+        generate_cea(&mut self.a_cea, &mut self.a_chars, &ctx, offset);
+        generate_cea(&mut self.b_cea, &mut self.b_chars, &ctx, offset);
 
         // Sort keys are processed incrementally, until they yield a result
-        let comparison = compare_incremental(&self.a_cea, &self.b_cea, self.shifting);
+        let comparison = compare_incremental(&self.a_cea, &self.b_cea, ctx.shifting);
 
         if comparison == Ordering::Equal && self.tiebreak {
             return a.cmp(b);
         }
 
         comparison
+    }
+}
+
+pub struct CollationContext {
+    pub shifting: bool,
+    pub cldr: bool,
+    pub table: &'static CollationTable,
+    pub low: &'static [u32],
+}
+
+impl CollationContext {
+    fn new(shifting: bool, tailoring: Tailoring) -> Self {
+        let cldr = tailoring != Tailoring::Ducet;
+
+        Self {
+            shifting,
+            cldr,
+            table: get_collation_table(tailoring),
+            low: if cldr { &LOW_CLDR } else { &LOW_DUCET },
+        }
+    }
+}
+
+fn get_collation_table(tailoring: Tailoring) -> &'static CollationTable {
+    match tailoring {
+        Tailoring::Cldr(Locale::ArabicScript) => &ARABIC_SCRIPT,
+        Tailoring::Cldr(Locale::ArabicInterleaved) => &ARABIC_INTERLEAVED,
+        Tailoring::Cldr(Locale::Root) => &CLDR_ROOT,
+        Tailoring::Ducet => &DUCET,
     }
 }
