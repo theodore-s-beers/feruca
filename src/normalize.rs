@@ -1,6 +1,6 @@
 use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
-use crate::consts::{DECOMP, FCD, JAMO_LV};
+use crate::consts::{DECOMP, FCD};
 
 // Jamo-related consts; they live here for now
 const S_BASE: u32 = 0xAC00;
@@ -79,10 +79,8 @@ fn decompose(input: &mut Vec<u32>) {
     }
 }
 
-fn decompose_jamo(s: u32) -> (usize, [u32; 3]) {
+const fn decompose_jamo(s: u32) -> (usize, [u32; 3]) {
     let s_index = s - S_BASE;
-
-    let lv = JAMO_LV.contains(&s);
 
     let l_index = s_index / N_COUNT;
     let v_index = (s_index % N_COUNT) / T_COUNT;
@@ -90,7 +88,7 @@ fn decompose_jamo(s: u32) -> (usize, [u32; 3]) {
     let l_part = L_BASE + l_index;
     let v_part = V_BASE + v_index;
 
-    if lv {
+    if s_index.is_multiple_of(T_COUNT) {
         (2, [l_part, v_part, 0])
     } else {
         let t_index = s_index % T_COUNT;
