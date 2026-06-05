@@ -6,7 +6,7 @@ use crate::cea::generate_cea;
 use crate::consts::{CLDR_ROOT, DUCET, LOW_CLDR, LOW_DUCET};
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
-use crate::prefix::find_prefix;
+use crate::prefix::{find_byte_prefix, find_prefix};
 use crate::sort_key::compare_incremental;
 use crate::tables::CollationTable;
 use crate::tailor::{ARABIC_INTERLEAVED, ARABIC_SCRIPT};
@@ -90,9 +90,24 @@ impl Collator {
             return Ordering::Equal;
         }
 
+        let a_bytes = a.as_ref();
+        let b_bytes = b.as_ref();
+        let mut ctx = None;
+
+        let byte_offset = if has_byte_prefix(a_bytes, b_bytes) {
+            let current_ctx =
+                ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
+            find_byte_prefix(a_bytes, b_bytes, current_ctx)
+        } else {
+            0
+        };
+
+        let a_bytes = &a_bytes[byte_offset..];
+        let b_bytes = &b_bytes[byte_offset..];
+
         // Validate UTF-8 and make iterators for u32 code points
-        let mut a_iter = B(a).chars().map(|c| c as u32);
-        let mut b_iter = B(b).chars().map(|c| c as u32);
+        let mut a_iter = B(a_bytes).chars().map(|c| c as u32);
+        let mut b_iter = B(b_bytes).chars().map(|c| c as u32);
 
         // Clear code point Vecs
         self.a_chars.clear();
@@ -122,10 +137,10 @@ impl Collator {
         }
 
         // Define collation context for subsequent steps
-        let ctx = CollationContext::new(self.shifting, self.tailoring);
+        let ctx = ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
 
         // Check for a shared prefix safe to trim; default offset is 0
-        let offset = find_prefix(&self.a_chars, &self.b_chars, &ctx);
+        let offset = find_prefix(&self.a_chars, &self.b_chars, ctx);
 
         // Prefix trimming may reveal that one Vec is a prefix of the other
         if self.a_chars[offset..].is_empty() || self.b_chars[offset..].is_empty() {
@@ -135,13 +150,13 @@ impl Collator {
         // One last early out: if the opening code points of the Vecs are different, and neither
         // requires checking for a multi-code-point sequence, then we can try comparing their first
         // primary weights. If those are different, and both non-zero, it's decisive.
-        if let Some(o) = try_initial(&ctx, &self.a_chars[offset..], &self.b_chars[offset..]) {
+        if let Some(o) = try_initial(ctx, &self.a_chars[offset..], &self.b_chars[offset..]) {
             return o;
         }
 
         // Otherwise we move forward with full collation element arrays
-        generate_cea(&mut self.a_cea, &mut self.a_chars, &ctx, offset);
-        generate_cea(&mut self.b_cea, &mut self.b_chars, &ctx, offset);
+        generate_cea(&mut self.a_cea, &mut self.a_chars, ctx, offset);
+        generate_cea(&mut self.b_cea, &mut self.b_chars, ctx, offset);
 
         // Sort keys are processed incrementally, until they yield a result
         let comparison = compare_incremental(&self.a_cea, &self.b_cea, ctx.shifting);
@@ -152,6 +167,10 @@ impl Collator {
 
         comparison
     }
+}
+
+fn has_byte_prefix(a: &[u8], b: &[u8]) -> bool {
+    a.first().zip(b.first()).is_some_and(|(x, y)| x == y)
 }
 
 pub struct CollationContext {
