@@ -1,7 +1,7 @@
 use bstr::{B, ByteSlice};
 use std::cmp::Ordering;
 
-use crate::ascii::{AsciiResult, fill_and_check};
+use crate::ascii::{AsciiResult, compare_ascii_primary_non_ignorable, fill_and_check};
 use crate::cea::generate_cea;
 use crate::consts::{CLDR_ROOT, DUCET, LOW_CLDR, LOW_DUCET};
 use crate::first_weight::try_initial;
@@ -104,6 +104,16 @@ impl Collator {
 
         let a_bytes = &a_bytes[byte_offset..];
         let b_bytes = &b_bytes[byte_offset..];
+
+        if !self.shifting {
+            let current_ctx =
+                ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
+            if let Some(comparison) =
+                compare_ascii_primary_non_ignorable(a_bytes, b_bytes, current_ctx.low)
+            {
+                return comparison;
+            }
+        }
 
         // Validate UTF-8 and make iterators for u32 code points
         let mut a_iter = B(a_bytes).chars().map(|c| c as u32);

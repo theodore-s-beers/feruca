@@ -1,11 +1,71 @@
 use std::cmp::Ordering;
 
+use crate::weights::primary;
+
 pub enum AsciiResult {
     Continue {
         a_needs_nfd: bool,
         b_needs_nfd: bool,
     },
     Done(Ordering),
+}
+
+pub fn compare_ascii_primary_non_ignorable(a: &[u8], b: &[u8], low: &[u32]) -> Option<Ordering> {
+    let mut a_iter = PrimaryIter::new(a, low);
+    let mut b_iter = PrimaryIter::new(b, low);
+
+    loop {
+        let a_primary = a_iter.next_primary()?;
+        let b_primary = b_iter.next_primary()?;
+
+        if a_primary != b_primary {
+            return Some(a_primary.cmp(&b_primary));
+        }
+
+        if a_primary == 0 {
+            return None;
+        }
+    }
+}
+
+struct PrimaryIter<'a> {
+    bytes: &'a [u8],
+    low: &'a [u32],
+    pos: usize,
+}
+
+impl<'a> PrimaryIter<'a> {
+    const fn new(bytes: &'a [u8], low: &'a [u32]) -> Self {
+        Self { bytes, low, pos: 0 }
+    }
+
+    fn next_primary(&mut self) -> Option<u16> {
+        loop {
+            let Some(&byte) = self.bytes.get(self.pos) else {
+                return Some(0);
+            };
+
+            if !safe_ascii_low_byte(byte) {
+                return None;
+            }
+
+            self.pos += 1;
+
+            let weights = self.low[usize::from(byte)];
+            if weights == 0 {
+                return None;
+            }
+
+            let primary = primary(weights);
+            if primary != 0 {
+                return Some(primary);
+            }
+        }
+    }
+}
+
+const fn safe_ascii_low_byte(byte: u8) -> bool {
+    byte < 0x80 && byte != b'L' && byte != b'l'
 }
 
 pub fn fill_and_check(
