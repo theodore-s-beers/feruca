@@ -62,3 +62,17 @@ fn cldr_shifted() {
     let mut collator = Collator::new(Tailoring::default(), true, false);
     conformance(path, &mut collator);
 }
+
+#[cfg(feature = "pipeline-stats")]
+#[test]
+fn lazy_utf8_primary_path_conforms() {
+    let a = "l".repeat(40);
+    let b = "m".repeat(40);
+
+    let mut collator = Collator::new(Tailoring::default(), false, false);
+    let comparison = collator.collate(&a, &b);
+
+    assert_eq!(comparison, Ordering::Less);
+    assert_eq!(collator.stats().lazy_utf8_primary_attempts, 1);
+    assert_eq!(collator.stats().lazy_utf8_primary_resolved, 1);
+}
