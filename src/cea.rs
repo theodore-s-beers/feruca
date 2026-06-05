@@ -2,6 +2,8 @@
 
 use crate::cea_utils::{implicit_a, implicit_b, remove_pulled};
 use crate::collator::CollationContext;
+#[cfg(feature = "pipeline-stats")]
+use crate::collator::PipelineStats;
 use crate::tables::CollationTable;
 use crate::weights::{primary, shift_weights, variability};
 use std::cmp::Ordering;
@@ -16,6 +18,7 @@ pub fn compare_primary_streaming(
     b_chars: &mut Vec<u32>,
     ctx: &CollationContext,
     left: usize,
+    #[cfg(feature = "pipeline-stats")] stats: &mut PipelineStats,
 ) -> Option<Ordering> {
     a_cea.clear();
     b_cea.clear();
@@ -28,12 +31,25 @@ pub fn compare_primary_streaming(
         let b_p = next_primary(&mut b_cursor, b_cea, ctx.shifting);
 
         if a_p != b_p {
+            #[cfg(feature = "pipeline-stats")]
+            {
+                stats.codepoints_consumed_primary +=
+                    u64::try_from(a_cursor.consumed() + b_cursor.consumed()).unwrap_or(u64::MAX);
+            }
+
             return Some(a_p.cmp(&b_p));
         }
 
         if a_p == 0 {
             a_cea.push(u32::MAX);
             b_cea.push(u32::MAX);
+
+            #[cfg(feature = "pipeline-stats")]
+            {
+                stats.codepoints_consumed_primary +=
+                    u64::try_from(a_cursor.consumed() + b_cursor.consumed()).unwrap_or(u64::MAX);
+            }
+
             return None;
         }
     }
@@ -79,6 +95,11 @@ impl<'a, S: CodePointSource> CeaCursor<'a, S> {
             pending_len: 0,
             last_variable: false,
         }
+    }
+
+    #[cfg(feature = "pipeline-stats")]
+    fn consumed(&self) -> usize {
+        self.source.consumed()
     }
 
     fn next_ce(&mut self) -> Option<u32> {
@@ -229,6 +250,8 @@ impl<'a, S: CodePointSource> CeaCursor<'a, S> {
 
 struct VecSource<'a> {
     chars: &'a mut Vec<u32>,
+    #[cfg(feature = "pipeline-stats")]
+    start: usize,
     pos: usize,
     len: usize,
 }
@@ -236,6 +259,8 @@ struct VecSource<'a> {
 trait CodePointSource {
     fn is_empty(&self) -> bool;
     fn remaining(&self) -> usize;
+    #[cfg(feature = "pipeline-stats")]
+    fn consumed(&self) -> usize;
     fn peek(&self, offset: usize) -> Option<u32>;
     fn consume(&mut self, count: usize);
     fn remove_pulled_lookahead(&mut self, offset: usize, pulled_two: bool);
@@ -244,6 +269,8 @@ trait CodePointSource {
 impl<'a> VecSource<'a> {
     const fn new(chars: &'a mut Vec<u32>, pos: usize) -> Self {
         Self {
+            #[cfg(feature = "pipeline-stats")]
+            start: pos,
             pos,
             len: chars.len(),
             chars,
@@ -258,6 +285,11 @@ impl CodePointSource for VecSource<'_> {
 
     fn remaining(&self) -> usize {
         self.len - self.pos
+    }
+
+    #[cfg(feature = "pipeline-stats")]
+    fn consumed(&self) -> usize {
+        self.pos - self.start
     }
 
     fn peek(&self, offset: usize) -> Option<u32> {

@@ -15,6 +15,9 @@ mod cea_utils;
 mod collator;
 pub use collator::Collator;
 
+#[cfg(feature = "pipeline-stats")]
+pub use collator::PipelineStats;
+
 mod consts;
 mod first_weight;
 mod normalize;

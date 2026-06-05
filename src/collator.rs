@@ -11,6 +11,47 @@ use crate::{Locale, Tailoring};
 use bstr::{B, ByteSlice};
 use std::cmp::Ordering;
 
+#[cfg(feature = "pipeline-stats")]
+/// Diagnostic counters for `Collator::collate`.
+///
+/// These counters are intended for benchmarking and pipeline experiments. They are available only
+/// when the `pipeline-stats` feature is enabled.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct PipelineStats {
+    /// Total calls to `Collator::collate`.
+    pub comparisons: u64,
+    /// Calls that returned from the initial exact-equality check.
+    pub equal_early: u64,
+    /// Calls where a byte prefix was trimmed before UTF-8 decoding.
+    pub byte_prefix_trimmed: u64,
+    /// Total bytes trimmed by byte-prefix trimming, counted once per compared pair.
+    pub byte_prefix_bytes_trimmed: u64,
+    /// Calls resolved by the non-ignorable ASCII primary fast path.
+    pub ascii_primary_resolved: u64,
+    /// Calls resolved while filling code point buffers with ASCII-aware comparison.
+    pub fill_ascii_resolved: u64,
+    /// Input sides normalized to NFD.
+    pub nfd_normalizations: u64,
+    /// Total code points decoded into the comparison buffers before NFD normalization.
+    pub codepoints_decoded: u64,
+    /// Calls where a code point prefix was trimmed after UTF-8 decoding and normalization.
+    pub codepoint_prefix_trimmed: u64,
+    /// Total code points trimmed by code point prefix trimming, counted once per compared pair.
+    pub codepoint_prefix_codepoints_trimmed: u64,
+    /// Calls resolved by the initial-primary check.
+    pub initial_primary_resolved: u64,
+    /// Calls resolved by streaming primary collation element generation.
+    pub streaming_primary_resolved: u64,
+    /// Total code points consumed by streaming primary generation after code point prefix trimming.
+    pub codepoints_consumed_primary: u64,
+    /// Calls that reached secondary/tertiary/quaternary comparison.
+    pub later_levels_reached: u64,
+    /// Calls resolved by secondary/tertiary/quaternary comparison.
+    pub later_levels_resolved: u64,
+    /// Calls resolved by byte-value tiebreaking after equivalent collation weights.
+    pub tiebreak_resolved: u64,
+}
+
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
 /// used in collation. The method `collate` will then compare two string references (or byte slices)
 /// according to the selected options, and return an `Ordering` value.
@@ -43,6 +84,8 @@ pub struct Collator {
     b_chars: Vec<u32>,
     a_cea: Vec<u32>,
     b_cea: Vec<u32>,
+    #[cfg(feature = "pipeline-stats")]
+    stats: PipelineStats,
 }
 
 impl Default for Collator {
@@ -64,7 +107,44 @@ impl Collator {
             b_chars: Vec::new(),
             a_cea: vec![0; 64],
             b_cea: vec![0; 64],
+
+            #[cfg(feature = "pipeline-stats")]
+            stats: PipelineStats::default(),
         }
+    }
+
+    /// Return diagnostic counters for this collator.
+    ///
+    /// This method is available only when the `pipeline-stats` feature is enabled.
+    #[cfg(feature = "pipeline-stats")]
+    #[must_use]
+    pub const fn stats(&self) -> &PipelineStats {
+        &self.stats
+    }
+
+    /// Reset diagnostic counters for this collator.
+    ///
+    /// This method is available only when the `pipeline-stats` feature is enabled.
+    #[cfg(feature = "pipeline-stats")]
+    pub const fn clear_stats(&mut self) {
+        self.stats = PipelineStats {
+            comparisons: 0,
+            equal_early: 0,
+            byte_prefix_trimmed: 0,
+            byte_prefix_bytes_trimmed: 0,
+            ascii_primary_resolved: 0,
+            fill_ascii_resolved: 0,
+            nfd_normalizations: 0,
+            codepoints_decoded: 0,
+            codepoint_prefix_trimmed: 0,
+            codepoint_prefix_codepoints_trimmed: 0,
+            initial_primary_resolved: 0,
+            streaming_primary_resolved: 0,
+            codepoints_consumed_primary: 0,
+            later_levels_reached: 0,
+            later_levels_resolved: 0,
+            tiebreak_resolved: 0,
+        };
     }
 
     /// This is the primary method in the library. It accepts as arguments two string references or
@@ -83,9 +163,20 @@ impl Collator {
     /// let expected = ["Émile", "Ernie", "Peña", "Peng"];
     /// assert_eq!(names, expected);
     /// ```
+    #[allow(clippy::too_many_lines)]
     pub fn collate<T: AsRef<[u8]> + Ord + ?Sized>(&mut self, a: &T, b: &T) -> Ordering {
+        #[cfg(feature = "pipeline-stats")]
+        {
+            self.stats.comparisons += 1;
+        }
+
         // Early out; equal is equal
         if a == b {
+            #[cfg(feature = "pipeline-stats")]
+            {
+                self.stats.equal_early += 1;
+            }
+
             return Ordering::Equal;
         }
 
@@ -101,6 +192,12 @@ impl Collator {
             0
         };
 
+        #[cfg(feature = "pipeline-stats")]
+        if byte_offset > 0 {
+            self.stats.byte_prefix_trimmed += 1;
+            self.stats.byte_prefix_bytes_trimmed += u64::try_from(byte_offset).unwrap_or(u64::MAX);
+        }
+
         let a_bytes = &a_bytes[byte_offset..];
         let b_bytes = &b_bytes[byte_offset..];
 
@@ -110,6 +207,11 @@ impl Collator {
             if let Some(comparison) =
                 compare_ascii_primary_non_ignorable(a_bytes, b_bytes, current_ctx.low)
             {
+                #[cfg(feature = "pipeline-stats")]
+                {
+                    self.stats.ascii_primary_resolved += 1;
+                }
+
                 return comparison;
             }
         }
@@ -124,13 +226,28 @@ impl Collator {
 
         // While iterating through input strings and filling code point Vecs, try to get a result by
         // comparing ASCII characters. This can avoid a lot of computation.
-        let (a_needs_nfd, b_needs_nfd) = match fill_and_check(
+        let ascii_result = fill_and_check(
             &mut a_iter,
             &mut b_iter,
             &mut self.a_chars,
             &mut self.b_chars,
-        ) {
-            AsciiResult::Done(o) => return o,
+        );
+
+        #[cfg(feature = "pipeline-stats")]
+        {
+            self.stats.codepoints_decoded +=
+                u64::try_from(self.a_chars.len() + self.b_chars.len()).unwrap_or(u64::MAX);
+        }
+
+        let (a_needs_nfd, b_needs_nfd) = match ascii_result {
+            AsciiResult::Done(o) => {
+                #[cfg(feature = "pipeline-stats")]
+                {
+                    self.stats.fill_ascii_resolved += 1;
+                }
+
+                return o;
+            }
             AsciiResult::Continue {
                 a_needs_nfd,
                 b_needs_nfd,
@@ -139,9 +256,19 @@ impl Collator {
 
         // Normalize to NFD if necessary
         if a_needs_nfd {
+            #[cfg(feature = "pipeline-stats")]
+            {
+                self.stats.nfd_normalizations += 1;
+            }
+
             make_nfd(&mut self.a_chars);
         }
         if b_needs_nfd {
+            #[cfg(feature = "pipeline-stats")]
+            {
+                self.stats.nfd_normalizations += 1;
+            }
+
             make_nfd(&mut self.b_chars);
         }
 
@@ -150,6 +277,13 @@ impl Collator {
 
         // Check for a shared prefix safe to trim; default offset is 0
         let offset = find_prefix(&self.a_chars, &self.b_chars, ctx);
+
+        #[cfg(feature = "pipeline-stats")]
+        if offset > 0 {
+            self.stats.codepoint_prefix_trimmed += 1;
+            self.stats.codepoint_prefix_codepoints_trimmed +=
+                u64::try_from(offset).unwrap_or(u64::MAX);
+        }
 
         // Prefix trimming may reveal that one Vec is a prefix of the other
         if self.a_chars[offset..].is_empty() || self.b_chars[offset..].is_empty() {
@@ -160,6 +294,11 @@ impl Collator {
         // requires checking for a multi-code-point sequence, then we can try comparing their first
         // primary weights. If those are different, and both non-zero, it's decisive.
         if let Some(o) = try_initial(ctx, &self.a_chars[offset..], &self.b_chars[offset..]) {
+            #[cfg(feature = "pipeline-stats")]
+            {
+                self.stats.initial_primary_resolved += 1;
+            }
+
             return o;
         }
 
@@ -172,15 +311,37 @@ impl Collator {
             &mut self.b_chars,
             ctx,
             offset,
+            #[cfg(feature = "pipeline-stats")]
+            &mut self.stats,
         ) {
+            #[cfg(feature = "pipeline-stats")]
+            {
+                self.stats.streaming_primary_resolved += 1;
+            }
+
             return comparison;
         }
 
         // Sort keys are processed incrementally, until they yield a result
+        #[cfg(feature = "pipeline-stats")]
+        {
+            self.stats.later_levels_reached += 1;
+        }
+
         let comparison = compare_incremental(&self.a_cea, &self.b_cea, ctx.shifting);
 
         if comparison == Ordering::Equal && self.tiebreak {
+            #[cfg(feature = "pipeline-stats")]
+            {
+                self.stats.tiebreak_resolved += 1;
+            }
+
             return a.cmp(b);
+        }
+
+        #[cfg(feature = "pipeline-stats")]
+        if comparison != Ordering::Equal {
+            self.stats.later_levels_resolved += 1;
         }
 
         comparison

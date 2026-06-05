@@ -17,6 +17,9 @@ rustc-hash = "2.1.2"
 serde = "1.0.228"
 unicode-canonical-combining-class = "1.0.0"
 
+[features]
+pipeline-stats = []
+
 [dev-dependencies]
 criterion = "0.8.2"
 
