@@ -1,8 +1,5 @@
-use bstr::{B, ByteSlice};
-use std::cmp::Ordering;
-
 use crate::ascii::{AsciiResult, compare_ascii_primary_non_ignorable, fill_and_check};
-use crate::cea::generate_cea;
+use crate::cea::compare_primary_streaming;
 use crate::consts::{CLDR_ROOT, DUCET, LOW_CLDR, LOW_DUCET};
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
@@ -11,6 +8,8 @@ use crate::sort_key::compare_incremental;
 use crate::tables::CollationTable;
 use crate::tailor::{ARABIC_INTERLEAVED, ARABIC_SCRIPT};
 use crate::{Locale, Tailoring};
+use bstr::{B, ByteSlice};
+use std::cmp::Ordering;
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
 /// used in collation. The method `collate` will then compare two string references (or byte slices)
@@ -164,9 +163,18 @@ impl Collator {
             return o;
         }
 
-        // Otherwise we move forward with full collation element arrays
-        generate_cea(&mut self.a_cea, &mut self.a_chars, ctx, offset);
-        generate_cea(&mut self.b_cea, &mut self.b_chars, ctx, offset);
+        // Otherwise, compare primary weights while generating collation elements. If primary
+        // weights tie, the generated buffers are complete and can be reused for later levels.
+        if let Some(comparison) = compare_primary_streaming(
+            &mut self.a_cea,
+            &mut self.b_cea,
+            &mut self.a_chars,
+            &mut self.b_chars,
+            ctx,
+            offset,
+        ) {
+            return comparison;
+        }
 
         // Sort keys are processed incrementally, until they yield a result
         let comparison = compare_incremental(&self.a_cea, &self.b_cea, ctx.shifting);

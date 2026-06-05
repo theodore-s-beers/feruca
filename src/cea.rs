@@ -1,112 +1,178 @@
 #![allow(clippy::similar_names)]
 
-use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
-
-use crate::cea_utils::{
-    ccc_sequence_ok, fill_weights, grow_vec, handle_implicit_weights, handle_low_weights,
-    remove_pulled,
-};
+use crate::cea_utils::{implicit_a, implicit_b, remove_pulled};
 use crate::collator::CollationContext;
 use crate::tables::CollationTable;
+use crate::weights::{primary, shift_weights, variability};
+use std::cmp::Ordering;
+use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
-pub fn generate_cea(
-    cea: &mut Vec<u32>,
-    chars: &mut Vec<u32>,
+const PENDING_CE_CAPACITY: usize = 20;
+
+pub fn compare_primary_streaming(
+    a_cea: &mut Vec<u32>,
+    b_cea: &mut Vec<u32>,
+    a_chars: &mut Vec<u32>,
+    b_chars: &mut Vec<u32>,
     ctx: &CollationContext,
-    mut left: usize,
-) {
-    let mut input_len = chars.len();
-    let table = ctx.table;
+    left: usize,
+) -> Option<Ordering> {
+    a_cea.clear();
+    b_cea.clear();
 
-    let mut cea_idx: usize = 0;
-    let mut last_variable = false;
+    let mut a_cursor = CeaCursor::new(VecSource::new(a_chars, left), ctx);
+    let mut b_cursor = CeaCursor::new(VecSource::new(b_chars, left), ctx);
 
-    // We spend essentially the entire function in this loop.
-    'outer: while left < input_len {
-        let left_val = chars[left];
+    loop {
+        let a_p = next_primary(&mut a_cursor, a_cea, ctx.shifting);
+        let b_p = next_primary(&mut b_cursor, b_cea, ctx.shifting);
 
-        grow_vec(cea, cea_idx);
+        if a_p != b_p {
+            return Some(a_p.cmp(&b_p));
+        }
+
+        if a_p == 0 {
+            a_cea.push(u32::MAX);
+            b_cea.push(u32::MAX);
+            return None;
+        }
+    }
+}
+
+fn next_primary(
+    cursor: &mut CeaCursor<'_, impl CodePointSource>,
+    buffer: &mut Vec<u32>,
+    shifting: bool,
+) -> u16 {
+    while let Some(weights) = cursor.next_ce() {
+        buffer.push(weights);
+
+        if shifting && variability(weights) {
+            continue;
+        }
+
+        let primary = primary(weights);
+        if primary != 0 {
+            return primary;
+        }
+    }
+
+    0
+}
+
+struct CeaCursor<'a, S> {
+    source: S,
+    ctx: &'a CollationContext,
+    pending: [u32; PENDING_CE_CAPACITY],
+    pending_start: usize,
+    pending_len: usize,
+    last_variable: bool,
+}
+
+impl<'a, S: CodePointSource> CeaCursor<'a, S> {
+    const fn new(source: S, ctx: &'a CollationContext) -> Self {
+        Self {
+            source,
+            ctx,
+            pending: [0; PENDING_CE_CAPACITY],
+            pending_start: 0,
+            pending_len: 0,
+            last_variable: false,
+        }
+    }
+
+    fn next_ce(&mut self) -> Option<u32> {
+        loop {
+            if self.pending_start < self.pending_len {
+                let weights = self.pending[self.pending_start];
+                self.pending_start += 1;
+                return Some(weights);
+            }
+
+            if self.source.is_empty() {
+                return None;
+            }
+
+            self.pending_len = 0;
+            self.pending_start = 0;
+            self.queue_next_match();
+        }
+    }
+
+    fn queue_next_match(&mut self) {
+        let left_val = self.source.peek(0).unwrap();
 
         // Fast path for most low code points, including most ASCII characters that remain after
         // the initial ASCII check in `Collator::collate`.
         if left_val < 0xB7 && left_val != 0x6C && left_val != 0x4C {
-            let weights = ctx.low[left_val as usize];
-            handle_low_weights(cea, weights, &mut cea_idx, ctx.shifting, &mut last_variable);
-            left += 1;
-            continue;
+            self.queue_weight(self.ctx.low[left_val as usize]);
+            self.source.consume(1);
+            return;
         }
 
         // Above the low table, the collation table gives us either a simple row, a missing entry
         // requiring implicit weights, or a contraction start with lookahead metadata.
+        let table = self.ctx.table;
         let entry = table.entry(left_val);
         let lookahead = table.max_len(entry);
 
         if lookahead == 1 {
             if CollationTable::is_missing(entry) {
                 // Unlisted code points receive implicit weights.
-                handle_implicit_weights(cea, left_val, &mut cea_idx);
+                self.queue_raw_weight(implicit_a(left_val));
+                self.queue_raw_weight(implicit_b(left_val));
             } else {
                 // Simple one-code-point match.
-                fill_weights(
-                    cea,
-                    table.simple_row(entry),
-                    &mut cea_idx,
-                    ctx.shifting,
-                    &mut last_variable,
-                );
+                self.queue_row(table.simple_row(entry));
             }
 
-            left += 1;
-            continue;
+            self.source.consume(1);
+            return;
         }
 
         // This is a contraction-start entry, but there's no following code point to match. Fall
         // back to its simple row.
-        if input_len - left == 1 {
-            fill_weights(
-                cea,
-                table.simple_row(entry),
-                &mut cea_idx,
-                ctx.shifting,
-                &mut last_variable,
-            );
-
-            left += 1;
-            continue;
+        if self.source.remaining() == 1 {
+            self.queue_row(table.simple_row(entry));
+            self.source.consume(1);
+            return;
         }
 
         // Try the longest contiguous contraction first, without looking past the end of the input.
-        let mut right = input_len.min(left + lookahead);
+        let mut match_len = self.source.remaining().min(lookahead);
 
-        while right > left {
+        while match_len > 0 {
             // Contiguous contraction attempts failed. Fall back to the first code point, but first
             // check whether later combining marks can form a discontiguous contraction.
-            if right - left == 1 {
+            if match_len == 1 {
                 let row = table.simple_row(entry);
 
                 // A discontiguous contraction was found after a single-code-point fallback. Remove
                 // the later code point(s) so they aren't processed again.
                 if let Some((pull_index, pulled_two, new_row)) =
-                    try_pulled_contraction(ctx, entry, chars, right, input_len)
+                    try_pulled_contraction(self.ctx, entry, &self.source, match_len)
                 {
-                    fill_weights(cea, new_row, &mut cea_idx, ctx.shifting, &mut last_variable);
-                    remove_pulled(chars, pull_index, &mut input_len, pulled_two);
+                    self.queue_row(new_row);
+                    self.source.remove_pulled_lookahead(pull_index, pulled_two);
 
-                    left += 1;
-                    continue 'outer;
+                    self.source.consume(1);
+                    return;
                 }
 
                 // No contraction matched; emit the simple row.
-                fill_weights(cea, row, &mut cea_idx, ctx.shifting, &mut last_variable);
-                left += 1;
-                continue 'outer;
+                self.queue_row(row);
+                self.source.consume(1);
+                return;
             }
 
             // Try the current contiguous subset. The table supports contractions of length 2 or 3.
-            let subset_len = right - left;
-            let row = match subset_len {
-                2 => table.get2(entry, chars[left + 1]),
-                3 => table.get3(entry, chars[left + 1], chars[left + 2]),
+            let row = match match_len {
+                2 => table.get2(entry, self.source.peek(1).unwrap()),
+                3 => table.get3(
+                    entry,
+                    self.source.peek(1).unwrap(),
+                    self.source.peek(2).unwrap(),
+                ),
                 _ => unreachable!(),
             };
 
@@ -114,93 +180,177 @@ pub fn generate_cea(
                 // A two-code-point contraction can sometimes be extended by pulling in a later
                 // combining mark, provided the canonical combining classes allow it.
                 if let Some(new_row) =
-                    try_discontiguous_contraction(table, entry, chars, left, right)
+                    try_discontiguous_contraction(table, entry, &self.source, match_len)
                 {
-                    fill_weights(cea, new_row, &mut cea_idx, ctx.shifting, &mut last_variable);
-                    remove_pulled(chars, right + 1, &mut input_len, false);
+                    self.queue_row(new_row);
+                    self.source.remove_pulled_lookahead(match_len + 1, false);
 
-                    left += right - left;
-                    continue 'outer;
+                    self.source.consume(match_len);
+                    return;
                 }
 
                 // Contiguous contraction matched, with no larger discontiguous match.
-                fill_weights(cea, row, &mut cea_idx, ctx.shifting, &mut last_variable);
-                left += right - left;
-                continue 'outer;
+                self.queue_row(row);
+                self.source.consume(match_len);
+                return;
             }
 
             // Shorten the subset and try again.
-            right -= 1;
+            match_len -= 1;
         }
 
         // All outer-loop cases should have been handled above.
         unreachable!();
     }
 
-    // Sentinel marks the end of the generated collation elements.
-    cea[cea_idx] = u32::MAX;
+    fn queue_row(&mut self, row: &[u32]) {
+        assert!(row.len() <= PENDING_CE_CAPACITY);
+
+        for &weights in row {
+            self.queue_weight(weights);
+        }
+    }
+
+    const fn queue_weight(&mut self, weights: u32) {
+        let weights = if self.ctx.shifting {
+            shift_weights(weights, &mut self.last_variable)
+        } else {
+            weights
+        };
+
+        self.queue_raw_weight(weights);
+    }
+
+    const fn queue_raw_weight(&mut self, weights: u32) {
+        self.pending[self.pending_len] = weights;
+        self.pending_len += 1;
+    }
+}
+
+struct VecSource<'a> {
+    chars: &'a mut Vec<u32>,
+    pos: usize,
+    len: usize,
+}
+
+trait CodePointSource {
+    fn is_empty(&self) -> bool;
+    fn remaining(&self) -> usize;
+    fn peek(&self, offset: usize) -> Option<u32>;
+    fn consume(&mut self, count: usize);
+    fn remove_pulled_lookahead(&mut self, offset: usize, pulled_two: bool);
+}
+
+impl<'a> VecSource<'a> {
+    const fn new(chars: &'a mut Vec<u32>, pos: usize) -> Self {
+        Self {
+            pos,
+            len: chars.len(),
+            chars,
+        }
+    }
+}
+
+impl CodePointSource for VecSource<'_> {
+    fn is_empty(&self) -> bool {
+        self.pos >= self.len
+    }
+
+    fn remaining(&self) -> usize {
+        self.len - self.pos
+    }
+
+    fn peek(&self, offset: usize) -> Option<u32> {
+        let index = self.pos + offset;
+        (index < self.len).then(|| self.chars[index])
+    }
+
+    fn consume(&mut self, count: usize) {
+        self.pos += count;
+    }
+
+    fn remove_pulled_lookahead(&mut self, offset: usize, pulled_two: bool) {
+        let index = self.pos + offset;
+        remove_pulled(self.chars, index, &mut self.len, pulled_two);
+    }
 }
 
 fn try_discontiguous_contraction<'a>(
     table: &'a CollationTable,
     entry: u64,
-    chars: &[u32],
-    left: usize,
-    right: usize,
+    source: &impl CodePointSource,
+    match_len: usize,
 ) -> Option<&'a [u32]> {
-    if !CollationTable::is_contraction(entry) || right - left != 2 {
+    if !CollationTable::is_contraction(entry) || match_len != 2 {
         return None;
     }
 
-    let next = *chars.get(right + 1)?;
-    let ccc_a = get_ccc(chars[right]) as u8;
+    let next = source.peek(match_len + 1)?;
+    let ccc_a = get_ccc(source.peek(match_len).unwrap()) as u8;
     let ccc_b = get_ccc(next) as u8;
 
     if ccc_a > 0 && ccc_b > ccc_a {
-        table.get3(entry, chars[left + 1], next)
+        table.get3(entry, source.peek(1).unwrap(), next)
     } else {
         None
     }
 }
 
+fn ccc_sequence_ok(source: &impl CodePointSource, start_offset: usize, end_offset: usize) -> bool {
+    let mut max_ccc = 0;
+
+    for offset in start_offset..=end_offset {
+        let ccc = get_ccc(source.peek(offset).unwrap()) as u8;
+
+        if ccc == 0 || ccc <= max_ccc {
+            return false;
+        }
+
+        max_ccc = ccc;
+    }
+
+    true
+}
+
 fn try_pulled_contraction<'a>(
     ctx: &'a CollationContext,
     entry: u64,
-    chars: &[u32],
-    right: usize,
-    input_len: usize,
+    source: &impl CodePointSource,
+    match_len: usize,
 ) -> Option<(usize, bool, &'a [u32])> {
-    let mut try_right = match input_len - right {
-        3.. => right + 2,
-        2 => right + 1,
-        _ => right,
+    let mut try_offset = match source.remaining() - match_len {
+        3.. => match_len + 2,
+        2 => match_len + 1,
+        _ => match_len,
     };
 
-    let mut try_two = (try_right - right == 2) && ctx.cldr;
+    let mut try_two = (try_offset - match_len == 2) && ctx.cldr;
 
-    while try_right > right {
-        let test_range = &chars[right..=try_right];
-        if !ccc_sequence_ok(test_range) {
+    while try_offset > match_len {
+        if !ccc_sequence_ok(source, match_len, try_offset) {
             try_two = false;
-            try_right -= 1;
+            try_offset -= 1;
             continue;
         }
 
         let new_row = if try_two {
-            ctx.table
-                .get3(entry, chars[try_right - 1], chars[try_right])
+            ctx.table.get3(
+                entry,
+                source.peek(try_offset - 1).unwrap(),
+                source.peek(try_offset).unwrap(),
+            )
         } else {
-            ctx.table.get2(entry, chars[try_right])
+            ctx.table.get2(entry, source.peek(try_offset).unwrap())
         };
 
         if let Some(new_row) = new_row {
-            return Some((try_right, try_two, new_row));
+            return Some((try_offset, try_two, new_row));
         }
 
         if try_two {
             try_two = false;
         } else {
-            try_right -= 1;
+            try_offset -= 1;
         }
     }
 
