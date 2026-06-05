@@ -8,7 +8,7 @@ repository = "https://github.com/theodore-s-beers/feruca"
 description = "An implementation of the Unicode Collation Algorithm"
 keywords = ["Unicode", "collation", "sorting"]
 categories = ["algorithms", "internationalization", "text-processing"]
-exclude = ["/test-data/"]
+exclude = ["/.github/", "/benches/", "/test-data/", "/tests/"]
 
 [dependencies]
 bstr = "1.12.1"
