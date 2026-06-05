@@ -1,6 +1,5 @@
-use std::cmp::Ordering;
-
 use crate::weights::{primary, secondary, tertiary, variability};
+use std::cmp::Ordering;
 
 pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Ordering {
     if shifting {
@@ -37,110 +36,84 @@ pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Orde
 }
 
 fn compare_primary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
+    let a_weights = a_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
 
-    let mut b_filter = b_cea
+    let b_weights = b_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
 
-    loop {
-        let a_p = a_filter.next().unwrap_or_default();
-        let b_p = b_filter.next().unwrap_or_default();
-
-        if a_p != b_p {
-            return Some(a_p.cmp(&b_p));
-        }
-
-        if a_p == 0 {
-            return None;
-        }
-    }
+    compare_nonzero_weights(a_weights, b_weights)
 }
 
 fn compare_primary_shifting(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
+    let a_weights = a_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .filter(|w| !variability(**w))
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
 
-    let mut b_filter = b_cea
+    let b_weights = b_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .filter(|w| !variability(**w))
         .map(|w| primary(*w))
         .filter(|p| *p != 0);
 
-    loop {
-        let a_p = a_filter.next().unwrap_or_default();
-        let b_p = b_filter.next().unwrap_or_default();
-
-        if a_p != b_p {
-            return Some(a_p.cmp(&b_p));
-        }
-
-        if a_p == 0 {
-            return None;
-        }
-    }
+    compare_nonzero_weights(a_weights, b_weights)
 }
 
 fn compare_secondary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
+    let a_weights = a_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .map(|w| secondary(*w))
         .filter(|s| *s != 0);
 
-    let mut b_filter = b_cea
+    let b_weights = b_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .map(|w| secondary(*w))
         .filter(|s| *s != 0);
 
-    loop {
-        let a_s = a_filter.next().unwrap_or_default();
-        let b_s = b_filter.next().unwrap_or_default();
-
-        if a_s != b_s {
-            return Some(a_s.cmp(&b_s));
-        }
-
-        if a_s == 0 {
-            return None;
-        }
-    }
+    compare_nonzero_weights(a_weights, b_weights)
 }
 
 fn compare_tertiary(a_cea: &[u32], b_cea: &[u32]) -> Option<Ordering> {
-    let mut a_filter = a_cea
+    let a_weights = a_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .map(|w| tertiary(*w))
         .filter(|t| *t != 0);
 
-    let mut b_filter = b_cea
+    let b_weights = b_cea
         .iter()
         .take_while(|x| **x < u32::MAX)
         .map(|w| tertiary(*w))
         .filter(|t| *t != 0);
 
+    compare_nonzero_weights(a_weights, b_weights)
+}
+
+fn compare_nonzero_weights(
+    mut a_weights: impl Iterator<Item = u16>,
+    mut b_weights: impl Iterator<Item = u16>,
+) -> Option<Ordering> {
     loop {
-        let a_t = a_filter.next().unwrap_or_default();
-        let b_t = b_filter.next().unwrap_or_default();
+        let a_weight = a_weights.next().unwrap_or_default();
+        let b_weight = b_weights.next().unwrap_or_default();
 
-        if a_t != b_t {
-            return Some(a_t.cmp(&b_t));
+        if a_weight != b_weight {
+            return Some(a_weight.cmp(&b_weight));
         }
 
-        if a_t == 0 {
+        if a_weight == 0 {
             return None;
         }
     }

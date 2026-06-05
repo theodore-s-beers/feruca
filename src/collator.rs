@@ -1,12 +1,13 @@
-use crate::ascii::{AsciiResult, compare_ascii_primary_non_ignorable, fill_and_check};
+use crate::ascii::{
+    AsciiResult, compare_ascii_primary_non_ignorable, fill_codepoints_and_compare_ascii,
+};
 use crate::cea::{LazyPrimaryResult, compare_primary_streaming, compare_primary_streaming_utf8};
-use crate::consts::{CLDR_ROOT, DUCET, LOW_CLDR, LOW_DUCET};
+use crate::consts::{ARABIC_INTERLEAVED, ARABIC_SCRIPT, CLDR_ROOT, DUCET, LOW_CLDR, LOW_DUCET};
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
 use crate::prefix::{find_byte_prefix, find_prefix_shifted};
 use crate::sort_key::compare_incremental;
 use crate::tables::CollationTable;
-use crate::tailor::{ARABIC_INTERLEAVED, ARABIC_SCRIPT};
 use crate::{Locale, Tailoring};
 use bstr::{B, ByteSlice};
 use std::cmp::Ordering;
@@ -61,6 +62,32 @@ pub struct PipelineStats {
     pub later_levels_resolved: u64,
     /// Calls resolved by byte-value tiebreaking after equivalent collation weights.
     pub tiebreak_resolved: u64,
+}
+
+#[cfg(feature = "pipeline-stats")]
+impl PipelineStats {
+    const ZEROED: Self = Self {
+        comparisons: 0,
+        equal_early: 0,
+        byte_prefix_trimmed: 0,
+        byte_prefix_bytes_trimmed: 0,
+        ascii_primary_resolved: 0,
+        lazy_utf8_primary_attempts: 0,
+        lazy_utf8_primary_resolved: 0,
+        lazy_utf8_prefix_reused: 0,
+        lazy_utf8_full_fallback: 0,
+        fill_ascii_resolved: 0,
+        nfd_normalizations: 0,
+        codepoints_decoded: 0,
+        codepoint_prefix_trimmed: 0,
+        codepoint_prefix_codepoints_trimmed: 0,
+        initial_primary_resolved: 0,
+        streaming_primary_resolved: 0,
+        codepoints_consumed_primary: 0,
+        later_levels_reached: 0,
+        later_levels_resolved: 0,
+        tiebreak_resolved: 0,
+    };
 }
 
 /// The `Collator` struct is the entry point for this library's API. It defines the options to be
@@ -120,7 +147,7 @@ impl Collator {
             b_cea: vec![0; 64],
 
             #[cfg(feature = "pipeline-stats")]
-            stats: PipelineStats::default(),
+            stats: PipelineStats::ZEROED,
         }
     }
 
@@ -138,28 +165,7 @@ impl Collator {
     /// This method is available only when the `pipeline-stats` feature is enabled.
     #[cfg(feature = "pipeline-stats")]
     pub const fn clear_stats(&mut self) {
-        self.stats = PipelineStats {
-            comparisons: 0,
-            equal_early: 0,
-            byte_prefix_trimmed: 0,
-            byte_prefix_bytes_trimmed: 0,
-            ascii_primary_resolved: 0,
-            lazy_utf8_primary_attempts: 0,
-            lazy_utf8_primary_resolved: 0,
-            lazy_utf8_prefix_reused: 0,
-            lazy_utf8_full_fallback: 0,
-            fill_ascii_resolved: 0,
-            nfd_normalizations: 0,
-            codepoints_decoded: 0,
-            codepoint_prefix_trimmed: 0,
-            codepoint_prefix_codepoints_trimmed: 0,
-            initial_primary_resolved: 0,
-            streaming_primary_resolved: 0,
-            codepoints_consumed_primary: 0,
-            later_levels_reached: 0,
-            later_levels_resolved: 0,
-            tiebreak_resolved: 0,
-        };
+        self.stats = PipelineStats::ZEROED;
     }
 
     /// This is the primary method in the library. It accepts as arguments two string references or
@@ -274,7 +280,7 @@ impl Collator {
 
         // While iterating through input strings and filling code point Vecs, try to get a result by
         // comparing ASCII characters. This can avoid a lot of computation.
-        let ascii_result = fill_and_check(
+        let ascii_result = fill_codepoints_and_compare_ascii(
             &mut a_iter,
             &mut b_iter,
             &mut self.a_chars,

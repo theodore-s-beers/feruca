@@ -1,6 +1,5 @@
-use std::cmp::Ordering;
-
 use crate::weights::primary;
+use std::cmp::Ordering;
 
 pub enum AsciiResult {
     Continue {
@@ -68,7 +67,7 @@ const fn safe_ascii_low_byte(byte: u8) -> bool {
     byte < 0x80 && byte != b'L' && byte != b'l'
 }
 
-pub fn fill_and_check(
+pub fn fill_codepoints_and_compare_ascii(
     a_iter: &mut impl Iterator<Item = u32>,
     b_iter: &mut impl Iterator<Item = u32>,
     a_chars: &mut Vec<u32>,

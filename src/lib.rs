@@ -6,11 +6,12 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 #![warn(clippy::pedantic, clippy::nursery, clippy::cargo)]
-#![allow(clippy::module_name_repetitions, clippy::too_long_first_doc_paragraph)]
+#![allow(clippy::too_long_first_doc_paragraph)]
 
 mod ascii;
 mod cea;
-mod cea_utils;
+mod cea_match;
+mod cea_source;
 
 mod collator;
 pub use collator::Collator;
@@ -24,7 +25,6 @@ mod normalize;
 mod prefix;
 mod sort_key;
 mod tables;
-mod tailor;
 
 mod types;
 pub use types::{Locale, Tailoring};

@@ -1,15 +1,14 @@
-use std::cmp::Ordering;
-
-use crate::cea_utils::implicit_a;
+use crate::cea_match::implicit_a;
 use crate::collator::CollationContext;
 use crate::tables::CollationTable;
 use crate::weights::{primary, variability};
+use std::cmp::Ordering;
 
 pub fn try_initial(ctx: &CollationContext, a_chars: &[u32], b_chars: &[u32]) -> Option<Ordering> {
     let a_first = a_chars[0];
     let b_first = b_chars[0];
 
-    if !safe_chars(a_first, b_first, ctx.table) {
+    if !can_compare_initial_primaries(a_first, b_first, ctx.table) {
         return None;
     }
 
@@ -26,7 +25,7 @@ pub fn try_initial(ctx: &CollationContext, a_chars: &[u32], b_chars: &[u32]) -> 
     Some(a_first_primary.cmp(&b_first_primary))
 }
 
-fn safe_chars(a: u32, b: u32, table: &CollationTable) -> bool {
+fn can_compare_initial_primaries(a: u32, b: u32, table: &CollationTable) -> bool {
     a != b && table.max_len(table.entry(a)) == 1 && table.max_len(table.entry(b)) == 1
 }
 

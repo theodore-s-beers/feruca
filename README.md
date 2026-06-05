@@ -7,10 +7,10 @@ The name of the library is a portmanteau of Ferris 🦀 and UCA.
 
 No `unsafe` is used directly in this library: `#![forbid(unsafe_code)]`. It
 relies on the well-vetted [bstr](https://github.com/BurntSushi/bstr) to accept
-input (in the form of either `&str` or `&[u8]`), to perform UTF-8 validation,
-and to generate a list of Unicode scalar values, which can then be processed for
-collation. The idea is to be tolerant of input that may not be entirely kosher
-UTF-8.
+input in the form of either `&str` or `&[u8]`, and to handle byte input that may
+not be entirely kosher UTF-8. Some fast paths validate and decode UTF-8
+directly, but the fallback path uses `bstr` to generate the Unicode scalar
+values that can then be processed for collation.
 
 In describing feruca as a "simple implementation," I have a few things in mind.
 **First**, the performance of the library could perhaps still be improved—at
@@ -21,7 +21,7 @@ and my guess is that it still is (though not severely). What I _do_ currently
 [benchmark](https://github.com/theodore-s-beers/feruca-benchmarks) against is
 the newer first-party implementation belonging to the
 [icu4x](https://github.com/unicode-org/icu4x) project, which is also written in
-Rust. feruca performs **on the order of 3–4x faster** than the icu4x
+Rust. feruca performs **on the order of 2–4x faster** than the icu4x
 collator—while having a much smaller feature set. My priority as a solo dev was
 to produce a relatively bare-bones implementation that passes the official UCA
 [conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html),

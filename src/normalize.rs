@@ -1,6 +1,5 @@
-use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
-
 use crate::consts::{DECOMP, FCD};
+use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 // Jamo-related consts; they live here for now
 const S_BASE: u32 = 0xAC00;

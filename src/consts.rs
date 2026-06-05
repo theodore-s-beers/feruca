@@ -79,6 +79,16 @@ const CLDR_ROOT_DATA: &[u8] = include_bytes!("data/cldr_root");
 pub static CLDR_ROOT: LazyLock<CollationTable> =
     LazyLock::new(|| postcard::from_bytes(CLDR_ROOT_DATA).unwrap());
 
+// CLDR root collation with Arabic-script characters sorted before Latin-script characters
+const ARABIC_SCRIPT_DATA: &[u8] = include_bytes!("data/tailoring/arabic_script");
+pub static ARABIC_SCRIPT: LazyLock<CollationTable> =
+    LazyLock::new(|| postcard::from_bytes(ARABIC_SCRIPT_DATA).unwrap());
+
+// CLDR root collation with Arabic-script characters interleaved among Latin-script characters
+const ARABIC_INTERLEAVED_DATA: &[u8] = include_bytes!("data/tailoring/arabic_interleaved");
+pub static ARABIC_INTERLEAVED: LazyLock<CollationTable> =
+    LazyLock::new(|| postcard::from_bytes(ARABIC_INTERLEAVED_DATA).unwrap());
+
 // Code points that have either a variable weight, or a primary weight of zero
 const VARIABLE_DATA: &[u8] = include_bytes!("data/variable");
 pub static VARIABLE: LazyLock<VariableTable> =
