@@ -3,7 +3,7 @@ use crate::cea::{LazyPrimaryResult, compare_primary_streaming, compare_primary_s
 use crate::consts::{CLDR_ROOT, DUCET, LOW_CLDR, LOW_DUCET};
 use crate::first_weight::try_initial;
 use crate::normalize::make_nfd;
-use crate::prefix::{find_byte_prefix, find_prefix};
+use crate::prefix::{find_byte_prefix, find_prefix_shifted};
 use crate::sort_key::compare_incremental;
 use crate::tables::CollationTable;
 use crate::tailor::{ARABIC_INTERLEAVED, ARABIC_SCRIPT};
@@ -323,8 +323,14 @@ impl Collator {
         // Define collation context for subsequent steps
         let ctx = ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
 
-        // Check for a shared prefix safe to trim; default offset is 0
-        let offset = find_prefix(&self.a_chars, &self.b_chars, ctx);
+        // In shifted mode, trimming a shared code point prefix can avoid carrying variable-weight
+        // CEs into later levels. In non-ignorable mode, earlier byte/ASCII/lazy-primary paths have
+        // usually already done enough prefix work that this pass is just overhead.
+        let offset = if self.shifting {
+            find_prefix_shifted(&self.a_chars, &self.b_chars, ctx)
+        } else {
+            0
+        };
 
         #[cfg(feature = "pipeline-stats")]
         if offset > 0 {
