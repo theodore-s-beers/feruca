@@ -12,7 +12,6 @@ use crate::{Locale, Tailoring};
 use bstr::{B, ByteSlice};
 use std::cmp::Ordering;
 
-const USE_LAZY_UTF8_PRIMARY: bool = true;
 const LAZY_UTF8_PRIMARY_MIN_COMBINED_BYTES: usize = 64;
 
 #[cfg(feature = "pipeline-stats")]
@@ -237,9 +236,7 @@ impl Collator {
             }
         }
 
-        if USE_LAZY_UTF8_PRIMARY
-            && a_bytes.len() + b_bytes.len() >= LAZY_UTF8_PRIMARY_MIN_COMBINED_BYTES
-        {
+        if a_bytes.len() + b_bytes.len() >= LAZY_UTF8_PRIMARY_MIN_COMBINED_BYTES {
             let current_ctx =
                 ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
             #[cfg(feature = "pipeline-stats")]
