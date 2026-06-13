@@ -35,8 +35,6 @@ pub struct PipelineStats {
     pub lazy_utf8_primary_attempts: u64,
     /// Calls resolved by lazy UTF-8 primary streaming before filling code point buffers.
     pub lazy_utf8_primary_resolved: u64,
-    /// Calls that reused a lazy UTF-8 CE prefix and materialized only the remaining suffix.
-    pub lazy_utf8_prefix_reused: u64,
     /// Calls where lazy UTF-8 primary streaming had to discard its work and use full fallback.
     pub lazy_utf8_full_fallback: u64,
     /// Calls resolved while filling code point buffers with ASCII-aware comparison.
@@ -73,7 +71,6 @@ impl PipelineStats {
         ascii_primary_resolved: 0,
         lazy_utf8_primary_attempts: 0,
         lazy_utf8_primary_resolved: 0,
-        lazy_utf8_prefix_reused: 0,
         lazy_utf8_full_fallback: 0,
         fill_ascii_resolved: 0,
         nfd_normalizations: 0,
@@ -258,7 +255,7 @@ impl Collator {
 
                     return comparison;
                 }
-                LazyPrimaryResult::ReusablePrefix | LazyPrimaryResult::NeedsFullFallback => {
+                LazyPrimaryResult::NeedsFullFallback => {
                     #[cfg(feature = "pipeline-stats")]
                     {
                         self.stats.lazy_utf8_full_fallback += 1;

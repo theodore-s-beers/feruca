@@ -13,7 +13,6 @@ const PENDING_CE_CAPACITY: usize = 20;
 
 pub enum LazyPrimaryResult {
     Decided(Ordering),
-    ReusablePrefix,
     NeedsFullFallback,
 }
 
@@ -79,11 +78,7 @@ pub fn compare_primary_streaming_utf8(
         let b_p = next_primary(&mut b_cursor, b_cea, ctx.shifting);
 
         if a_cursor.is_blocked() || b_cursor.is_blocked() {
-            return if !ctx.shifting && a_cursor.can_resume() && b_cursor.can_resume() {
-                LazyPrimaryResult::ReusablePrefix
-            } else {
-                LazyPrimaryResult::NeedsFullFallback
-            };
+            return LazyPrimaryResult::NeedsFullFallback;
         }
 
         if a_p != b_p {
@@ -93,7 +88,7 @@ pub fn compare_primary_streaming_utf8(
         if a_p == 0 {
             a_cea.push(u32::MAX);
             b_cea.push(u32::MAX);
-            return LazyPrimaryResult::ReusablePrefix;
+            return LazyPrimaryResult::NeedsFullFallback;
         }
     }
 }
@@ -147,10 +142,6 @@ impl<'a, S: CodePointSource> CeaCursor<'a, S> {
 
     fn is_blocked(&self) -> bool {
         self.source.is_blocked()
-    }
-
-    fn can_resume(&self) -> bool {
-        self.source.can_resume()
     }
 
     fn next_ce(&mut self) -> Option<u32> {

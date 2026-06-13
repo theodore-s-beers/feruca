@@ -14,7 +14,6 @@ pub trait CodePointSource {
     fn is_empty(&mut self) -> bool;
     fn remaining(&mut self) -> usize;
     fn is_blocked(&self) -> bool;
-    fn can_resume(&self) -> bool;
     #[cfg(feature = "pipeline-stats")]
     fn consumed(&self) -> usize;
     fn peek(&mut self, offset: usize) -> Option<u32>;
@@ -47,10 +46,6 @@ impl CodePointSource for VecSource<'_> {
         false
     }
 
-    fn can_resume(&self) -> bool {
-        true
-    }
-
     #[cfg(feature = "pipeline-stats")]
     fn consumed(&self) -> usize {
         self.pos - self.start
@@ -78,7 +73,6 @@ pub struct Utf8Source<'a> {
     lookahead_bytes: [usize; 4],
     lookahead_len: usize,
     blocked: bool,
-    can_resume: bool,
     prev_trail_cc: u8,
 }
 
@@ -91,7 +85,6 @@ impl<'a> Utf8Source<'a> {
             lookahead_bytes: [0; 4],
             lookahead_len: 0,
             blocked: false,
-            can_resume: true,
             prev_trail_cc: 0,
         }
     }
@@ -105,7 +98,6 @@ impl<'a> Utf8Source<'a> {
             let start = self.decoded_byte_end();
             let Some((code_point, len)) = decode_utf8(&self.bytes[start..]) else {
                 self.blocked = true;
-                self.can_resume = true;
                 return;
             };
 
@@ -134,12 +126,10 @@ impl<'a> Utf8Source<'a> {
         }
 
         if code_point == 0x0F81 || (0xAC00..=0xD7A3).contains(&code_point) {
-            self.can_resume = false;
             return false;
         }
 
         if DECOMP.get(code_point).is_some() {
-            self.can_resume = false;
             return false;
         }
 
@@ -152,7 +142,6 @@ impl<'a> Utf8Source<'a> {
         );
 
         if lead_cc != 0 && lead_cc < self.prev_trail_cc {
-            self.can_resume = false;
             return false;
         }
 
@@ -181,10 +170,6 @@ impl CodePointSource for Utf8Source<'_> {
         self.blocked
     }
 
-    fn can_resume(&self) -> bool {
-        self.can_resume
-    }
-
     #[cfg(feature = "pipeline-stats")]
     fn consumed(&self) -> usize {
         self.byte_pos
@@ -205,7 +190,6 @@ impl CodePointSource for Utf8Source<'_> {
 
     fn remove_pulled_lookahead(&mut self, _offset: usize, _pulled_two: bool) {
         self.blocked = true;
-        self.can_resume = false;
     }
 }
 
