@@ -115,9 +115,8 @@ fn main() {
 
 ## Conformance
 
-The UCA conformance tests can be run with the command `cargo test --release`.
-Please note that, as a result of this library's reliance on `bstr` for UTF-8
-validation, any
+The UCA conformance tests can be run with the command `cargo test`. Please note
+that, as a result of this library's reliance on `bstr` for UTF-8 validation, any
 [surrogate code points](https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Surrogates)
 found in input to the `collate` method will be converted to the standard
 "replacement character," `U+FFFD`. Conformant implementations of the UCA are
