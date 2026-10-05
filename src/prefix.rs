@@ -1,6 +1,6 @@
+use crate::ccc::get_ccc;
 use crate::collator::CollationContext;
 use crate::consts::VARIABLE;
-use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 pub fn find_byte_prefix(a: &[u8], b: &[u8], ctx: &CollationContext) -> usize {
     let mut prefix_len = a.iter().zip(b.iter()).take_while(|(x, y)| x == y).count();
@@ -24,6 +24,17 @@ pub fn find_byte_prefix(a: &[u8], b: &[u8], ctx: &CollationContext) -> usize {
         return 0;
     }
 
+    // A three-code-point contraction can start before the last shared scalar.
+    let previous_start = prefix_len - char::from_u32(previous).unwrap().len_utf8();
+    if previous_start > 0 {
+        let Some(penultimate) = previous_char(a, previous_start) else {
+            return 0;
+        };
+        if ctx.table.max_len(ctx.table.entry(penultimate)) > 2 {
+            return 0;
+        }
+    }
+
     if ctx.shifting && VARIABLE.contains(previous) {
         return 0;
     }
@@ -35,9 +46,7 @@ pub fn find_byte_prefix(a: &[u8], b: &[u8], ctx: &CollationContext) -> usize {
         return 0;
     };
 
-    if a_next.is_some_and(|c| get_ccc(c) as u8 != 0)
-        || b_next.is_some_and(|c| get_ccc(c) as u8 != 0)
-    {
+    if a_next.is_some_and(|c| get_ccc(c) != 0) || b_next.is_some_and(|c| get_ccc(c) != 0) {
         return 0;
     }
 
@@ -93,12 +102,12 @@ pub fn find_prefix_shifted(a: &[u32], b: &[u32], ctx: &CollationContext) -> usiz
         .count();
 
     if prefix_len > 0 {
-        // In shifted mode, the final code point in the prefix cannot be trimmed if it has a
-        // variable weight.
+        // In shifted mode, the final code point in the prefix cannot be trimmed if it
+        // has a variable weight.
         if VARIABLE.contains(a[prefix_len - 1]) {
             if prefix_len > 1 {
-                // If the last code point in the prefix was problematic, we can try shortening by
-                // one before giving up.
+                // If the last code point in the prefix was problematic, we can try
+                // shortening by one before giving up.
                 if VARIABLE.contains(a[prefix_len - 2]) {
                     return 0;
                 }

@@ -1,6 +1,6 @@
+use crate::ccc::get_ccc;
 use crate::cea_match::remove_pulled;
 use crate::consts::{DECOMP, FCD};
-use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 pub struct VecSource<'a> {
     chars: &'a mut Vec<u32>,
@@ -135,7 +135,7 @@ impl<'a> Utf8Source<'a> {
 
         let (lead_cc, trail_cc) = FCD.get(code_point).map_or_else(
             || {
-                let cc = get_ccc(code_point) as u8;
+                let cc = get_ccc(code_point);
                 (cc, cc)
             },
             |vals| vals.to_be_bytes().into(),

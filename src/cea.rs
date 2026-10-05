@@ -1,10 +1,9 @@
-use crate::cea_match::{
-    implicit_a, implicit_b, try_discontiguous_contraction, try_pulled_contraction,
-};
+use crate::cea_match::{try_discontiguous_contraction, try_pulled_contraction};
 use crate::cea_source::{CodePointSource, Utf8Source, VecSource};
 use crate::collator::CollationContext;
 #[cfg(feature = "pipeline-stats")]
 use crate::collator::PipelineStats;
+use crate::implicit::{implicit_a, implicit_b};
 use crate::tables::CollationTable;
 use crate::weights::{primary, shift_weights, variability};
 use std::cmp::Ordering;

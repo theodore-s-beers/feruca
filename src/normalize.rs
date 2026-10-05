@@ -1,5 +1,5 @@
+use crate::ccc::get_ccc;
 use crate::consts::{DECOMP, FCD};
-use unicode_canonical_combining_class::get_canonical_combining_class_u32 as get_ccc;
 
 // Jamo-related consts; they live here for now
 const S_BASE: u32 = 0xAC00;
@@ -33,7 +33,7 @@ fn fcd(input: &[u32]) -> bool {
 
         let (lead_cc, trail_cc) = FCD.get(c).map_or_else(
             || {
-                let cc = get_ccc(c) as u8;
+                let cc = get_ccc(c);
                 (cc, cc)
             },
             |vals| vals.to_be_bytes().into(),
@@ -98,7 +98,7 @@ const fn decompose_jamo(s: u32) -> (usize, [u32; 3]) {
     }
 }
 
-fn reorder(input: &mut [u32]) {
+const fn reorder(input: &mut [u32]) {
     let mut n = input.len();
 
     while n > 1 {
@@ -106,13 +106,13 @@ fn reorder(input: &mut [u32]) {
         let mut i = 1;
 
         while i < n {
-            let ccc_b = get_ccc(input[i]) as u8;
+            let ccc_b = get_ccc(input[i]);
             if ccc_b == 0 {
                 i += 2;
                 continue;
             }
 
-            let ccc_a = get_ccc(input[i - 1]) as u8;
+            let ccc_a = get_ccc(input[i - 1]);
             if ccc_a == 0 || ccc_a <= ccc_b {
                 i += 1;
                 continue;

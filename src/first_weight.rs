@@ -1,5 +1,5 @@
-use crate::cea_match::implicit_a;
 use crate::collator::CollationContext;
+use crate::implicit::implicit_a;
 use crate::tables::CollationTable;
 use crate::weights::{primary, variability};
 use std::cmp::Ordering;

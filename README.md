@@ -2,7 +2,7 @@
 
 feruca is a simple, from-scratch implementation of the
 [Unicode Collation Algorithm](https://unicode.org/reports/tr10/) in Rust. It's
-current with **Unicode v16** (and, correspondingly, **CLDR v46.1**; see below).
+current with **Unicode v18** (and, correspondingly, **CLDR v49**; see below).
 The name of the library is a portmanteau of Ferris 🦀 and UCA.
 
 No `unsafe` is used directly in this library: `#![forbid(unsafe_code)]`. It
@@ -24,8 +24,8 @@ the newer first-party implementation belonging to the
 Rust. feruca performs **on the order of 2–4x faster** than the icu4x
 collator—while having a much smaller feature set. My priority as a solo dev was
 to produce a relatively bare-bones implementation that passes the official UCA
-[conformance tests](https://www.unicode.org/Public/UCA/latest/CollationTest.html),
-as well as the tests for the "root collation order" of the
+[conformance tests](https://www.unicode.org/reports/tr10/#Conformance_Tests), as
+well as the tests for the "root collation order" of the
 [Common Locale Data Repository](https://github.com/unicode-org/cldr) (CLDR).
 
 **Second**, support for tailoring is minimal (so far). You can choose between
@@ -135,6 +135,6 @@ yourself if you prefer.
 
 ## Licensing
 
-The text files in the `test-data` directory are covered by the
-[Unicode License Agreement](https://www.unicode.org/license.txt). Everything
-else is MIT-licensed.
+Conformance fixtures and generated Unicode data are covered by the
+[Unicode License Agreement](https://www.unicode.org/license.txt). Library code
+is MIT-licensed.

@@ -6,18 +6,23 @@ fn conformance(path: &str, collator: &mut Collator) {
 
     let mut max_line = String::new();
     let mut test_string = String::new();
+    let mut previous_line_number = 0;
+    let mut previous_code_points = "";
+    let mut comparisons = 0;
+    let mut failures = 0;
+    let mut examples = Vec::new();
 
-    'outer: for line in test_data.lines() {
+    'outer: for (index, line) in test_data.lines().enumerate() {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
 
         test_string.clear();
 
-        for s in line.split(' ') {
+        for s in line.split_whitespace() {
             let val = u32::from_str_radix(s, 16).unwrap();
 
-            // Skip lines containing surrogate code points; they would all be replaced with U+FFFD.
+            // Skip lines with surrogate points; they'd all be replaced with U+FFFD.
             // Conformant implementations are explicitly allowed to do this.
             if (0xD800..=0xDFFF).contains(&val) {
                 continue 'outer;
@@ -26,41 +31,63 @@ fn conformance(path: &str, collator: &mut Collator) {
             test_string.push(char::from_u32(val).unwrap());
         }
 
-        let comparison = collator.collate(&test_string, &max_line);
-        if comparison == Ordering::Less {
-            panic!();
+        if previous_line_number != 0 {
+            comparisons += 1;
+            if collator.collate(&test_string, &max_line) == Ordering::Less {
+                failures += 1;
+                if examples.len() < 8 {
+                    examples.push(format!(
+                        "lines {previous_line_number} -> {}: [{previous_code_points}] > [{line}]",
+                        index + 1,
+                    ));
+                }
+            }
         }
 
+        previous_line_number = index + 1;
+        previous_code_points = line;
         std::mem::swap(&mut max_line, &mut test_string);
     }
+
+    assert!(comparisons > 0, "{path}: no comparable test data");
+    assert_eq!(
+        failures,
+        0,
+        "{path}: {failures} out-of-order pairs in {comparisons} comparisons; first failures:\n{}",
+        examples.join("\n"),
+    );
 }
 
 #[test]
 fn ducet_non_ignorable() {
-    let path = "test-data/cldr-46_1/CollationTest_NON_IGNORABLE_SHORT.txt";
-    let mut collator = Collator::new(Tailoring::Ducet, false, false);
-    conformance(path, &mut collator);
+    conformance(
+        "test-data/18/CollationTest_NON_IGNORABLE_SHORT.txt",
+        &mut Collator::new(Tailoring::Ducet, false, false),
+    );
 }
 
 #[test]
 fn ducet_shifted() {
-    let path = "test-data/cldr-46_1/CollationTest_SHIFTED_SHORT.txt";
-    let mut collator = Collator::new(Tailoring::Ducet, true, false);
-    conformance(path, &mut collator);
+    conformance(
+        "test-data/18/CollationTest_SHIFTED_SHORT.txt",
+        &mut Collator::new(Tailoring::Ducet, true, false),
+    );
 }
 
 #[test]
 fn cldr_non_ignorable() {
-    let path = "test-data/cldr-46_1/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt";
-    let mut collator = Collator::new(Tailoring::default(), false, false);
-    conformance(path, &mut collator);
+    conformance(
+        "test-data/18/CollationTest_CLDR_NON_IGNORABLE_SHORT.txt",
+        &mut Collator::new(Tailoring::default(), false, false),
+    );
 }
 
 #[test]
 fn cldr_shifted() {
-    let path = "test-data/cldr-46_1/CollationTest_CLDR_SHIFTED_SHORT.txt";
-    let mut collator = Collator::new(Tailoring::default(), true, false);
-    conformance(path, &mut collator);
+    conformance(
+        "test-data/18/CollationTest_CLDR_SHIFTED_SHORT.txt",
+        &mut Collator::new(Tailoring::default(), true, false),
+    );
 }
 
 #[cfg(feature = "pipeline-stats")]

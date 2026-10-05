@@ -408,7 +408,6 @@ fn has_byte_prefix(a: &[u8], b: &[u8]) -> bool {
 
 pub struct CollationContext {
     pub shifting: bool,
-    pub cldr: bool,
     pub table: &'static CollationTable,
     pub low: &'static [u32],
 }
@@ -419,7 +418,6 @@ impl CollationContext {
 
         Self {
             shifting,
-            cldr,
             table: get_collation_table(tailoring),
             low: if cldr { &LOW_CLDR } else { &LOW_DUCET },
         }
