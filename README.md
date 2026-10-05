@@ -9,11 +9,11 @@ No `unsafe` is used directly in this library: `#![forbid(unsafe_code)]`. It
 relies on the well-vetted [bstr](https://github.com/BurntSushi/bstr) to accept
 input in the form of either `&str` or `&[u8]`, and to handle byte input that may
 not be entirely kosher UTF-8. Some fast paths validate and decode UTF-8
-directly, but the fallback path uses `bstr` to generate the Unicode scalar
-values that can then be processed for collation.
+directly, but the fallback path uses `bstr` to generate Unicode scalar values
+that can then be processed for collation.
 
 In describing feruca as a "simple implementation," I have a few things in mind.
-**First**, the performance of the library could perhaps still be improved—at
+**First**, the performance of the library could perhaps still be improved – at
 least, in comparison to the official C implementation, `ucol` from
 [icu4c](https://github.com/unicode-org/icu), which is incredibly optimized. I no
 longer run benchmarks against that implementation, but feruca was always slower,
@@ -21,9 +21,11 @@ and my guess is that it still is (though not severely). What I _do_ currently
 [benchmark](https://github.com/theodore-s-beers/feruca-benchmarks) against is
 the newer first-party implementation belonging to the
 [icu4x](https://github.com/unicode-org/icu4x) project, which is also written in
-Rust. feruca performs **on the order of 2–4x faster** than the icu4x
-collator—while having a much smaller feature set. My priority as a solo dev was
-to produce a relatively bare-bones implementation that passes the official UCA
+Rust. At the time of writing, feruca typically performs **around 1.5x to 2x
+faster** than the icu4x collator – while having a smaller feature set. (feruca's
+performance advantage used to be greater; the icu4x implementation has improved
+considerably.) My priority as a solo dev was to produce a relatively bare-bones
+implementation that passes the official UCA
 [conformance tests](https://www.unicode.org/reports/tr10/#Conformance_Tests), as
 well as the tests for the "root collation order" of the
 [Common Locale Data Repository](https://github.com/unicode-org/cldr) (CLDR).
@@ -34,10 +36,10 @@ two tables of character weights: the Default Unicode Collation Element Table
 point for actual collation tailoring based on language/locale. I have added only
 two tailorings, both intended for use with Arabic-script languages. One of them
 shifts letters in the Arabic script so that, as a block, they sort before the
-Latin script. The other tailoring attempts to interleave the Latin and Arabic
+Latin script. The other tailoring attempts to _interleave_ the Latin and Arabic
 scripts, so that _alif_ sorts after A and before B; _bā’_ sorts after B and
 before C; etc. This is enough for my own work with Persian and Arabic texts. The
-CLDR table in its unmodified form—i.e., the root collation order—works
+CLDR table in its unmodified form – i.e., the root collation order – works
 out-of-the-box for several other languages. I do hope to add more tailorings,
 but it will be a gradual process, and driven by demand. Realistically, feruca
 will never have the kind of all-encompassing, flexible support for tailoring
@@ -46,15 +48,15 @@ sophisticated solutions, with simpler APIs, smaller dependency trees, etc. (If
 you have thoughts on this, I would be interested in hearing them.)
 
 Apart from locale tailoring, you can choose between the "non-ignorable" and
-"shifted" strategies for handling variable-weight characters—with the latter
+"shifted" strategies for handling variable-weight characters – with the latter
 being the default. There is also an option to use byte-value comparison as a
 "tiebreaker" in cases where two strings produce identical UCA sort keys.
 
 **Third**, this library has effectively just one public method, `collate`,
 belonging to a struct, `Collator`, which sets the options. `collate` accepts two
-string references or byte slices, and returns an `Ordering` value. It is
-designed to be passed as a comparator to the standard library method `sort_by`
-(or `sort_unstable_by`). See "Example usage" below.
+string references or byte slices, and returns an `Ordering` value. It's designed
+to be passed as a comparator to the standard library method `sort_by` (or
+`sort_unstable_by`). See "Example usage" below.
 
 For many people and use cases, UCA sorting will not work properly without being
 able to specify a locale! Again, however, it is worth emphasizing the usefulness
@@ -121,9 +123,9 @@ that, as a result of this library's reliance on `bstr` for UTF-8 validation, any
 found in input to the `collate` method will be converted to the standard
 "replacement character," `U+FFFD`. Conformant implementations of the UCA are
 explicitly allowed to follow this approach. It does mean, however, that a
-handful of lines (out of hundreds of thousands) in the conformance tests need to
-be skipped. If you look at the `conformance` function in the tests module, you
-will see that any line containing a surrogate code point is passed over.
+handful of lines (out of hundreds of thousands) in the conformance tests will be
+skipped. If you look at the `conformance` function in the tests module, you'll
+see that any line containing a surrogate code point is passed over.
 
 ## Data files
 
@@ -136,5 +138,5 @@ yourself if you prefer.
 ## Licensing
 
 Conformance fixtures and generated Unicode data are covered by the
-[Unicode License Agreement](https://www.unicode.org/license.txt). Library code
-is MIT-licensed.
+[Unicode License Agreement](https://www.unicode.org/license.txt). The library
+code itself is MIT-licensed.
