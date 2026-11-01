@@ -26,10 +26,12 @@ pub fn find_byte_prefix(a: &[u8], b: &[u8], ctx: &CollationContext) -> usize {
 
     // A three-code-point contraction can start before the last shared scalar.
     let previous_start = prefix_len - char::from_u32(previous).unwrap().len_utf8();
+
     if previous_start > 0 {
         let Some(penultimate) = previous_char(a, previous_start) else {
             return 0;
         };
+
         if ctx.table.max_len(ctx.table.entry(penultimate)) > 2 {
             return 0;
         }
@@ -42,6 +44,7 @@ pub fn find_byte_prefix(a: &[u8], b: &[u8], ctx: &CollationContext) -> usize {
     let Ok(a_next) = next_char(a, prefix_len) else {
         return 0;
     };
+
     let Ok(b_next) = next_char(b, prefix_len) else {
         return 0;
     };

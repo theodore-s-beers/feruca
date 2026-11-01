@@ -204,6 +204,7 @@ impl Collator {
         let byte_offset = if has_byte_prefix(a_bytes, b_bytes) {
             let current_ctx =
                 ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
+
             find_byte_prefix(a_bytes, b_bytes, current_ctx)
         } else {
             0
@@ -221,6 +222,7 @@ impl Collator {
         if !self.shifting {
             let current_ctx =
                 ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
+
             if let Some(comparison) =
                 compare_ascii_primary_non_ignorable(a_bytes, b_bytes, current_ctx.low)
             {
@@ -236,10 +238,12 @@ impl Collator {
         if a_bytes.len() + b_bytes.len() >= LAZY_UTF8_PRIMARY_MIN_COMBINED_BYTES {
             let current_ctx =
                 ctx.get_or_insert_with(|| CollationContext::new(self.shifting, self.tailoring));
+
             #[cfg(feature = "pipeline-stats")]
             {
                 self.stats.lazy_utf8_primary_attempts += 1;
             }
+
             match compare_primary_streaming_utf8(
                 &mut self.a_cea,
                 &mut self.b_cea,
@@ -311,6 +315,7 @@ impl Collator {
 
             make_nfd(&mut self.a_chars);
         }
+
         if b_needs_nfd {
             #[cfg(feature = "pipeline-stats")]
             {

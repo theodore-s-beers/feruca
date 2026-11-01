@@ -50,6 +50,7 @@ impl DecompTable {
         }
 
         let entry = self.entries[(usize::from(page) << 8) + (code_point & 0xFF) as usize];
+
         let len = decomp_len(entry);
         if len == 0 {
             return None;
@@ -84,6 +85,7 @@ impl VariableTable {
         let offset = code_point & 0xFF;
         let word = page_start + (offset >> 6) as usize;
         let bit = offset & 0x3F;
+
         (self.pages[word] & (1_u64 << bit)) != 0
     }
 }
@@ -121,6 +123,7 @@ impl CollationTable {
 
         let meta = self.contraction_meta(entry);
         let edge = self.find_edge(meta.first_edge, meta.edge_len, b)?;
+
         self.edge_row(edge)
     }
 
@@ -132,6 +135,7 @@ impl CollationTable {
         let meta = self.contraction_meta(entry);
         let edge = self.find_edge(meta.first_edge, meta.edge_len, b)?;
         let edge = self.find_edge(edge.next_first_edge, edge.next_edge_len, c)?;
+
         self.edge_row(edge)
     }
 
@@ -150,6 +154,7 @@ impl CollationTable {
         let index = range
             .binary_search_by_key(&cp, |edge| edge.code_point)
             .ok()?;
+
         Some(&range[index])
     }
 

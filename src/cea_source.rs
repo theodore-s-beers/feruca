@@ -96,6 +96,7 @@ impl<'a> Utf8Source<'a> {
             }
 
             let start = self.decoded_byte_end();
+
             let Some((code_point, len)) = decode_utf8(&self.bytes[start..]) else {
                 self.blocked = true;
                 return;
@@ -146,6 +147,7 @@ impl<'a> Utf8Source<'a> {
         }
 
         self.prev_trail_cc = trail_cc;
+
         true
     }
 }
@@ -182,6 +184,7 @@ impl CodePointSource for Utf8Source<'_> {
 
     fn consume(&mut self, count: usize) {
         self.byte_pos += self.lookahead_bytes[..count].iter().sum::<usize>();
+
         self.lookahead.copy_within(count..self.lookahead_len, 0);
         self.lookahead_bytes
             .copy_within(count..self.lookahead_len, 0);

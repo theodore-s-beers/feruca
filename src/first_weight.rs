@@ -46,6 +46,7 @@ fn get_first_primary(val: u32, ctx: &CollationContext) -> u16 {
 
     if !CollationTable::is_missing(entry) {
         let row = ctx.table.simple_row(entry);
+
         if ctx.shifting && variability(row[0]) {
             return 0;
         }

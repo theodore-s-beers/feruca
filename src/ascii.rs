@@ -81,6 +81,7 @@ pub fn fill_codepoints_and_compare_ascii(
     #[allow(clippy::while_let_loop)]
     loop {
         let Some(a) = a_iter.next() else { break }; // Break if iterator exhausted
+
         a_chars.push(a);
         a_needs_nfd |= a >= 0xC0;
 
@@ -90,6 +91,7 @@ pub fn fill_codepoints_and_compare_ascii(
         }
 
         let Some(b) = b_iter.next() else { break }; // Break if iterator exhausted
+
         b_chars.push(b);
         b_needs_nfd |= b >= 0xC0;
 

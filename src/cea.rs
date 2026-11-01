@@ -87,6 +87,7 @@ pub fn compare_primary_streaming_utf8(
         if a_p == 0 {
             a_cea.push(u32::MAX);
             b_cea.push(u32::MAX);
+
             return LazyPrimaryResult::NeedsFullFallback;
         }
     }
@@ -148,6 +149,7 @@ impl<'a, S: CodePointSource> CeaCursor<'a, S> {
             if self.pending_start < self.pending_len {
                 let weights = self.pending[self.pending_start];
                 self.pending_start += 1;
+
                 return Some(weights);
             }
 
@@ -157,6 +159,7 @@ impl<'a, S: CodePointSource> CeaCursor<'a, S> {
 
             self.pending_len = 0;
             self.pending_start = 0;
+
             self.queue_next_match();
 
             if self.pending_len == 0 && self.source.is_blocked() {
