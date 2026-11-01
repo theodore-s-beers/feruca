@@ -55,6 +55,11 @@ pub fn find_byte_prefix(a: &[u8], b: &[u8], ctx: &CollationContext) -> usize {
 
 fn previous_char(bytes: &[u8], end: usize) -> Option<u32> {
     let mut start = end - 1;
+
+    if bytes[start].is_ascii() {
+        return Some(u32::from(bytes[start]));
+    }
+
     while start > 0 && is_utf8_continuation(bytes[start]) {
         start -= 1;
     }
@@ -70,6 +75,10 @@ fn next_char(bytes: &[u8], start: usize) -> Result<Option<u32>, ()> {
     let Some(&first) = bytes.get(start) else {
         return Ok(None);
     };
+
+    if first.is_ascii() {
+        return Ok(Some(u32::from(first)));
+    }
 
     let len = utf8_char_width(first).ok_or(())?;
     std::str::from_utf8(bytes.get(start..start + len).ok_or(())?)
@@ -123,4 +132,36 @@ pub fn find_prefix_shifted(a: &[u32], b: &[u32], ctx: &CollationContext) -> usiz
     }
 
     0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{next_char, previous_char};
+
+    #[test]
+    fn ascii_boundaries_accept_all_ascii_bytes() {
+        for byte in 0..=0x7f {
+            assert_eq!(previous_char(&[byte], 1), Some(u32::from(byte)));
+            assert_eq!(next_char(&[byte], 0), Ok(Some(u32::from(byte))));
+        }
+
+        assert_eq!(next_char(&[], 0), Ok(None));
+    }
+
+    #[test]
+    fn multibyte_and_invalid_boundaries_keep_utf8_validation() {
+        for c in ['é', 'ع', '中', '😀'] {
+            let mut buffer = [0; 4];
+            let bytes = c.encode_utf8(&mut buffer).as_bytes();
+
+            assert_eq!(previous_char(bytes, bytes.len()), Some(c as u32));
+            assert_eq!(next_char(bytes, 0), Ok(Some(c as u32)));
+            assert_eq!(next_char(&bytes[..bytes.len() - 1], 0), Err(()));
+        }
+
+        for bytes in [&b"\xff"[..], &b"\xc0\xaf"[..], &b"\xed\xa0\x80"[..]] {
+            assert_eq!(previous_char(bytes, bytes.len()), None);
+            assert_eq!(next_char(bytes, 0), Err(()));
+        }
+    }
 }
