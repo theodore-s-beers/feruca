@@ -30,8 +30,7 @@ pub fn compare_incremental(a_cea: &[u32], b_cea: &[u32], shifting: bool) -> Orde
 
     // If we got to this point, return Equal. The efficiency of processing and comparing sort keys
     // incrementally, for both strings at once, relies on the rarity of needing to continue all the
-    // way through tertiary or quaternary weights. (Remember, there are two earlier fast paths for
-    // equal strings -- one before normalization, one after.)
+    // way through tertiary or quaternary weights.
     Ordering::Equal
 }
 
