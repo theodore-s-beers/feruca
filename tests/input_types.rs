@@ -1,5 +1,5 @@
 use bstr::B;
-use feruca::Collator;
+use feruca::{Collator, Tailoring};
 use std::cmp::Ordering;
 
 #[test]
@@ -16,11 +16,12 @@ fn bytes_auto() {
 }
 
 #[test]
-fn bytes_literal() {
-    let a = b"Theodore";
-    let b = b"Th\xE9odore";
+fn invalid_utf8_uses_replacement_character() {
+    let a = b"Th\xE9odore".as_slice();
+    let b = "Th\u{FFFD}odore".as_bytes();
 
-    let mut collator = Collator::default();
+    // Disable byte-value tiebreaking so equivalent decoded text compares equal.
+    let mut collator = Collator::new(Tailoring::default(), true, false);
     let comp = collator.collate(a, b);
-    assert_eq!(comp, Ordering::Less);
+    assert_eq!(comp, Ordering::Equal);
 }
