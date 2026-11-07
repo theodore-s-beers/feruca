@@ -8,8 +8,8 @@ use crate::normalize::make_nfd;
 use crate::prefix::{find_byte_prefix, find_prefix_shifted};
 use crate::sort_key::compare_incremental;
 use crate::tables::CollationTable;
+use crate::utf8::CodePoints;
 use crate::{Locale, Tailoring};
-use bstr::{B, ByteSlice};
 use std::cmp::Ordering;
 
 const LAZY_UTF8_PRIMARY_MIN_COMBINED_BYTES: usize = 64;
@@ -269,8 +269,8 @@ impl Collator {
         }
 
         // Validate UTF-8 and make iterators for u32 code points
-        let mut a_iter = B(a_bytes).chars().map(|c| c as u32);
-        let mut b_iter = B(b_bytes).chars().map(|c| c as u32);
+        let mut a_iter = CodePoints::new(a_bytes);
+        let mut b_iter = CodePoints::new(b_bytes);
 
         // Clear code point Vecs
         self.a_chars.clear();
