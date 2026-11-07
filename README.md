@@ -5,12 +5,11 @@ feruca is a simple, from-scratch implementation of the
 current with **Unicode v18** (and, correspondingly, **CLDR v49**; see below).
 The name of the library is a portmanteau of Ferris 🦀 and UCA.
 
-No `unsafe` is used directly in this library: `#![forbid(unsafe_code)]`. It
-relies on the well-vetted [bstr](https://github.com/BurntSushi/bstr) to accept
-input in the form of either `&str` or `&[u8]`, and to handle byte input that may
-not be entirely kosher UTF-8. Some fast paths validate and decode UTF-8
-directly, but the fallback path uses `bstr` to generate Unicode scalar values
-that can then be processed for collation.
+No `unsafe` is used directly in this library: `#![forbid(unsafe_code)]`. Input
+can be either `&str` or `&[u8]`. An allocation-free UTF-8 decoder handles byte
+input, replacing any ill-formed sequences with `U+FFFD` (as recommended by the
+Unicode Standard). Some fast paths validate and decode UTF-8 directly, while the
+fallback decoder produces `u32` Unicode scalar values for collation.
 
 In describing feruca as a "simple implementation," I have a few things in mind.
 **First**, the performance of the library could perhaps still be improved – at
@@ -118,7 +117,7 @@ fn main() {
 ## Conformance
 
 The UCA conformance tests can be run with the command `cargo test`. Please note
-that, as a result of this library's reliance on `bstr` for UTF-8 validation, any
+that, as a result of this library's UTF-8 validation, any
 [surrogate code points](https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Surrogates)
 found in input to the `collate` method will be converted to the standard
 "replacement character," `U+FFFD`. Conformant implementations of the UCA are

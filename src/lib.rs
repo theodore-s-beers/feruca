@@ -31,4 +31,5 @@ mod tables;
 mod types;
 pub use types::{Locale, Tailoring};
 
+mod utf8;
 mod weights;

@@ -123,13 +123,18 @@ pub fn fill_codepoints_and_compare_ascii(
         return AsciiResult::Done(a_folded.cmp(&b_folded));
     }
 
-    // Finish filling code point Vecs
+    // Explicit loops let decoding inline into buffer writes; Vec::extend can
+    // introduce a separate call for each tail with this iterator.
     let a_tail_start = a_chars.len();
-    a_chars.extend(a_iter);
+    for c in a_iter {
+        a_chars.push(c);
+    }
     a_needs_nfd |= a_chars[a_tail_start..].iter().any(|c| *c >= 0xC0);
 
     let b_tail_start = b_chars.len();
-    b_chars.extend(b_iter);
+    for c in b_iter {
+        b_chars.push(c);
+    }
     b_needs_nfd |= b_chars[b_tail_start..].iter().any(|c| *c >= 0xC0);
 
     if ascii_failed {
